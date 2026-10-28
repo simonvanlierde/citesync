@@ -1,0 +1,29 @@
+# Managed by copier. Do not edit by hand. Run: copier update
+_commit: v0.11.0-15-g406e3a0
+_src_path: gh:simonvanlierde/project-templates
+author_email: code@duinlab.nl
+author_name: Simon van Lierde
+author_orcid: 0009-0006-6953-909X
+codecov: false
+codspeed: false
+copyright_year: '2026'
+customise: false
+dependency_bot: renovate
+github_user: simonvanlierde
+kind: library
+license: Apache-2.0
+module_name: citesync
+openssf_badge: none
+project_description: Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests
+    in step, mapped through CodeMeta crosswalks
+project_name: citesync
+public: true
+publish_to_pypi: true
+python_dir: .
+python_layout: src
+python_min: '3.12'
+python_version: '3.14'
+stacks:
+- python
+status: experimental
+test_extras: []

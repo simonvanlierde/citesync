@@ -1,0 +1,19 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "citesync",
+  "description": "Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks",
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0006-6953-909X",
+      "givenName": "Simon",
+      "familyName": "van Lierde",
+      "email": "code@duinlab.nl"
+    }
+  ],
+  "codeRepository": "https://github.com/simonvanlierde/citesync",
+  "issueTracker": "https://github.com/simonvanlierde/citesync/issues",
+  "license": "https://spdx.org/licenses/Apache-2.0",
+  "programmingLanguage": "Python"
+}

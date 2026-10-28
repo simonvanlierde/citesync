@@ -1,0 +1,149 @@
+name: python release
+
+# Trusted publishing: no API token. Configure the publisher once at
+# https://pypi.org/manage/account/publishing/ for repo simonvanlierde/citesync,
+# workflow `python-release.yml`, environment `pypi`.
+#
+# In the repo's Settings > Environments, limit `pypi` to tags matching `v*` and add
+# yourself as a required reviewer. Otherwise anyone who can push a branch can
+# dispatch an edited copy of this workflow and publish from it.
+#
+# The build job re-runs the full suite, since a release tag can point at a commit
+# that never went green. It then runs the suite against the installed wheel, the
+# only place packaging faults such as a wrong module name show up.
+#
+# `id-token: write` exposes an OpenID Connect (OIDC) request token to every step
+# in its job, so publish is a separate job that runs no project code.
+#
+# After PyPI, the release job attaches distributions and their provenance to a
+# draft, then publishes it. Immutable releases accept no assets after publication.
+
+# No workflow_dispatch: a manual run can target any branch, and neither trusted
+# publishing nor the environment checks which ref it publishes.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+# One group per release tag: a second run for the same tag waits, and no release
+# cancels or replaces another.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # As in python.yml: uv checks every package against OSV's malware advisories before
+  # its code runs. The preview flag only silences the "experimental" warning.
+  UV_MALWARE_CHECK: "1"
+  UV_PREVIEW_FEATURES: malware-check
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No cache: an entry written from any branch is restorable here, which
+      # would put attacker-controlled bytes into the wheel this workflow signs.
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: false
+          version: "0.13.1"
+
+      # Validate and save the notes before PyPI publishes anything.
+      - run: '"$GITHUB_WORKSPACE/.github/scripts/release-notes.sh" "$GITHUB_REF_NAME" "$GITHUB_WORKSPACE/CHANGELOG.md" >"$RUNNER_TEMP/notes.md"'
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/notes.md
+
+      # Publish only what passes, on the exact commit being released.
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run ty check
+      - run: uv run pytest
+
+      - run: uv build
+
+      # The suite again, against the wheel instead of src/. --no-project stops uv
+      # resolving the local tree, so the import can only come from dist/. The test
+      # tools come from uv.lock, with their hashes, not from whatever PyPI serves now:
+      # they run before dist/ is uploaded.
+      - run: |
+          uv export --locked --only-group dev --no-emit-project >"$RUNNER_TEMP/dev.txt"
+          uv run --isolated --no-project --with dist/*.whl --with-requirements "$RUNNER_TEMP/dev.txt" pytest tests
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: ./dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    # Job-level permissions replace the workflow-level grant, so restate contents.
+    permissions:
+      contents: read
+      id-token: write # required for trusted publishing, and to sign the attestation
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          # No checkout here: dist/ at the root, where the publish action looks.
+          path: dist/
+      # A signed build-provenance attestation per file, so anyone can check where a wheel
+      # was built: `gh attestation verify <file> --repo <owner>/<repo>`. This job runs no
+      # project code, so the token that signs it never reaches the test suite.
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        id: attest
+        with:
+          subject-path: dist/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: provenance
+          path: ${{ steps.attest.outputs.bundle-path }}
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+
+  # PyPI already has this version if this job fails: re-run only this job.
+  # Delete a leftover draft first; a published immutable release needs a new version.
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: provenance
+          path: provenance/
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-notes
+          path: notes/
+      # No checkout or project code runs with the write token.
+      - name: publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |-
+          set -euo pipefail
+          # mv also checks that the action produced exactly one bundle.
+          mv provenance/*.json "provenance/citesync-${TAG#v}.sigstore.json"
+          gh release create "$TAG" --draft --verify-tag --title "$TAG" \
+            --notes-file notes/notes.md dist/* "provenance/citesync-${TAG#v}.sigstore.json"
+          gh release edit "$TAG" --draft=false

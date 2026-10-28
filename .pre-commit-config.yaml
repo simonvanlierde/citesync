@@ -1,0 +1,145 @@
+# Run with prek, a drop-in pre-commit replacement: prek install && prek run -a
+#
+# Python projects get prek from `uv tool install prek`. TypeScript-only projects
+# get it from the @j178/prek devDependency. Revs are commit SHAs, since tags are
+# mutable; the dependency bot moves each SHA and its `# frozen:` tag together.
+
+# `prek install` sets up each of these: the commit message is checked as you commit.
+default_install_hook_types: [pre-commit, commit-msg]
+
+# data/ holds inputs: the whitespace, end-of-file and notebook hooks must not rewrite them.
+# Excluded per hook, so the secret scan and the large-file check still cover data/.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-yaml
+        # pnpm writes its own version into the lockfile as a second YAML document.
+        exclude: (^|/)pnpm-lock\.yaml$
+      - id: end-of-file-fixer
+        exclude: ^data/
+      - id: mixed-line-ending
+        exclude: ^data/
+      - id: trailing-whitespace
+        exclude: ^data/
+      # Not gated to python: .rumdl.toml ships to every stack.
+      - id: check-toml
+
+  # Commit messages follow committed.toml: Conventional Commits, imperative, no period.
+  - repo: https://github.com/crate-ci/committed
+    rev: faeed42f2e10c244533a01525f13c4d8b6ce383f # frozen: v1.1.11
+    hooks:
+      - id: committed
+        # git writes a merge commit's message itself, so skip the check during a merge.
+        entry: sh -c 'test -f "$(git rev-parse --git-path MERGE_HEAD)" || exec committed "$@"' --
+
+  # Not gated to ts: .vscode/ and .github/rulesets/ JSON ship to every stack.
+  # .json files are read as JSON5, so comments and trailing commas in tsconfig
+  # and VS Code settings pass; syntax errors and duplicate keys fail.
+  - repo: https://github.com/simonvanlierde/jsonvet
+    rev: 022d320d5b971eccb28cfa6ce205152cbb382e53 # frozen: v3.2.0
+    hooks:
+      - id: jsonvet
+
+  # Formats first, so yamllint below sees the formatted file.
+  - repo: https://github.com/google/yamlfmt
+    rev: 21ca5323a9c87ee37a434e0ca908efc0a89daa07 # frozen: v0.21.0
+    hooks:
+      - id: yamlfmt
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: cba56bcde1fdd01c1deb3f945e69764c291a6530 # frozen: v1.38.0
+    hooks:
+      - id: yamllint
+
+  # gitleaks' successor from the same authors. gitleaks takes security fixes only.
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: 81aff7a638638aae3a659845d089043e1d8fe9ac # frozen: v1.9.0
+    hooks:
+      - id: betterleaks
+
+  # Audits .github/ for template injection, credential leakage, cache poisoning
+  # and impostor commits. Set GH_TOKEN to enable the audits that need the API;
+  # without it only the offline subset runs.
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f # frozen: v1.31.1
+    hooks:
+      - id: zizmor
+
+  # Checks what zizmor doesn't: unknown keys, bad `needs`, expression type errors,
+  # and shellcheck over every `run:` when shellcheck is on PATH. jactionlint is a
+  # maintained fork of actionlint that adds release, cache and concurrency checks.
+  - repo: https://github.com/jdx/jactionlint
+    rev: 1027f0a131ab98bc7e191d995bfa15dbed5bbf8f # frozen: v2.2.0
+    hooks:
+      - id: jactionlint
+
+  # CITATION.cff against the official schema. GitHub's "Cite this repository"
+  # silently drops a file that fails it.
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0494aa7fa1314e98913a41227d8f0a515b2c1049 # frozen: 0.38.2
+    hooks:
+      - id: check-citation-file-format
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 34071b78c181af3bf5af955c1426466e096fc3db # frozen: 0.9.1
+    hooks:
+      - id: nbstripout
+        exclude: ^data/
+  - repo: https://github.com/rvben/rumdl-pre-commit
+    rev: 03a7d1a4936b5889602852175bca2d39acb3281e # frozen: v0.3.0
+    hooks:
+      - id: rumdl
+        args: [--fix]
+
+  # Misspelt words in code, comments and docs. It fixes the ones it is sure of and
+  # fails, so you review the fix. List a word it must leave alone in _typos.toml.
+  - repo: https://github.com/crate-ci/typos
+    rev: 7f9d0819ca1c008ade73f4b41fa9d258d48f605b # frozen: v1.51.1
+    hooks:
+      - id: typos
+        # Copier writes the template's commit id here, and a hex id can spell a word
+        # typos rejects.
+        exclude: ^\.copier-answers\.yml$
+
+  # Dead relative links in Markdown and HTML. Offline, so a commit never waits on the
+  # network: the weekly links.yml checks the web links. lychee's own hook installs its
+  # binary with an unpinned install script, so this takes upstream's wheel from PyPI
+  # at an exact version instead.
+  - repo: local
+    hooks:
+      - id: lychee
+        name: lychee --offline
+        entry: lychee --no-progress --offline
+        language: python
+        additional_dependencies: [lychee-bin==0.24.2]
+        types_or: [markdown, html]
+        require_serial: true
+
+  - repo: local
+    hooks:
+      # Runs from the project's venv, not the ruff-pre-commit mirror, so it uses the
+      # same ruff as CI. --force-exclude keeps ruff's excludes when the hook passes
+      # explicit filenames.
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+
+      - id: ty
+        name: ty check
+        entry: uv run --frozen ty check
+        language: system
+        pass_filenames: false
+        types: [python]

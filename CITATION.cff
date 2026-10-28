@@ -1,0 +1,14 @@
+# GitHub reads this for its "Cite this repository" button. Zenodo reads
+# .zenodo.json instead when it archives a release, and software indexes read
+# codemeta.json: change authors in all three. Check the name split below: the
+# first word becomes the given name.
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: "citesync"
+abstract: "Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks"
+authors:
+  - given-names: "Simon"
+    family-names: "van Lierde"
+    orcid: "https://orcid.org/0009-0006-6953-909X"
+repository-code: "https://github.com/simonvanlierde/citesync"
+license: Apache-2.0

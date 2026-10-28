@@ -1,0 +1,13 @@
+{
+  "upload_type": "software",
+  "title": "citesync",
+  "description": "Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks",
+  "creators": [
+    {
+      "name": "van Lierde, Simon",
+      "orcid": "0009-0006-6953-909X"
+    }
+  ],
+  "access_right": "open",
+  "license": "apache-2.0"
+}
