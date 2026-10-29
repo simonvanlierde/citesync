@@ -13,7 +13,7 @@ _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
 _DOI = re.compile(r"^10\.\d+/\S+$")
 _NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
-_NPM_SHORTHAND = re.compile(r"^(?:(?P<host>github|gitlab|bitbucket):)?(?P<path>[\w.-]+/[\w.-]+)$")
+_NPM_SHORTHAND = re.compile(r"^(?P<host>github|gitlab|bitbucket):(?P<path>[\w.-]+/[\w.-]+)$")
 _SSH = re.compile(r"^(?:ssh://)?git@(?P<host>[^:/]+)[:/](?P<path>.+)$")
 _CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
 _PRE = re.compile(
@@ -106,14 +106,14 @@ def doi_key(doi: str) -> str:
 def repo_decode(raw: object) -> str | None:
     """The repository URL without ``git+``, ``.git`` or a trailing slash.
 
-    npm's shorthands (``github:o/r``, ``o/r``) and SSH remotes (``git@github.com:o/r.git``)
+    npm's shorthands (``github:o/r``) and SSH remotes (``git@github.com:o/r.git``)
     expand to the https URL.
     """
     if not isinstance(raw, str) or not raw.strip():
         return None
     url = raw.strip().removeprefix("git+")
     if match := _NPM_SHORTHAND.match(url):
-        url = f"https://{_NPM_HOSTS[match['host'] or 'github']}/{match['path']}"
+        url = f"https://{_NPM_HOSTS[match['host']]}/{match['path']}"
     elif match := _SSH.match(url):
         url = f"https://{match['host']}/{match['path']}"
     while url.endswith(("/", ".git")):

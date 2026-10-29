@@ -77,7 +77,7 @@ def test_repo_decode_strips_npm_spelling() -> None:
 
 
 def test_repo_decode_expands_npm_shorthands() -> None:
-    for raw in ("github:o/r", "o/r", "git@github.com:o/r.git", "git+ssh://git@github.com/o/r.git"):
+    for raw in ("github:o/r", "git@github.com:o/r.git", "git+ssh://git@github.com/o/r.git"):
         assert codecs.repo_decode(raw) == "https://github.com/o/r", raw
     assert codecs.repo_decode("gitlab:o/r") == "https://gitlab.com/o/r"
     assert codecs.repo_decode("bitbucket:o/r") == "https://bitbucket.org/o/r"

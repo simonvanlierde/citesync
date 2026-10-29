@@ -26,6 +26,8 @@ CODEMETA_VERSIONS = ("2.0", "3.0", "3.1", "4.0")
 CFF_VERSIONS = ("1.2.0",)
 
 _CODEMETA_CONTEXT = re.compile(r"^https?://w3id\.org/codemeta/v?(\d+\.\d+)/?$")
+_NPM_BARE_REPO = re.compile(r"^[\w.-]+/[\w.-]+$")
+_URL_LABELS = {"source": "Source", "sourcecode": "Source", "repository": "Repository", "homepage": "Homepage"}
 _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
 
 
@@ -113,7 +115,7 @@ def _load(path: Path, rel: str) -> dict[str, Any]:
         elif path.suffix == ".json":
             data = json.loads(text)
         else:
-            data = YAML(typ="rt").load(text)
+            data = YAML(typ="base").load(text)  # every scalar a string: version 1.10 is not the float 1.1
     except (tomllib.TOMLDecodeError, json.JSONDecodeError, YAMLError) as err:
         msg = f"{rel}: cannot parse: {err}"
         raise CheckError(msg) from err
@@ -162,17 +164,45 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
         return _adapt_cargo(data, root, rel)
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
         dynamic = set(project.get("dynamic", []))  # a dynamic field is skipped, the rest still checked
-        return {**data, "project": {k: v for k, v in project.items() if k not in dynamic}}
+        project = {k: v for k, v in project.items() if k not in dynamic}
+        if isinstance(urls := project.get("urls"), dict):
+            project["urls"] = _url_labels(urls)
+        return {**data, "project": project}
+    if fmt == "cff-1.2.0" and isinstance(data.get("authors"), list):
+        return {**data, "authors": [_cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
     if fmt == "npm":
         data = dict(data)
         if isinstance(data.get("author"), str):
             data["author"] = {"name": data["author"]}
         if isinstance(data.get("repository"), dict):
             data["repository"] = data["repository"].get("url")
+        if isinstance(data.get("repository"), str) and _NPM_BARE_REPO.match(data["repository"]):
+            data["repository"] = f"github:{data['repository']}"  # npm reads a bare owner/repo as GitHub
         return data
     if fmt == "codemeta" and isinstance(data.get("author"), dict):
         return {**data, "author": [data["author"]]}  # JSON-LD allows one node for a list of one
     return data
+
+
+def _url_labels(urls: dict[str, Any]) -> dict[str, Any]:
+    """PEP 621 url labels normalised as packaging does (``Source Code`` and ``source-code`` are ``Source``)."""
+    named = dict(urls)
+    for label, url in urls.items():
+        known = _URL_LABELS.get("".join(c for c in label.lower() if c.isalnum()))
+        if known:
+            named.setdefault(known, url)
+    return named
+
+
+def _cff_person(author: dict[str, Any]) -> dict[str, Any]:
+    """Fold ``name-particle`` and ``name-suffix`` into the family name, and read an entity's ``name`` as one.
+
+    So CFF's (Simon, van, Lierde) reads as Zenodo's ``"van Lierde, Simon"`` does.
+    """
+    family = author.get("family-names") or (author.get("name") if "given-names" not in author else None)
+    parts = [author.get("name-particle"), family, author.get("name-suffix")]
+    family = " ".join(p for p in parts if isinstance(p, str) and p.strip()) or None
+    return {**author, "family-names": family} if family else author
 
 
 def _adapt_cargo(data: dict[str, Any], root: Path, rel: str) -> dict[str, Any]:
@@ -209,6 +239,8 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         return people or None
     if not values:
         return None
+    if term == "codeRepository":  # Zenodo's isSupplementTo also lists papers by DOI
+        values = [v for v in values if codecs.doi_decode(v) is None] or [None]
     raw = values[0]
     if term == "keywords":
         items = raw if isinstance(raw, list) else [raw]

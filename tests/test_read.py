@@ -65,3 +65,58 @@ def test_npm_person_string_and_codemeta_single_author(tmp_path: Path) -> None:
     )
     doc = read_doc(tmp_path, "codemeta.json", load_mapping())
     assert (doc.version, doc.record["author"]) == ("3.1", (Person("Ada Lovelace", "Ada", "Lovelace"),))
+
+
+def _read(tmp_path: Path, name: str, text: str) -> dict:
+    (tmp_path / name).write_text(text, encoding="utf-8")
+    return read_doc(tmp_path, name, load_mapping()).record
+
+
+CFF = "cff-version: 1.2.0\nmessage: m\ntitle: x\n"
+
+
+def test_cff_name_particle_suffix_and_entity(tmp_path: Path) -> None:
+    record = _read(
+        tmp_path,
+        "CITATION.cff",
+        CFF + "authors:\n"
+        "  - {given-names: Simon, name-particle: van, family-names: Lierde}\n"
+        "  - {given-names: Martin, family-names: King, name-suffix: Jr.}\n"
+        "  - {name: ACME Lab}\n",
+    )
+    assert [p.name for p in record["author"]] == ["Simon van Lierde", "Martin King Jr.", "ACME Lab"]
+    zenodo = _read(tmp_path, ".zenodo.json", '{"creators": [{"name": "van Lierde, Simon"}, {"name": "ACME Lab"}]}')
+    assert [p.name for p in zenodo["author"]] == ["Simon van Lierde", "ACME Lab"]
+
+
+def test_cff_scalars_read_as_written(tmp_path: Path) -> None:
+    assert _read(tmp_path, "CITATION.cff", CFF + "version: 1.10\n")["version"] == "1.10"
+
+
+def test_zenodo_repository_skips_a_doi_supplement(tmp_path: Path) -> None:
+    related = [
+        {"relation": "isSupplementTo", "identifier": "10.1/paper", "scheme": "doi"},
+        {"relation": "isSupplementTo", "identifier": "https://github.com/o/r", "scheme": "url"},
+    ]
+    record = _read(tmp_path, ".zenodo.json", json.dumps({"related_identifiers": related}))
+    assert record["codeRepository"] == "https://github.com/o/r"
+
+
+def test_codemeta_identifier_url_or_list(tmp_path: Path) -> None:
+    head = '{"@context": "https://w3id.org/codemeta/3.0", '
+    assert "identifier" not in _read(tmp_path, "codemeta.json", head + '"identifier": "https://github.com/o/r"}')
+    listed = _read(tmp_path, "codemeta.json", head + '"identifier": ["https://github.com/o/r", "10.1/a"]}')
+    assert listed["identifier"] == "10.1/a"
+    assert (
+        _read(tmp_path, "codemeta.json", head + '"license": ["MIT", "Apache-2.0"]}')["license"] == "MIT OR Apache-2.0"
+    )
+
+
+def test_pep621_url_labels_are_normalised(tmp_path: Path) -> None:
+    for label in ("homepage", "Source Code", "source-code", "repository"):
+        text = f'[project]\nname = "x"\n[project.urls]\n"{label}" = "https://github.com/o/r"\n'
+        assert _read(tmp_path, "pyproject.toml", text)["codeRepository"] == "https://github.com/o/r", label
+
+
+def test_npm_bare_repository_is_github(tmp_path: Path) -> None:
+    assert _read(tmp_path, "package.json", '{"repository": "o/r"}')["codeRepository"] == "https://github.com/o/r"
