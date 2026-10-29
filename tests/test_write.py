@@ -317,10 +317,16 @@ def test_a_value_write_cannot_spell_is_left_with_the_reason(
     ), out
 
 
-def test_an_or_licence_becomes_a_list(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.parametrize("expression", ["MIT OR Apache-2.0", "(MIT OR Apache-2.0)"])
+def test_an_or_licence_becomes_a_list(expression: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = _synthetic(tmp_path / "repo", 'source = "pyproject.toml"\n')
-    _edit(root / "pyproject.toml", '"Apache-2.0"', '"MIT OR Apache-2.0"')
+    _edit(root / "pyproject.toml", '"Apache-2.0"', f'"{expression}"')
     _run(capsys, "write", "--root", str(root))
+    report = json.loads(_run(capsys, "check", "--json", "--root", str(root))[1])
+    assert not {f["file"] for f in report["findings"] if f["rule"] == "license-mismatch"} & {
+        "CITATION.cff",
+        "codemeta.json",
+    }
     assert "license:\n  - MIT\n  - Apache-2.0\n" in (root / "CITATION.cff").read_text(encoding="utf-8")
     licences = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["license"]
     assert licences == ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]

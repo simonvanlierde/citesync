@@ -262,7 +262,7 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
         raise CannotWrite(msg)
     first = old[0] if isinstance(old, list) and old else old
     form = "spdx-url" if isinstance(first, str) and first.startswith("http") else "spdx"
-    ids = [codecs.license_encode(i, form) for i in spdx.split(" OR ")]
+    ids = [codecs.license_encode(i, form) for i in spdx.replace("(", "").replace(")", "").split(" OR ")]
     return ids if len(ids) > 1 or isinstance(old, list) else ids[0]
 
 

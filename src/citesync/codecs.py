@@ -65,8 +65,12 @@ def license_encode(spdx: str, form: str) -> str:
 
 
 def license_key(spdx: str) -> str:
-    """Licences compare case-insensitively, since Zenodo lowercases them."""
-    return spdx.casefold()
+    """Licences compare case-insensitively, since Zenodo lowercases them.
+
+    Parentheses group nothing when ``OR`` is the only operator, so they are dropped then.
+    """
+    key = spdx.casefold()
+    return key if {"and", "with"} & set(key.split()) else key.replace("(", "").replace(")", "")
 
 
 # ORCID: a URL or a bare iD.
