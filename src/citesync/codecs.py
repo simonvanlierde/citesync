@@ -8,6 +8,8 @@ Each codec has ``decode``, from what a file holds to the normalised value, and
 import re
 import unicodedata
 
+from packaging.version import InvalidVersion, Version
+
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
@@ -159,7 +161,7 @@ def name_key(name: str) -> str:
     return unicodedata.normalize("NFC", _clean(name)).casefold()
 
 
-# Version: semver pre-release tags normalised to PEP 440, so 0.3.1-rc.1 equals 0.3.1rc1.
+# Version: equal as PEP 440 versions, so v1.2.3 = 1.2.3, 1.0 = 1.0.0 and 0.3.1-rc.1 = 0.3.1rc1.
 
 
 def version_decode(raw: object) -> str | None:
@@ -170,12 +172,15 @@ def version_decode(raw: object) -> str | None:
     return text or None
 
 
-def version_key(version: str) -> str:
-    """The PEP 440 spelling of a pre-release: ``0.3.1-rc.1`` is ``0.3.1rc1``, ``1.0.0-beta`` is ``1.0.0b0``."""
-    match = _PRE.match(version.strip())
-    if not match:
+def version_key(version: str) -> Version | str:
+    """The parsed PEP 440 version, or for one that isn't (``unreleased``) the string itself.
+
+    A ``Version`` never equals a ``str``, so a PEP 440 version and anything else differ.
+    """
+    try:
+        return Version(version)
+    except InvalidVersion:
         return version.strip()
-    return f"{match['release']}{_PEP440_TAG[match['tag'].lower()]}{int(match['n'] or 0)}{match['local'] or ''}"
 
 
 def version_encode_semver(version: str) -> str:

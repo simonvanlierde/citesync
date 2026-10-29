@@ -8,6 +8,7 @@ authors = [{ name = "Simon van Lierde", email = "code@duinlab.nl" }]
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 dependencies = [
+    "packaging>=26.3",
     "ruamel-yaml>=0.19",
 ]
 

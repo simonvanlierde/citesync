@@ -134,9 +134,12 @@ def test_d2_gap(
     assert code == (1 if findings else 0)
 
 
-def test_semver_prerelease_equals_pep440(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    (tmp_path / "CITATION.cff").write_text(CFF + "version: 0.3.1-rc.1\n", encoding="utf-8")
-    (tmp_path / "codemeta.json").write_text(_codemeta(version="0.3.1rc1"), encoding="utf-8")
+@pytest.mark.parametrize(("cff", "codemeta"), [("0.3.1-rc.1", "0.3.1rc1"), ("v1.2.3", "1.2.3"), ("1.0", "1.0.0")])
+def test_versions_compare_as_pep440(
+    cff: str, codemeta: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF + f"version: {cff}\n", encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(version=codemeta), encoding="utf-8")
     assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "", "")
     (tmp_path / "codemeta.json").write_text(_codemeta(version="0.3.1rc2"), encoding="utf-8")
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path))

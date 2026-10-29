@@ -1,5 +1,6 @@
 """Property tests on every codec: decode(encode(x)) == x for normalised values, and decoding is idempotent."""
 
+import pytest
 from hypothesis import example, given
 from hypothesis import strategies as st
 
@@ -124,7 +125,7 @@ def test_contact_name(name: str) -> None:
 
 @given(PRE_RELEASE)
 def test_version_semver_round_trip(version: str) -> None:
-    assert codecs.version_key(codecs.version_encode_semver(version)) == version
+    assert codecs.version_key(codecs.version_encode_semver(version)) == codecs.version_key(version)
 
 
 @given(st.text())
@@ -135,10 +136,35 @@ def test_version_semver_round_trip(version: str) -> None:
 @example("0a1\u0660")  # an Arabic-Indic zero is not a version digit
 def test_version_key_idempotent(raw: str) -> None:
     once = codecs.version_key(raw)
-    assert codecs.version_key(once) == once
+    assert codecs.version_key(str(once)) == once
 
 
-def test_version_key_examples() -> None:
-    assert codecs.version_key("0.3.1-rc.1") == "0.3.1rc1"
-    assert codecs.version_key("1.0.0-beta") == "1.0.0b0"
-    assert codecs.version_key("1.2.3") == "1.2.3"
+RELEASE = st.from_regex(rf"{NUMBER}(\.{NUMBER}){{0,2}}", fullmatch=True)
+
+
+@given(RELEASE, st.sampled_from(["a", "b", "rc", "dev"]), st.from_regex(NUMBER, fullmatch=True))
+def test_version_key_spellings_agree(release: str, tag: str, n: str) -> None:
+    """A leading v, trailing zeros and semver pre-release spelling don't change the key."""
+    key = codecs.version_key(f"{release}{tag}{n}" if tag != "dev" else f"{release}.dev{n}")
+    semver_tag = {"a": "alpha", "b": "beta"}.get(tag, tag)
+    for spelling in (f"v{release}.0-{semver_tag}.{n}", f"{release}-{semver_tag}.{n}"):
+        assert codecs.version_key(spelling) == key, spelling
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "equal"),
+    [
+        ("v1.2.3", "1.2.3", True),
+        ("1.0", "1.0.0", True),
+        ("1.0.0-dev.1", "1.0.0.dev1", True),
+        ("0.3.1-rc.1", "0.3.1rc1", True),
+        ("1.0.0-beta", "1.0.0b0", True),
+        (" 1.2.3 ", "1.2.3", True),
+        ("unreleased", "unreleased", True),
+        ("unreleased", "1.0", False),
+        ("Unreleased", "unreleased", False),  # not PEP 440, so compared exactly
+        ("1.2.3", "1.2.4", False),
+    ],
+)
+def test_version_key_equality(a: str, b: str, *, equal: bool) -> None:
+    assert (codecs.version_key(a) == codecs.version_key(b)) is equal
