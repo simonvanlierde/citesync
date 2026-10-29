@@ -5,10 +5,17 @@
 cff-version: 1.2.0
 message: If you use this software, please cite it as below.
 title: "citesync"
-abstract: "Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks"
+abstract: "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks"
 authors:
   - given-names: "Simon"
     family-names: "van Lierde"
     orcid: "https://orcid.org/0009-0006-6953-909X"
 repository-code: "https://github.com/simonvanlierde/citesync"
 license: Apache-2.0
+keywords:
+  - "citation"
+  - "CITATION.cff"
+  - "codemeta"
+  - "zenodo"
+  - "software-metadata"
+  - "pre-commit"

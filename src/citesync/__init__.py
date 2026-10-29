@@ -1,1 +1,1 @@
-"""Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks."""
+"""Check that citation files and package manifests agree, and rewrite them to match one source."""

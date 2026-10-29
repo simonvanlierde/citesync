@@ -101,7 +101,7 @@ ignore = ["description-mismatch"]          # rule ids whose findings to drop
 
 An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
 
-Not built yet: the `diff` format, and creating a citation file listed under `files` that doesn't exist yet.
+Not built yet: creating a citation file listed under `files` that doesn't exist yet.
 
 ## Pre-commit hook
 
