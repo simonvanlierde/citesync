@@ -11,6 +11,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from citesync.cli import main
+from citesync.formats import dangling_roles
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SYNTHETIC = FIXTURES / "synthetic-agree"
@@ -583,3 +584,60 @@ def test_write_keeps_roles(old: str, new: str, tmp_path: Path, capsys: pytest.Ca
     assert (code, err) == (0, ""), out
     assert "wrote codemeta.json" in out
     assert _roles(root) == before
+
+
+def test_replacing_the_person_of_a_role_warns(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Write renames the first author in place, dropping the ORCID both Roles name, and check then warns."""
+    root = _synthetic(tmp_path / "repo", 'source = "CITATION.cff"\nwrite-manifests = "all"\n')
+    before = _with_roles(root)
+    cff = root / "CITATION.cff"
+    old = '  - given-names: "Ada"\n    family-names: "Lovelace"\n    orcid: "https://orcid.org/0000-0002-1825-0097"\n'
+    cff.write_text(
+        cff.read_text(encoding="utf-8").replace(old, '  - given-names: "Grace"\n    family-names: "Hopper"\n')
+    )
+
+    code, out, err = _run(capsys, "write", "--root", str(root))
+    assert (code, err) == (0, ""), out
+    assert _roles(root) == before
+
+    code, out, _ = _run(capsys, "check", "--root", str(root), "--format", "json")
+    found = [(f["rule"], f["severity"], f["file"], f["term"]) for f in json.loads(out)["findings"]]
+    assert code == 0
+    assert [f for f in found if f[1] != "info"] == [
+        ("role-dangling", "warning", "codemeta.json", "author"),
+        ("role-dangling", "warning", "codemeta.json", "contributor"),
+    ]
+
+
+def test_dangling_roles() -> None:
+    other, third = "https://orcid.org/0000-0001-5109-3700", "https://orcid.org/0000-0002-9079-593X"
+    data = {
+        "author": [
+            {"@type": "Person", "@id": ADA},
+            {"@type": "Role", "schema:author": {"@id": "http://orcid.org/0000-0002-1825-0097"}},
+            {"@type": "Role", "schema:author": other},
+            {"@type": "Role", "roleName": SOFTWARE},
+        ],
+        "contributor": {"@type": "Role", "schema:author": third},
+    }
+    assert dangling_roles(data) == (("author", "0000-0001-5109-3700"), ("contributor", "0000-0002-9079-593X"))
+
+
+def test_role_dangling_lists_the_orcids_per_list(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    path = root / "codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    ids = ["0000-0001-5109-3700", "0000-0002-9079-593X", "0000-0003-1419-2405"]
+    roles = [{"@type": "Role", "schema:author": f"https://orcid.org/{i}", "roleName": SOFTWARE} for i in ids]
+    data["author"] += roles[:2]
+    data["contributor"] = roles[2:]
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    code, out, _ = _run(capsys, "check", "--root", str(root), "--format", "json")
+    found = [(f["term"], f["message"]) for f in json.loads(out)["findings"] if f["rule"] == "role-dangling"]
+    assert code == 0
+    tail = "which no Person in author or contributor has"
+    assert found == [
+        ("author", f"a Role points at {ids[0]}, {ids[1]}, {tail}"),
+        ("contributor", f"a Role points at {ids[2]}, {tail}"),
+    ]

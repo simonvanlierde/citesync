@@ -47,7 +47,11 @@ def write(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[l
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
-    fix = {(f.file, f.term) for f in findings(docs, unreadable, config) if f.rule not in config.ignore}
+    fix = {
+        (f.file, f.term)
+        for f in findings(docs, unreadable, config)
+        if f.severity == "error" and f.rule not in config.ignore
+    }
     source, texts, skipped = docs[0], {}, {}
     key = keyword_key(case_sensitive=config.keywords_case_sensitive)
     for doc in docs:  # the source too, for its @context

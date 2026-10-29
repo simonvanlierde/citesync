@@ -103,6 +103,15 @@ RULES = {
         "Change the `@context` to the configured version, or set `codemeta-version` in the config.",
         "The configured version is `codemeta-version`, 3.0 by default. citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.",
     ),
+    "role-dangling": Rule(
+        "warning",
+        "A CodeMeta Role in codemeta.json points at a person who isn't listed.",
+        "Add the person back, point the Role at their ORCID, or remove the Role.",
+        "A `Role` entry in codemeta.json's `author` or `contributor` list, as credit-matrix writes CRediT roles,"
+        " names its person by ORCID in `schema:author`. The rule warns when no `Person` in either list has that"
+        " ORCID as its `@id`, as after someone is replaced. The role itself is not checked, and `write` never"
+        " changes a Role.",
+    ),
     "unreadable": Rule(
         "error",
         "citesync could not read the file.",
