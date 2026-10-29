@@ -40,6 +40,8 @@ def test_orcid_round_trip(orcid: str) -> None:
 @given(st.text())
 @example("https://orcid.org/0000-0002-1825-009x")
 @example("http://www.orcid.org/0000-0002-1825-0097/")
+@example("/")
+@example("https://orcid.org/")
 def test_orcid_decode_idempotent(raw: str) -> None:
     once = codecs.orcid_decode(raw)
     assert codecs.orcid_decode(once) == once
@@ -54,6 +56,8 @@ def test_doi_round_trip(doi: str) -> None:
 @given(st.text())
 @example("doi:10.5281/zenodo.1")
 @example("https://dx.doi.org/10.5281/ZENODO.1")
+@example("doi:")
+@example("https://doi.org/")
 def test_doi_decode_idempotent(raw: str) -> None:
     once = codecs.doi_decode(raw)
     assert codecs.doi_decode(once) == once
@@ -70,6 +74,27 @@ def test_repo_decode_idempotent(raw: str) -> None:
 
 def test_repo_decode_strips_npm_spelling() -> None:
     assert codecs.repo_decode("git+https://github.com/o/r.git") == "https://github.com/o/r"
+
+
+def test_repo_decode_expands_npm_shorthands() -> None:
+    for raw in ("github:o/r", "o/r", "git@github.com:o/r.git", "git+ssh://git@github.com/o/r.git"):
+        assert codecs.repo_decode(raw) == "https://github.com/o/r", raw
+    assert codecs.repo_decode("gitlab:o/r") == "https://gitlab.com/o/r"
+    assert codecs.repo_decode("bitbucket:o/r") == "https://bitbucket.org/o/r"
+
+
+def test_doi_decode_keeps_only_doi_shaped_values() -> None:
+    assert codecs.doi_decode("https://github.com/o/r") is None
+    assert codecs.doi_decode(["https://github.com/o/r", "https://doi.org/10.1/a", "10.1/b"]) == "10.1/a"
+
+
+def test_license_decode_list() -> None:
+    assert codecs.license_decode(["MIT", "https://spdx.org/licenses/Apache-2.0"]) == "MIT OR Apache-2.0"
+    assert codecs.license_decode([]) is None
+
+
+def test_name_key_nfc() -> None:
+    assert codecs.name_key("Jose\u0301") == codecs.name_key("Jos\u00e9")
 
 
 @given(WORD.filter(lambda s: "," not in s), WORD.filter(lambda s: "," not in s))

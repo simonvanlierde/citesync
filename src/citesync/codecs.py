@@ -6,10 +6,15 @@ Each codec has ``decode``, from what a file holds to the normalised value, and
 """
 
 import re
+import unicodedata
 
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
+_DOI = re.compile(r"^10\.\d+/\S+$")
+_NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
+_NPM_SHORTHAND = re.compile(r"^(?:(?P<host>github|gitlab|bitbucket):)?(?P<path>[\w.-]+/[\w.-]+)$")
+_SSH = re.compile(r"^(?:ssh://)?git@(?P<host>[^:/]+)[:/](?P<path>.+)$")
 _CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
 _PRE = re.compile(
     r"^(?P<release>\d+(?:\.\d+)*)[-_.]?(?P<tag>alpha|a|beta|b|rc|c|preview|pre)[-_.]?(?P<n>\d*)(?P<local>\+.*)?$",
@@ -27,7 +32,13 @@ def _clean(text: str) -> str:
 
 
 def license_decode(raw: object) -> str | None:
-    """The SPDX id in a licence field; PEP 621's legacy ``{text = ...}`` table gives its text."""
+    """The SPDX id in a licence field; PEP 621's legacy ``{text = ...}`` table gives its text.
+
+    A list (CFF, codemeta) reads as the SPDX expression ``A OR B``, in the order given.
+    """
+    if isinstance(raw, list):
+        ids = [i for i in map(license_decode, raw) if i]
+        return " OR ".join(ids) or None
     if isinstance(raw, dict):
         raw = raw.get("text")  # a {file = ...} table names a file, not a licence
     if not isinstance(raw, str) or not raw.strip():
@@ -55,7 +66,7 @@ def orcid_decode(raw: object) -> str | None:
     if not isinstance(raw, str) or not raw.strip():
         return None
     bare = _ORCID_URL.sub("", raw.strip()).strip("/")
-    return bare.upper()
+    return bare.upper() or None
 
 
 def orcid_encode(orcid: str, form: str) -> str:
@@ -67,10 +78,16 @@ def orcid_encode(orcid: str, form: str) -> str:
 
 
 def doi_decode(raw: object) -> str | None:
-    """The bare DOI (``10.5281/zenodo.1234567``)."""
-    if not isinstance(raw, str) or not raw.strip():
+    """The bare DOI (``10.5281/zenodo.1234567``), or None for a value that isn't one.
+
+    codemeta's ``identifier`` may be any URL or a list: the first DOI in it counts.
+    """
+    if isinstance(raw, list):
+        return next(filter(None, map(doi_decode, raw)), None)
+    if not isinstance(raw, str):
         return None
-    return _DOI_PREFIX.sub("", raw.strip())
+    doi = _DOI_PREFIX.sub("", raw.strip())
+    return doi if _DOI.match(doi) else None
 
 
 def doi_encode(doi: str, form: str) -> str:
@@ -87,10 +104,18 @@ def doi_key(doi: str) -> str:
 
 
 def repo_decode(raw: object) -> str | None:
-    """The repository URL without ``git+``, ``.git`` or a trailing slash."""
+    """The repository URL without ``git+``, ``.git`` or a trailing slash.
+
+    npm's shorthands (``github:o/r``, ``o/r``) and SSH remotes (``git@github.com:o/r.git``)
+    expand to the https URL.
+    """
     if not isinstance(raw, str) or not raw.strip():
         return None
     url = raw.strip().removeprefix("git+")
+    if match := _NPM_SHORTHAND.match(url):
+        url = f"https://{_NPM_HOSTS[match['host'] or 'github']}/{match['path']}"
+    elif match := _SSH.match(url):
+        url = f"https://{match['host']}/{match['path']}"
     while url.endswith(("/", ".git")):
         url = url.rstrip("/").removesuffix(".git")
     return url or None
@@ -130,8 +155,8 @@ def display_name(given: str | None, family: str | None) -> str | None:
 
 
 def name_key(name: str) -> str:
-    """Names compare case-insensitively, with whitespace collapsed."""
-    return _clean(name).casefold()
+    """Names compare case-insensitively, with whitespace collapsed and Unicode in NFC."""
+    return unicodedata.normalize("NFC", _clean(name)).casefold()
 
 
 # Version: semver pre-release tags normalised to PEP 440, so 0.3.1-rc.1 equals 0.3.1rc1.
