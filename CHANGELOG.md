@@ -12,6 +12,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A keyword that differs from another file's only in hyphens, underscores or spaces is named in the finding, as in `industrial-ecology (CITATION.cff has 'industrial ecology': differs only in separators)`. `citesync write` gives it the source's spelling where it stands, instead of dropping it.
 - `keywords-ignore-separators = true` treats such keywords as equal. Against Cargo.toml they always are, since crates.io refuses a keyword with a space.
 
+### Changed
+
+- `citesync check` starts about a third faster: it no longer loads what only `write`, `--version` or `--json` need.
+
 ### Fixed
 
 - `python -m citesync` runs the command line, as `citesync` does. It failed with "No module named citesync.__main__".

@@ -170,7 +170,7 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
     a, b = ref.record[term], doc.record[term]
     both_citation = ref.is_citation and doc.is_citation
     if term in _KEY:
-        equal = _KEY[term](a) == _KEY[term](b)
+        equal = a == b or _KEY[term](a) == _KEY[term](b)  # equal text needs no parsing (packaging costs 2.5 ms)
     elif term == "author":
         equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)

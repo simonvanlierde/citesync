@@ -37,6 +37,12 @@ mutation:
     echo "${gone:-none}"
     [ -z "$new$gone" ]
 
+# Time `citesync check` on this repo's own files: 30 runs after 3 warm-ups, median in the table.
+# Runs the venv's script directly, since `uv run` adds more than check itself takes.
+bench:
+    uv sync -q
+    hyperfine -N -w 3 -r 30 '.venv/bin/citesync check'
+
 # Fix and format every stack here, as each stack's `fmt` recipe does.
 fmt:
     @just py-fmt

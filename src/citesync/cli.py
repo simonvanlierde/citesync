@@ -7,37 +7,91 @@ unless moving a written file into place failed: files moved before it stay writt
 """
 
 import argparse
-import difflib
 import json
 import os
 import sys
 from dataclasses import replace
-from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 
 from citesync.check import Finding, check
 from citesync.config import Config, find_root, load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain
-from citesync.write import advice, write
 
 JSON_VERSION = 1
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
 
 
+# Imports that only `write`, `--version` or the JSON report need wait until they're used:
+# importlib.metadata and the writer's tomlkit cost check about a quarter of its run.
+
+
+def _version() -> str:
+    from importlib.metadata import version  # noqa: PLC0415
+
+    return version("citesync")
+
+
+class _VersionAction(argparse.Action):
+    """``--version``, reading the installed version only when asked."""
+
+    def __init__(self, option_strings: list[str], dest: str = argparse.SUPPRESS, **_: object) -> None:
+        super().__init__(option_strings, dest, nargs=0, default=argparse.SUPPRESS, help="show the version and exit")
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,  # noqa: ARG002
+        values: object,  # noqa: ARG002
+        option_string: str | None = None,  # noqa: ARG002
+    ) -> None:
+        print(f"{parser.prog} {_version()}")
+        parser.exit()
+
+
+class _Formatter(argparse.HelpFormatter):
+    """argparse's formatter, sized as ``shutil.get_terminal_size`` would size it, without importing shutil.
+
+    argparse builds one for every argument it adds, and shutil's imports cost 3 ms a run.
+    """
+
+    def __init__(
+        self, prog: str, indent_increment: int = 2, max_help_position: int = 24, width: int | None = None
+    ) -> None:
+        if width is None:
+            try:
+                columns = int(os.environ["COLUMNS"])
+            except (KeyError, ValueError):
+                columns = 0
+            if columns <= 0:
+                try:
+                    columns = os.get_terminal_size(sys.__stdout__.fileno()).columns  # ty: ignore[unresolved-attribute]
+                except (AttributeError, ValueError, OSError):
+                    columns = 0
+            width = (columns if columns > 0 else 80) - 2
+        super().__init__(prog, indent_increment, max_help_position, width)
+
+
+class _Parser(argparse.ArgumentParser):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+        kwargs.setdefault("formatter_class", _Formatter)
+        super().__init__(*args, **kwargs)
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="citesync", description=__doc__.splitlines()[0])
-    parser.add_argument("--version", action="version", version=f"%(prog)s {version('citesync')}")
+    parser = _Parser(prog="citesync", description=__doc__.splitlines()[0])
+    parser.add_argument("--version", action=_VersionAction)
     sub = parser.add_subparsers(dest="command", required=True)
-    root = argparse.ArgumentParser(add_help=False)
+    root = _Parser(add_help=False)
     root.add_argument(
         "--root",
         type=Path,
         help="repo root (default: the nearest directory up with a citation file or config, inside the git repo)",
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
-    report = argparse.ArgumentParser(add_help=False, parents=[root])
+    report = _Parser(add_help=False, parents=[root])
     report.add_argument("--format", choices=("text", "json", "github"), default="text")
     report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     shown = report.add_mutually_exclusive_group()
@@ -69,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if getattr(args, "diff", False):
             return _write_diff(args.root, config)
-        written, skipped = write(args.root, config) if args.command == "write" else ({}, {})
+        written, skipped = _write(args.root, config) if args.command == "write" else ({}, {})
         findings, files = check(args.root, config)
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)
@@ -79,6 +133,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     findings = _ignore(findings, config.ignore)
     if args.command == "write":
+        from citesync.write import advice  # noqa: PLC0415
+
         if not args.quiet:  # stdout stays one document in the json and github formats
             for path in written:
                 print(f"wrote {path}", file=sys.stdout if args.format == "text" else sys.stderr)
@@ -90,8 +146,16 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if any(f.severity == "error" for f in findings) else 0
 
 
+def _write(root: Path, config: Config) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+    from citesync.write import write  # noqa: PLC0415
+
+    return write(root, config)
+
+
 def _write_diff(root: Path, config: Config) -> int:
     """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
+    from citesync.write import write  # noqa: PLC0415
+
     texts, _ = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
     unreadable = [f for f in check(root, config)[0] if f.rule == "unreadable"]
@@ -115,7 +179,7 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         summary = {"files": files, "errors": counts["error"], "warnings": counts["warning"], "info": counts["info"]}
         report = {
             "version": JSON_VERSION,
-            "tool": {"name": "citesync", "version": version("citesync")},
+            "tool": {"name": "citesync", "version": _version()},
             "summary": summary,
             "findings": [f.as_dict() for f in findings],
         }
@@ -146,6 +210,8 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
 
 def _diff(root: Path, texts: dict[str, str]) -> str:
     """The unified diff from each file to its new text, with git's ``a/`` and ``b/`` prefixes."""
+    import difflib  # noqa: PLC0415
+
     return "".join(
         line
         for rel, new in texts.items()
