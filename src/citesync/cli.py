@@ -1,12 +1,14 @@
-"""Command line: ``citesync check|config|rules|explain``.
+"""Command line: ``citesync check|write|config|rules|explain``.
 
-Exit codes: 0 when the files agree, 1 on any error finding, 2 when citesync couldn't run.
+Exit codes: 0 when the files agree (after ``write``, once it has written), 1 on any error
+finding (that ``write`` may not fix), 2 when citesync couldn't run (and ``write`` wrote nothing).
 """
 
 import argparse
 import json
 import os
 import sys
+from dataclasses import replace
 from importlib.metadata import version
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from citesync.check import Finding, check
 from citesync.config import load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain
+from citesync.write import advice, write
 
 JSON_VERSION = 1
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
@@ -27,12 +30,14 @@ def _parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(add_help=False)
     root.add_argument("--root", type=Path, default=Path(), help="repo root (default: the current directory)")
     root.add_argument("--source", help="the file the others must agree with; overrides config")
-    run = sub.add_parser("check", parents=[root], help="report where the files disagree")
-    run.add_argument("--format", choices=("text", "json", "github"), default="text")
-    run.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
-    shown = run.add_mutually_exclusive_group()
+    report = argparse.ArgumentParser(add_help=False, parents=[root])
+    report.add_argument("--format", choices=("text", "json", "github"), default="text")
+    report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
+    shown = report.add_mutually_exclusive_group()
     shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
+    sub.add_parser("check", parents=[report], help="report where the files disagree")
+    sub.add_parser("write", parents=[report], help="rewrite the files to agree with the source")
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", help="list the rules")
     rules.add_argument("--format", choices=("text", "json"), default="text")
@@ -50,6 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(render(config))
             return 0
+        written = write(args.root, config) if args.command == "write" else []
         findings, files = check(args.root, config)
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)
@@ -61,6 +67,13 @@ def main(argv: list[str] | None = None) -> int:
         if not any(f.rule == rule for f in findings):
             print(f"citesync: warning: ignore entry {rule!r} matched no finding", file=sys.stderr)
     findings = [f for f in findings if f.rule not in config.ignore]
+    if args.command == "write":
+        if not args.quiet:  # stdout stays one document in the json and github formats
+            for path in written:
+                print(f"wrote {path}", file=sys.stdout if args.format == "text" else sys.stderr)
+        findings = [
+            f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config)})") for f in findings
+        ]
     _report(findings, files, args)
     return 1 if any(f.severity == "error" for f in findings) else 0
 

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["uv_build>=0.8,<0.9"]
+build-backend = "uv_build"
+
+[project]
+name = "synthagree"
+version = "1.2.3"
+description = "Made-up package."
+# Planted: the comments in this file must survive a write.
+authors = [{ name = "Ada Lovelace" }, { name = "Alan Turing" }]
+license = "Apache-2.0"  # SPDX
+keywords = ["alpha", "beta", "gamma", "delta"]
+
+[project.urls]
+"Source Code" = "https://github.com/example/synthagree"

@@ -62,6 +62,7 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         'codemeta-version = "3.0"\n'
         "# files: not set, so every citation file present\n"
         "# manifests: not set, so every release manifest at the repo root\n"
+        "write-manifests = []\n"
         "keywords-case-sensitive = false\n"
         "ignore = []\n"
     )
@@ -79,10 +80,17 @@ def test_keywords_case_sensitive(tmp_path: Path, capsys: pytest.CaptureFixture[s
     assert "keywords-case-sensitive = true\n" in out
 
 
+def test_write_manifests_all_expands(tmp_path: Path) -> None:
+    (tmp_path / "citesync.toml").write_text('write-manifests = "all"\n', encoding="utf-8")
+    assert len(load_config(tmp_path).write_manifests) == 8
+
+
 @pytest.mark.parametrize(
     ("text", "message"),
     [
         ('sources = "CITATION.cff"\n', "citesync.toml: unknown key sources"),
+        ('write-manifests = ["keyword"]\n', "write-manifests must be 'all' or a list of"),
+        ('write-manifests = "some"\n', "write-manifests must be 'all' or a list of"),
         ('write_manifests = "all"\n', "citesync.toml: unknown key write_manifests"),
         ('codemeta-version = "3.2"\n', "codemeta-version must be one of"),
         ('codemeta_version = "3.0"\n', "citesync.toml: unknown key codemeta_version"),

@@ -26,6 +26,7 @@ citesync check -q                   # only errors, no summary line
 citesync rules                      # the rules, with their severity; --format json too
 citesync explain version-mismatch   # what a rule checks and how to fix it
 citesync config                     # the config in use, and the file it came from
+citesync write                      # rewrite the other files to agree with the source
 citesync --version
 ```
 
@@ -78,6 +79,10 @@ Spellings are normalised before comparing: SPDX ids, SPDX URLs and Zenodo's lowe
 
 By default it reads every citation file present and the release manifests at the repo root: a pyproject.toml without `[build-system]` and a private package.json are skipped, a field in pyproject's `dynamic` is skipped on its own, and a Cargo workspace is read through `[workspace.package]`. The tests run each of the six files as the source against a fixture where all six agree, and CITATION.cff as the source against five real repositories.
 
+`citesync write` fixes what `check` reports, and nothing more. It writes every citation file that isn't the source, and a manifest only for the fields listed in `write-manifests` (or all of them with `"all"`). A field a file leaves out stays out: a .zenodo.json without a version never gains one. When the source has no value for a field (no DOI in pyproject.toml), write leaves that field alone in the other files. It keeps each file's layout: comments, key order and quoting in CITATION.cff, comments in TOML, and in JSON the key order, indentation, one-line arrays and final newline. Each value is spelled the way that file spells it (Zenodo's `"Family, Given"` and lowercase licence ids, a DOI URL in codemeta.json, semver in Cargo.toml and package.json, PEP 440 in pyproject.toml). An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation; anyone else gets a new entry. A Cargo field inherited with `.workspace = true` is left as it is: change it in the workspace's `[workspace.package]`.
+
+Values that compare equal stay as written: write leaves `v1.2.3` against `1.2.3`, and `LCA` against `lca` unless `keywords-case-sensitive` is set. A finding whose rule `ignore` lists is not written, and an `unreadable` file is never written. It prints `wrote <file>` for each file it changed (to stderr with `--format json` or `github`, and not at all with `--quiet`), then reports the findings left as `check` does, in the same formats, each with what to do: edit it by hand, or add the field to `write-manifests`. Exit 0 when no error finding remains, 1 when one does (an unreadable file included), and 2 when citesync couldn't run, in which case it wrote nothing. Each file is written to a temporary file beside it and then moved into place, and a file that would not change is not touched.
+
 Config goes in the first of `citesync.toml`, `.citesync.toml`, `[tool.citesync]` in pyproject.toml, `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml, or `"citesync"` in package.json:
 
 ```toml
@@ -85,13 +90,14 @@ source = "CITATION.cff"                  # any of the six files
 codemeta-version = "3.0"
 files = ["codemeta.json", ".zenodo.json"]  # default: the citation files present
 manifests = ["src/core/package.json"]      # replaces the default root manifests
+write-manifests = ["keywords", "license"]  # or "all"; the manifest fields write may change
 keywords-case-sensitive = true              # default false: keywords compare as names do
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 
 An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
 
-Not built yet: `citesync write`, the `diff` format, and the pre-commit hook.
+Not built yet: the `diff` format, the pre-commit hook, and creating a citation file listed under `files` that doesn't exist yet.
 
 ## Development
 
