@@ -1,16 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "citesync check --format json",
-  "description": "Output of `citesync check --format json`. Fields change only in a new `version`.",
+  "description": "Output of `citesync check --format json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `version`, in a major release.",
   "type": "object",
   "required": ["version", "tool", "summary", "findings"],
-  "additionalProperties": false,
   "properties": {
     "version": { "const": 1 },
     "tool": {
       "type": "object",
       "required": ["name", "version"],
-      "additionalProperties": false,
       "properties": {
         "name": { "const": "citesync" },
         "version": { "type": "string" }
@@ -20,7 +18,6 @@
       "description": "Counts after `ignore`. `files` is the number of files checked.",
       "type": "object",
       "required": ["files", "errors", "warnings", "info"],
-      "additionalProperties": false,
       "properties": {
         "files": { "type": "integer", "minimum": 0 },
         "errors": { "type": "integer", "minimum": 0 },
@@ -38,36 +35,12 @@
     "position": { "type": ["integer", "null"], "minimum": 1 },
     "finding": {
       "type": "object",
-      "required": [
-        "rule",
-        "severity",
-        "file",
-        "term",
-        "message",
-        "help",
-        "url",
-        "line",
-        "column",
-        "end_line",
-        "end_column"
-      ],
-      "additionalProperties": false,
+      "required": ["rule", "severity", "file", "term", "message", "help", "url", "line", "column"],
       "properties": {
         "rule": {
-          "enum": [
-            "name-mismatch",
-            "version-mismatch",
-            "author-mismatch",
-            "license-mismatch",
-            "doi-mismatch",
-            "repository-mismatch",
-            "description-mismatch",
-            "keywords-mismatch",
-            "keywords-not-subset",
-            "context-mismatch",
-            "unreadable",
-            "not-checked"
-          ]
+          "type": "string",
+          "pattern": "^[a-z]+(-[a-z]+)*$",
+          "description": "A rule id from `citesync rules`; a minor release may add more."
         },
         "severity": { "enum": ["error", "warning", "info"] },
         "file": {
@@ -82,9 +55,7 @@
         "help": { "type": "string", "description": "What to do about it." },
         "url": { "type": "string", "format": "uri", "description": "The rule's section of docs/rules.md." },
         "line": { "$ref": "#/$defs/position" },
-        "column": { "$ref": "#/$defs/position" },
-        "end_line": { "$ref": "#/$defs/position" },
-        "end_column": { "$ref": "#/$defs/position" }
+        "column": { "$ref": "#/$defs/position" }
       }
     }
   }

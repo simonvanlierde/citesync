@@ -49,9 +49,6 @@ class Finding:
             "url": f"{DOCS_URL}#{self.rule}",
             "line": self.line,
             "column": self.column,
-            # shortcut: no parser here reports where a problem ends; fill these when one does.
-            "end_line": None,
-            "end_column": None,
         }
 
 

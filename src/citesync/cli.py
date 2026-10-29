@@ -22,6 +22,7 @@ _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="citesync", description=__doc__.splitlines()[0])
+    parser.add_argument("--version", action="version", version=f"%(prog)s {version('citesync')}")
     sub = parser.add_subparsers(dest="command", required=True)
     root = argparse.ArgumentParser(add_help=False)
     root.add_argument("--root", type=Path, default=Path(), help="repo root (default: the current directory)")

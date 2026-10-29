@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from importlib.metadata import version
 from pathlib import Path
 
 import jsonschema
@@ -591,9 +592,28 @@ def test_not_checked_detail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
         "url": "https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md#not-checked",
         "line": None,
         "column": None,
-        "end_line": None,
-        "end_column": None,
     }
+
+
+def test_json_keeps_info_under_quiet(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    report = _check_json(tmp_path, capsys, {"CITATION.cff": CFF}, "-q")
+    assert report["summary"]["info"] == len(_split(report)[1]) == 7
+
+
+def test_schema_lets_a_minor_release_add_rules_and_fields(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    report = _check_json(tmp_path, capsys, {"CITATION.cff": CFF})
+    report["findings"][0] |= {"rule": "orcid-checksum", "end_line": 3}
+    report["summary"]["notes"] = 0
+    jsonschema.validate(report, OUTPUT_SCHEMA)
+    report["findings"][0]["rule"] = "Not_Kebab"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(report, OUTPUT_SCHEMA)
+
+
+def test_version(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exit_:
+        main(["--version"])
+    assert (exit_.value.code, capsys.readouterr().out) == (0, f"citesync {version('citesync')}\n")
 
 
 def test_github_format_quiet_has_no_summary(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

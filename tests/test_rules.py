@@ -1,6 +1,7 @@
 """`citesync rules` and `explain`, and docs/rules.md and the output schema kept in step with the rules."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -17,9 +18,10 @@ def test_rules_doc_is_current() -> None:
     )
 
 
-def test_output_schema_lists_every_rule() -> None:
+def test_output_schema_admits_every_rule() -> None:
     schema = json.loads((ROOT / "tests" / "output.schema.json").read_text(encoding="utf-8"))
-    assert schema["$defs"]["finding"]["properties"]["rule"]["enum"] == list(RULES)
+    pattern = re.compile(schema["$defs"]["finding"]["properties"]["rule"]["pattern"])
+    assert all(pattern.match(rule) for rule in RULES)
 
 
 def test_rules_lists_every_rule(capsys: pytest.CaptureFixture[str]) -> None:
