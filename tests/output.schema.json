@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "citesync check --format json",
+  "description": "Output of `citesync check --format json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `version`, in a major release.",
+  "type": "object",
+  "required": ["version", "tool", "summary", "findings"],
+  "properties": {
+    "version": { "const": 1 },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "citesync" },
+        "version": { "type": "string" }
+      }
+    },
+    "summary": {
+      "description": "Counts after `ignore`. `files` is the number of files checked.",
+      "type": "object",
+      "required": ["files", "errors", "warnings", "info"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "description": "Sorted by file, rule and term. Any error makes the exit code 1; info never changes it.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "position": { "type": ["integer", "null"], "minimum": 1 },
+    "finding": {
+      "type": "object",
+      "required": ["rule", "severity", "file", "term", "message", "help", "url", "line", "column"],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "pattern": "^[a-z]+(-[a-z]+)*$",
+          "description": "A rule id from `citesync rules`; a minor release may add more."
+        },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "file": {
+          "type": ["string", "null"],
+          "description": "Relative to the repo root; null for a not-checked field no file holds."
+        },
+        "term": {
+          "type": ["string", "null"],
+          "description": "A CodeMeta term, or @context; null for unreadable."
+        },
+        "message": { "type": "string" },
+        "help": { "type": "string", "description": "What to do about it." },
+        "url": { "type": "string", "format": "uri", "description": "The rule's section of docs/rules.md." },
+        "line": { "$ref": "#/$defs/position" },
+        "column": { "$ref": "#/$defs/position" }
+      }
+    }
+  }
+}

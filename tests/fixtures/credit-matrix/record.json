@@ -1,0 +1,106 @@
+{
+  "CITATION.cff": {
+    "format": "cff-1.2.0",
+    "version": "1.2.0",
+    "release": true,
+    "record": {
+      "name": "CRediT Matrix: drafting CRediT contribution statements with co-authors",
+      "version": "0.8.1",
+      "author": [
+        {
+          "name": "Simon van Lierde",
+          "givenName": "Simon",
+          "familyName": "van Lierde",
+          "@id": "0009-0006-6953-909X"
+        }
+      ],
+      "license": "MIT",
+      "identifier": "10.5281/zenodo.21213659",
+      "codeRepository": "https://github.com/simonvanlierde/credit-matrix",
+      "description": "CRediT Matrix helps a research team draft the CRediT (Contributor Roles Taxonomy) statement for a paper. Co-authors fill in their own rows through a shared link, and their replies are settled in one review. Contributors can be added from an ORCID iD, a DOI or a tenzing sheet. The tool exports a contribution heatmap and the statement as JATS4R XML, CSV, JSON or Markdown. The web app works offline in nine languages. The credit-matrix npm package adds a command-line tool, a credit-matrix web element, and Quarto and MyST plugins.",
+      "keywords": [
+        "CRediT",
+        "contributor roles taxonomy",
+        "authorship",
+        "contributorship",
+        "contribution statement",
+        "JATS4R",
+        "ORCID",
+        "scholarly publishing",
+        "open science",
+        "research software",
+        "Quarto",
+        "MyST"
+      ]
+    }
+  },
+  "codemeta.json": {
+    "format": "codemeta",
+    "version": "3.0",
+    "release": true,
+    "record": {
+      "name": "CRediT Matrix",
+      "version": "0.8.1",
+      "author": [
+        {
+          "name": "Simon van Lierde",
+          "givenName": "Simon",
+          "familyName": "van Lierde",
+          "@id": "0009-0006-6953-909X"
+        }
+      ],
+      "license": "MIT",
+      "identifier": "10.5281/zenodo.21213659",
+      "codeRepository": "https://github.com/simonvanlierde/credit-matrix",
+      "description": "CRediT Matrix helps a research team draft the CRediT (Contributor Roles Taxonomy) statement for a paper. Co-authors fill in their own rows through a shared link, and their replies are settled in one review. Contributors can be added from an ORCID iD, a DOI or a tenzing sheet. The tool exports a contribution heatmap and the statement as JATS4R XML, CSV, JSON or Markdown. The web app works offline in nine languages. The credit-matrix npm package adds a command-line tool, a credit-matrix web element, and Quarto and MyST plugins.",
+      "keywords": [
+        "CRediT",
+        "contributor roles taxonomy",
+        "authorship",
+        "contributorship",
+        "contribution statement",
+        "JATS4R",
+        "ORCID",
+        "scholarly publishing",
+        "open science",
+        "research software",
+        "Quarto",
+        "MyST"
+      ]
+    }
+  },
+  "package.json": {
+    "format": "npm",
+    "version": null,
+    "release": false,
+    "record": {
+      "name": "credit-matrix-app",
+      "version": "0.8.1",
+      "license": "MIT"
+    }
+  },
+  "src/core/package.json": {
+    "format": "npm",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "credit-matrix",
+      "version": "0.8.1",
+      "author": [
+        {
+          "name": "Simon van Lierde"
+        }
+      ],
+      "license": "MIT",
+      "codeRepository": "https://github.com/simonvanlierde/credit-matrix",
+      "description": "CRediT (Contributor Roles Taxonomy) statements and exports: JATS4R XML, CSV, JSON, Markdown and a heatmap SVG, with a CLI and a <credit-matrix> element.",
+      "keywords": [
+        "CRediT",
+        "contributor roles taxonomy",
+        "authorship",
+        "JATS4R",
+        "scholarly publishing"
+      ]
+    }
+  }
+}

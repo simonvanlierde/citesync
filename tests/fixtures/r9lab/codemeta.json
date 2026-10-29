@@ -1,0 +1,57 @@
+{
+  "@context": "https://w3id.org/codemeta/4.0",
+  "@type": "SoftwareSourceCode",
+  "name": "R9lab: an open research platform for product disassembly data",
+  "description": "R9lab is an open-source research platform for recording how durable products are built and how they come apart. Users break a product down into components and record materials, weight, dimensions, photographs and notes on recyclability, disassemblability and remanufacturability. The records are to be released as a citable dataset under CC BY 4.0. It is built to turn the routine work of repairers, refurbishers and recyclers into primary data for industrial ecology and circular economy research, such as life cycle assessment and computer vision.",
+  "version": "0.5.0",
+  "identifier": "https://doi.org/10.5281/zenodo.16637742",
+  "codeRepository": "https://github.com/CMLPlatform/r9lab",
+  "url": "https://r9lab.io",
+  "license": "https://spdx.org/licenses/AGPL-3.0-or-later",
+  "keywords": [
+    "circular economy",
+    "industrial ecology",
+    "product disassembly",
+    "bill of materials",
+    "life cycle assessment",
+    "open data",
+    "research data",
+    "citizen science",
+    "computer vision"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0006-6953-909X",
+      "givenName": "Simon",
+      "familyName": "van Lierde",
+      "email": "s.n.van.lierde@cml.leidenuniv.nl",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      }
+    }
+  ],
+  "contributor": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-8287-2413",
+      "givenName": "Franco",
+      "familyName": "Donati",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-1847-5181",
+      "givenName": "Marin",
+      "familyName": "Visscher",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Resource Engineering, Faculty of Civil Engineering and Geosciences, Delft University of Technology"
+      }
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "CITATION.cff": {
+    "format": "cff-1.2.0",
+    "version": "1.2.0",
+    "release": true,
+    "record": {
+      "name": "sourceledger",
+      "version": "0.3.1",
+      "author": [
+        {
+          "name": "Simon van Lierde",
+          "givenName": "Simon",
+          "familyName": "van Lierde",
+          "@id": "0009-0006-6953-909X"
+        }
+      ],
+      "license": "MIT",
+      "identifier": "10.5281/zenodo.23460694",
+      "codeRepository": "https://github.com/simonvanlierde/sourceledger",
+      "description": "Fetch, verify and validate the public sources a dataset is built from, with a provenance record for every download",
+      "keywords": [
+        "provenance",
+        "data pipeline",
+        "reproducibility",
+        "open data",
+        "research software",
+        "FAIR"
+      ]
+    }
+  },
+  "codemeta.json": {
+    "format": "codemeta",
+    "version": "4.0",
+    "release": true,
+    "record": {
+      "name": "sourceledger",
+      "version": "0.3.1",
+      "author": [
+        {
+          "name": "Simon van Lierde",
+          "givenName": "Simon",
+          "familyName": "van Lierde",
+          "@id": "0009-0006-6953-909X"
+        }
+      ],
+      "license": "MIT",
+      "identifier": "10.5281/zenodo.23460694",
+      "codeRepository": "https://github.com/simonvanlierde/sourceledger",
+      "description": "Fetch, verify and validate the public sources a dataset is built from, with a provenance record for every download",
+      "keywords": [
+        "provenance",
+        "data pipeline",
+        "reproducibility",
+        "open data",
+        "research software",
+        "FAIR"
+      ]
+    }
+  },
+  ".zenodo.json": {
+    "format": "zenodo",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "sourceledger",
+      "version": "0.3.1",
+      "author": [
+        {
+          "name": "Simon van Lierde",
+          "givenName": "Simon",
+          "familyName": "van Lierde",
+          "@id": "0009-0006-6953-909X"
+        }
+      ],
+      "license": "mit",
+      "description": "Fetch, verify and validate the public sources a dataset is built from, with a provenance record for every download",
+      "keywords": [
+        "provenance",
+        "data pipeline",
+        "reproducibility",
+        "open data",
+        "research software",
+        "FAIR"
+      ]
+    }
+  },
+  "pyproject.toml": {
+    "format": "pep621",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "sourceledger",
+      "version": "0.3.1",
+      "author": [
+        {
+          "name": "Simon van Lierde"
+        }
+      ],
+      "license": "MIT",
+      "codeRepository": "https://github.com/simonvanlierde/sourceledger",
+      "description": "Fetch, verify and validate the public sources a dataset is built from, with a provenance record for every download",
+      "keywords": [
+        "provenance",
+        "data pipeline",
+        "reproducibility",
+        "open data",
+        "research software",
+        "FAIR"
+      ]
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "open_questions": [],
+  "cases": [
+    {
+      "name": "source-CITATION.cff",
+      "config": {
+        "source": "CITATION.cff"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-codemeta.json",
+      "config": {
+        "source": "codemeta.json"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-.zenodo.json",
+      "config": {
+        "source": ".zenodo.json"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-pyproject.toml",
+      "config": {
+        "source": "pyproject.toml"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-Cargo.toml",
+      "config": {
+        "source": "Cargo.toml"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-package.json",
+      "config": {
+        "source": "package.json"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    }
+  ],
+  "settled": [
+    "2026-10-29: npm's single `author` is compared with the first author only, and `contributors` is ignored. package.json lists Grace Hopper as a contributor, whom no other file names, to show that.",
+    "2026-10-29: keywords between a manifest and a citation file: the manifest's are a subset of the citation file's, whatever the source. The sets here are equal, so both directions hold."
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "open_questions": [
+    "Does a `manifests` config replace the default root-manifest list or add to it? Here the root package.json is private, so both readings give the same result.",
+    "Is an explicitly listed manifest that is `private: true` still checked? Not exercised here: src/core/package.json is not private."
+  ],
+  "cases": [
+    {
+      "name": "defaults",
+      "config": {},
+      "exit": 1,
+      "findings": [
+        {
+          "rule": "name-mismatch",
+          "file": "codemeta.json",
+          "term": "name",
+          "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
+        }
+      ],
+      "info": []
+    },
+    {
+      "name": "npm-core-package",
+      "config": {
+        "manifests": [
+          "src/core/package.json"
+        ]
+      },
+      "exit": 1,
+      "findings": [
+        {
+          "rule": "name-mismatch",
+          "file": "codemeta.json",
+          "term": "name",
+          "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
+        }
+      ],
+      "info": []
+    }
+  ]
+}

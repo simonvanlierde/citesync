@@ -1,0 +1,30 @@
+# Zenodo reads this on each GitHub release and takes the version from the tag.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "jsonvet"
+abstract: "A linter for JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines. It reports syntax errors, duplicate keys, each dialect's rules and JSON Schema errors, all with exact positions. The schema comes from --schema, a config file or a file's own $schema. On a terminal, each problem shows as a code frame, and --color controls the color. It also writes SARIF for GitHub code scanning and JSON for scripts and editors. A playground runs it in the browser as WebAssembly. It ships as a pre-commit hook, PyPI wheels, Rust crates, release binaries and a GitHub Action. The repository includes a conformance matrix of JSON5, JSONC, JWCC and JSON Lines parsers."
+authors:
+  - family-names: "van Lierde"
+    given-names: "Simon"
+    orcid: "https://orcid.org/0009-0006-6953-909X"
+repository-code: "https://github.com/simonvanlierde/jsonvet"
+# The concept DOI, which always resolves to the latest version.
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23461825"
+    description: "All versions of jsonvet"
+license: "MIT"
+keywords:
+  - "json"
+  - "json5"
+  - "jsonc"
+  - "json-lines"
+  - "json-schema"
+  - "linter"
+  - "pre-commit"
+  - "pre-commit-hook"
+  - "github-action"
+  - "sarif"
+  - "validator"
+  - "webassembly"

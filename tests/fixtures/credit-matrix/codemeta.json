@@ -1,0 +1,39 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "CRediT Matrix",
+  "description": "CRediT Matrix helps a research team draft the CRediT (Contributor Roles Taxonomy) statement for a paper. Co-authors fill in their own rows through a shared link, and their replies are settled in one review. Contributors can be added from an ORCID iD, a DOI or a tenzing sheet. The tool exports a contribution heatmap and the statement as JATS4R XML, CSV, JSON or Markdown. The web app works offline in nine languages. The credit-matrix npm package adds a command-line tool, a credit-matrix web element, and Quarto and MyST plugins.",
+  "version": "0.8.1",
+  "datePublished": "2026-10-13",
+  "identifier": "https://doi.org/10.5281/zenodo.21213659",
+  "license": "https://spdx.org/licenses/MIT",
+  "codeRepository": "https://github.com/simonvanlierde/credit-matrix",
+  "url": "https://credit.duinlab.nl",
+  "issueTracker": "https://github.com/simonvanlierde/credit-matrix/issues",
+  "programmingLanguage": "TypeScript",
+  "applicationCategory": "Scholarly publishing",
+  "operatingSystem": "Any (web browser)",
+  "developmentStatus": "active",
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0006-6953-909X",
+      "givenName": "Simon",
+      "familyName": "van Lierde"
+    }
+  ],
+  "keywords": [
+    "CRediT",
+    "contributor roles taxonomy",
+    "authorship",
+    "contributorship",
+    "contribution statement",
+    "JATS4R",
+    "ORCID",
+    "scholarly publishing",
+    "open science",
+    "research software",
+    "Quarto",
+    "MyST"
+  ]
+}

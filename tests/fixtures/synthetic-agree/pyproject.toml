@@ -1,0 +1,14 @@
+[build-system]
+requires = ["uv_build>=0.8,<0.9"]
+build-backend = "uv_build"
+
+[project]
+name = "synthagree"
+version = "1.2.3"
+description = "Made-up package."
+authors = [{ name = "Ada Lovelace" }, { name = "Alan Turing" }]
+license = "Apache-2.0"
+keywords = ["alpha", "beta", "gamma", "delta"]
+
+[project.urls]
+Source = "https://github.com/example/synthagree"

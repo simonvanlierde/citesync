@@ -1,0 +1,37 @@
+[package]
+name = "jsonvet"
+description = "Checks JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines for syntax errors and duplicate keys, with exact positions."
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+hashbrown = { version = "0.17.1", default-features = false }
+memchr = "2.8.3"
+unicode-properties = { version = "0.1.4", default-features = false, features = ["general-category"] }
+
+[lints]
+workspace = true
+
+# Instruction counts under valgrind, not a libtest harness: benches/check.rs.
+[[bench]]
+name = "check"
+harness = false
+
+# divan benchmarks that CodSpeed measures in CI (.github/workflows/codspeed.yml): benches/codspeed.rs.
+[[bench]]
+name = "codspeed"
+harness = false
+
+[dev-dependencies]
+divan = { version = "5.0.3", package = "codspeed-divan-compat" }
+gungraun = "0.20.0"
+insta = "1.49.0"
+proptest = "1.12.0"

@@ -1,0 +1,61 @@
+{
+  "name": "credit-matrix",
+  "version": "0.8.1",
+  "description": "CRediT (Contributor Roles Taxonomy) statements and exports: JATS4R XML, CSV, JSON, Markdown and a heatmap SVG, with a CLI and a <credit-matrix> element.",
+  "keywords": [
+    "CRediT",
+    "contributor roles taxonomy",
+    "authorship",
+    "JATS4R",
+    "scholarly publishing"
+  ],
+  "license": "MIT",
+  "author": "Simon van Lierde",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simonvanlierde/credit-matrix.git",
+    "directory": "src/core"
+  },
+  "homepage": "https://github.com/simonvanlierde/credit-matrix/tree/main/src/core#readme",
+  "bugs": "https://github.com/simonvanlierde/credit-matrix/issues",
+  "type": "module",
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./lookup": "./dist/lookup.js",
+    "./i18n": "./dist/i18n.js",
+    "./element": "./dist/element.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "credit-matrix": "./dist/cli.js"
+  },
+  "sideEffects": [
+    "./dist/element.js",
+    "./dist/cli.js"
+  ],
+  "engines": {
+    "node": "^20.12.0 || >=21.2.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsdown && cp ../../LICENSE LICENSE",
+    "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.13",
+    "rolldown": "1.2.13",
+    "tsdown": "0.23.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "open_questions": [
+    "Zenodo `license` is lowercase `mit` and CFF `MIT`: assumes the codec compares SPDX ids case-insensitively (the plan lists Zenodo's lowercase id as a codec).",
+    "pyproject.toml has no `authors` ORCID and only `Homepage` (no Source/Repository) as repository URL: assumes Homepage counts, as the plan's table lists it."
+  ],
+  "cases": [
+    {
+      "name": "defaults",
+      "config": {},
+      "exit": 1,
+      "findings": [
+        {
+          "rule": "context-mismatch",
+          "file": "codemeta.json",
+          "term": "@context",
+          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version defaults to 3.0"
+        }
+      ],
+      "info": []
+    }
+  ]
+}

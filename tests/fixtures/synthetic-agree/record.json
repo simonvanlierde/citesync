@@ -1,0 +1,171 @@
+{
+  "CITATION.cff": {
+    "format": "cff-1.2.0",
+    "version": "1.2.0",
+    "release": true,
+    "record": {
+      "name": "synthagree",
+      "version": "1.2.3",
+      "author": [
+        {
+          "name": "Ada Lovelace",
+          "givenName": "Ada",
+          "familyName": "Lovelace",
+          "@id": "0000-0002-1825-0097"
+        },
+        {
+          "name": "Alan Turing",
+          "givenName": "Alan",
+          "familyName": "Turing"
+        }
+      ],
+      "license": "Apache-2.0",
+      "identifier": "10.5281/zenodo.1234567",
+      "codeRepository": "https://github.com/example/synthagree",
+      "description": "A made-up package whose metadata files all agree.",
+      "keywords": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  },
+  "codemeta.json": {
+    "format": "codemeta",
+    "version": "3.0",
+    "release": true,
+    "record": {
+      "name": "synthagree",
+      "version": "1.2.3",
+      "author": [
+        {
+          "name": "Ada Lovelace",
+          "givenName": "Ada",
+          "familyName": "Lovelace",
+          "@id": "0000-0002-1825-0097"
+        },
+        {
+          "name": "Alan Turing",
+          "givenName": "Alan",
+          "familyName": "Turing"
+        }
+      ],
+      "license": "Apache-2.0",
+      "identifier": "10.5281/zenodo.1234567",
+      "codeRepository": "https://github.com/example/synthagree",
+      "description": "A made-up package whose metadata files all agree.",
+      "keywords": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  },
+  ".zenodo.json": {
+    "format": "zenodo",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "synthagree",
+      "author": [
+        {
+          "name": "Ada Lovelace",
+          "givenName": "Ada",
+          "familyName": "Lovelace",
+          "@id": "0000-0002-1825-0097"
+        },
+        {
+          "name": "Alan Turing",
+          "givenName": "Alan",
+          "familyName": "Turing"
+        }
+      ],
+      "license": "apache-2.0",
+      "codeRepository": "https://github.com/example/synthagree",
+      "description": "A made-up package whose metadata files all agree.",
+      "keywords": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  },
+  "pyproject.toml": {
+    "format": "pep621",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "synthagree",
+      "version": "1.2.3",
+      "author": [
+        {
+          "name": "Ada Lovelace"
+        },
+        {
+          "name": "Alan Turing"
+        }
+      ],
+      "license": "Apache-2.0",
+      "codeRepository": "https://github.com/example/synthagree",
+      "description": "Made-up package.",
+      "keywords": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  },
+  "Cargo.toml": {
+    "format": "cargo",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "synthagree",
+      "version": "1.2.3",
+      "author": [
+        {
+          "name": "Ada Lovelace"
+        },
+        {
+          "name": "Alan Turing"
+        }
+      ],
+      "license": "Apache-2.0",
+      "codeRepository": "https://github.com/example/synthagree",
+      "description": "Made-up package.",
+      "keywords": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  },
+  "package.json": {
+    "format": "npm",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "synthagree",
+      "version": "1.2.3",
+      "author": [
+        {
+          "name": "Ada Lovelace"
+        }
+      ],
+      "license": "Apache-2.0",
+      "codeRepository": "https://github.com/example/synthagree",
+      "description": "Made-up package.",
+      "keywords": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[package]
+name = "synthagree"
+version = "1.2.3"
+edition = "2024"
+description = "Made-up package."
+authors = ["Ada Lovelace", "Alan Turing"]
+license = "Apache-2.0"
+repository = "https://github.com/example/synthagree"
+keywords = ["alpha", "beta", "gamma", "delta"]

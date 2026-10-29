@@ -1,0 +1,128 @@
+[project]
+name = "sourceledger"
+version = "0.3.1"
+description = "Fetch, verify and validate the public sources a dataset is built from, with a provenance record for every download"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Simon van Lierde", email = "code@duinlab.nl" }]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["provenance", "data pipeline", "reproducibility", "open data", "research software", "FAIR"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+  "Topic :: Scientific/Engineering",
+  "Typing :: Typed",
+]
+dependencies = []
+
+# `sourceledger fetch|build|validate|revisions`, reading every source as CSV. A project
+# with its own readers calls `sourceledger.main` from its own entry point instead.
+[project.scripts]
+sourceledger = "sourceledger.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/simonvanlierde/sourceledger"
+Issues = "https://github.com/simonvanlierde/sourceledger/issues"
+
+[project.optional-dependencies]
+xlsx = [
+    "openpyxl>=3.1",
+]
+
+[dependency-groups]
+dev = [
+  "frictionless>=5.20",
+  "hypothesis>=6.170.1",
+  "jsonschema>=4.26",
+  "openpyxl>=3.1",
+  "pytest>=9.1.1",
+  "pytest-codspeed>=5.0.3",
+  "pytest-cov>=7.1.0",
+  "ruff>=0.16.10",
+  "ty>=0.0.84",
+]
+mutation = [
+  "mutmut>=3.8.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.14.0"]
+build-backend = "uv_build"
+
+# Resolve only releases at least a week old: a compromised release is usually
+# caught and yanked within that window. Renovate's minimumReleaseAge waits the same.
+# Set here, not user-wide, so every machine writes the same uv.lock.
+[tool.uv]
+exclude-newer = "1 week"
+
+# uv_build derives the package dir from the normalized project.name, so pin it
+# for a module_name that differs.
+[tool.uv.build-backend]
+module-name = "sourceledger"
+
+# NOTE: self-contained ruff config, deliberately not extended from any shared base.
+# No target-version: ruff derives it from requires-python above.
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "ANN204", # missing-return-type-special-method
+  "COM812", # trailing-comma-missing: conflicts with the formatter
+  "CPY001", # missing copyright notice
+  "D105",   # undocumented-magic-method
+  "D107",   # undocumented-public-init
+  "TD002",  # missing-todo-author: a plain `# TODO:` is enough
+  "TD003",  # missing-todo-link
+]
+
+# Tests assert, use literal expectations, and need no docstrings, return
+# annotations, or package __init__.py.
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "D1", "INP001", "PLR2004", "ANN201"]
+# The command line reports to the terminal.
+"src/sourceledger/cli.py" = ["T201"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+allow-magic-value-types = ["int"]
+max-args = 10
+
+[tool.pytest.ini_options]
+# `live` tests reach real services; `pytest -m live` runs only them (the last -m wins).
+addopts = ["-ra", "--strict-config", "--strict-markers", "--import-mode=importlib", "-m", "not live"]
+markers = ["live: calls a real external service; deselected unless run with -m live"]
+testpaths = ["tests"]
+
+# Coverage is opt-in via `pytest --cov` (`just py-cov`), not addopts, because it
+# slows every plain test run. CI's run fails under the fail_under below.
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+# CI runs the suite with --cov and fails below this. Not in addopts: the release
+# workflow tests the installed wheel, where src/ is not what runs.
+fail_under = 95
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+# `just py-mutation` runs it. The docs tests read the README and docs/ from the copy.
+[tool.mutmut]
+source_paths = ["src"]
+also_copy = ["README.md", "docs"]
+# Log calls only change diagnostics; their mutants would all survive.
+do_not_mutate_patterns = ['^\s*_logger\.\w+\(']

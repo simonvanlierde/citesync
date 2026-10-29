@@ -1,0 +1,30 @@
+{
+  "@context": "https://w3id.org/codemeta/4.0",
+  "@type": "SoftwareSourceCode",
+  "name": "sourceledger",
+  "description": "Fetch, verify and validate the public sources a dataset is built from, with a provenance record for every download",
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0006-6953-909X",
+      "givenName": "Simon",
+      "familyName": "van Lierde",
+      "email": "code@duinlab.nl"
+    }
+  ],
+  "codeRepository": "https://github.com/simonvanlierde/sourceledger",
+  "issueTracker": "https://github.com/simonvanlierde/sourceledger/issues",
+  "license": "https://spdx.org/licenses/MIT",
+  "programmingLanguage": "Python",
+  "keywords": [
+    "provenance",
+    "data pipeline",
+    "reproducibility",
+    "open data",
+    "research software",
+    "FAIR"
+  ],
+  "version": "0.3.1",
+  "datePublished": "2026-10-27",
+  "identifier": "https://doi.org/10.5281/zenodo.23460694"
+}
