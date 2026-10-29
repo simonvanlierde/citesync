@@ -193,7 +193,7 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
             project["urls"] = _url_labels(urls)
         return {**data, "project": project}
     if fmt == "cff-1.2.0" and isinstance(data.get("authors"), list):
-        return {**data, "authors": [_cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
+        return {**data, "authors": [cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
     if fmt == "npm":
         data = dict(data)
         if isinstance(data.get("author"), str):
@@ -209,16 +209,21 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
 
 
 def _url_labels(urls: dict[str, Any]) -> dict[str, Any]:
-    """PEP 621 url labels normalised as packaging does (``Source Code`` and ``source-code`` are ``Source``)."""
+    """``urls`` with each known label also under its normalised name, as :func:`url_label` gives it."""
     named = dict(urls)
     for label, url in urls.items():
-        known = _URL_LABELS.get("".join(c for c in label.lower() if c.isalnum()))
+        known = url_label(label)
         if known:
             named.setdefault(known, url)
     return named
 
 
-def _cff_person(author: dict[str, Any]) -> dict[str, Any]:
+def url_label(label: str) -> str | None:
+    """A PEP 621 url label normalised as packaging does (``Source Code`` and ``source-code`` are ``Source``)."""
+    return _URL_LABELS.get("".join(c for c in label.lower() if c.isalnum()))
+
+
+def cff_person(author: dict[str, Any]) -> dict[str, Any]:
     """Fold ``name-particle`` and ``name-suffix`` into the family name, and read an entity's ``name`` as one.
 
     So CFF's (Simon, van, Lierde) reads as Zenodo's ``"van Lierde, Simon"`` does.
@@ -259,7 +264,7 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
 def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Mapping) -> Any:  # noqa: ANN401
     values = resolve(data, path)
     if term == "author":
-        people = tuple(p for p in (_person(fmt, el, path, mapping) for el in values) if p)
+        people = tuple(p for p in (person(fmt, el, path, mapping) for el in values) if p)
         return people or None
     if not values:
         return None
@@ -283,7 +288,9 @@ _DECODE = {
 }
 
 
-def _person(fmt: str, element: object, parent: str, mapping: Mapping) -> Person | None:
+def person(fmt: str, element: object, parent: str, mapping: Mapping) -> Person | None:
+    """The author in ``element``, one entry of the list at ``parent``; None when it has no name or ORCID."""
+
     def sub(term: str) -> object:
         path = mapping[fmt, term]
         if path is None:

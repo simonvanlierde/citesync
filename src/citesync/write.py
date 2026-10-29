@@ -27,7 +27,7 @@ from ruamel.yaml.util import load_yaml_guess_indent
 from citesync import codecs
 from citesync.check import Finding, compare, has_slot, read_docs
 from citesync.config import Config
-from citesync.formats import _URL_LABELS, MANIFESTS, Doc, Person, _cff_person, _person, codemeta_version, format_of
+from citesync.formats import MANIFESTS, Doc, Person, cff_person, codemeta_version, format_of, person, url_label
 from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative, resolve
 
 
@@ -182,7 +182,7 @@ def _slots(fmt: str, term: str, data: Any, path: str) -> list[tuple[Any, str]]: 
         urls = data.get("project", {}).get("urls", {})
         for want in ("Source", "Repository", "Homepage"):  # the label packaging reads, as the reader does
             for label in [want] if want in urls else urls:
-                if _URL_LABELS.get("".join(c for c in label.lower() if c.isalnum())) == want:
+                if url_label(label) == want:
                     return [(urls, label)]
         return []
     for alternative in path.split(" | "):
@@ -312,10 +312,10 @@ def _relist(old: list[Any], new: list[Any]) -> None:
 
 def _decode(fmt: str, element: Any, path: str, mapping: Mapping) -> Person | None:  # noqa: ANN401
     if fmt == "cff-1.2.0" and isinstance(element, dict):
-        element = _cff_person(element)
+        element = cff_person(element)
     elif fmt == "npm" and isinstance(element, str):
         element = {"name": element}
-    return _person(fmt, element, path, mapping)
+    return person(fmt, element, path, mapping)
 
 
 def _match(decoded: list[Person | None], used: set[int], p: Person) -> int | None:

@@ -22,6 +22,10 @@ def test_license_round_trip(spdx: str) -> None:
     assert codecs.license_key(codecs.license_decode(codecs.license_encode(spdx, "zenodo")) or "") == spdx.casefold()
 
 
+def test_license_encode_zenodo_lowercases() -> None:
+    assert codecs.license_encode("Apache-2.0", "zenodo") == "apache-2.0"
+
+
 @given(st.text())
 @example("https://spdx.org/licenses/MIT.html")
 @example("http://spdx.org/licenses/Apache-2.0/")
