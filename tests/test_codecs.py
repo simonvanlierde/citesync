@@ -43,6 +43,8 @@ def test_orcid_round_trip(orcid: str) -> None:
 @example("http://www.orcid.org/0000-0002-1825-0097/")
 @example("/")
 @example("https://orcid.org/")
+@example("/\r0")
+@example("/ /0")
 def test_orcid_decode_idempotent(raw: str) -> None:
     once = codecs.orcid_decode(raw)
     assert codecs.orcid_decode(once) == once

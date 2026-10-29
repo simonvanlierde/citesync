@@ -13,6 +13,7 @@ from packaging.version import InvalidVersion, Version
 
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
+_SLASHES_AND_SPACE = re.compile(r"^[\s/]+|[\s/]+$")  # "/\r0" is "0", as decoding it again gives
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
 _DOI = re.compile(r"^10\.\d+/\S+$")
 _NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
@@ -77,7 +78,7 @@ def orcid_decode(raw: object) -> str | None:
     """The bare iD (``0000-0002-1825-0097``), with a final ``x`` upper-cased."""
     if not isinstance(raw, str) or not raw.strip():
         return None
-    bare = _ORCID_URL.sub("", raw.strip()).strip("/")
+    bare = _SLASHES_AND_SPACE.sub("", _ORCID_URL.sub("", raw.strip()))
     return bare.upper() or None
 
 
