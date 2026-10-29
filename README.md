@@ -10,7 +10,41 @@ Status: experimental. It may change in ways that break your code, without notice
 
 Questions and bugs: see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
-Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks
+Software citation metadata: citesync checks that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) say the same thing. Where each field sits in each file comes from a mapping of CodeMeta's crosswalks, exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
+
+## What works now
+
+`citesync check` compares eight fields with one file, the source (CITATION.cff by default): title/name, version, authors with ORCID, licence, DOI, repository URL, description and keywords. It is silent when the files agree.
+
+```sh
+citesync check                      # exit 0: they agree; 1: findings; 2: couldn't check
+citesync check --source pyproject.toml
+citesync check --format json        # or --json; also --format github for workflow annotations
+citesync check -v                   # also list fields no file holds (NOT_CHECKED)
+citesync config                     # the config in use, and the file it came from
+```
+
+Each finding is one line, `CODE file: field: detail`:
+
+- `MISMATCH`: a field differs from the source. When the source has no place or no value for a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+- `NOT_SUBSET`: a manifest keyword the citation file doesn't have. A manifest's keywords must be a subset of the citation file's (crates.io allows five).
+- `CONTEXT`: codemeta.json's `@context` is not the configured CodeMeta version (3.0 by default).
+
+Spellings are normalised before comparing: SPDX ids, SPDX URLs and Zenodo's lowercase ids; ORCID URLs and bare iDs; Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`; DOIs with or without `https://doi.org/`; `git+` and `.git` on repository URLs; semver pre-releases against PEP 440 (`0.3.1-rc.1` = `0.3.1rc1`). Manifests are compared on version, authors' names, licence, repository URL and keywords, not on name or description. npm's one `author` is compared with the first author.
+
+By default it reads every citation file present and the release manifests at the repo root: a pyproject.toml without `[build-system]` and a private package.json are skipped, a field in pyproject's `dynamic` is skipped on its own, and a Cargo workspace is read through `[workspace.package]`. The tests run each of the six files as the source against a fixture where all six agree, and CITATION.cff as the source against five real repositories.
+
+Config goes in the first of `citesync.toml`, `.citesync.toml`, `[tool.citesync]` in pyproject.toml, `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml, or `"citesync"` in package.json:
+
+```toml
+source = "CITATION.cff"                  # any of the six files
+codemeta_version = "3.0"
+files = ["codemeta.json", ".zenodo.json"]  # default: the citation files present
+manifests = ["src/core/package.json"]      # replaces the default root manifests
+write_manifests = ["keywords", "license"]  # or "all"; for write, not built yet
+```
+
+Not built yet: `citesync write`, which exits 2 in this build, the `diff` format, and the pre-commit hook.
 
 ## Development
 
