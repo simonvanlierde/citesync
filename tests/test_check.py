@@ -397,6 +397,20 @@ def test_repository_urls_compare_by_key(
     assert [f["detail"] for f in _check_json(tmp_path, capsys, files)["findings"]] == expected
 
 
+@pytest.mark.parametrize(
+    ("doi", "expected"), [("10.1/a", []), ("10.1/b", [("MISMATCH", "codemeta.json", "identifier")])]
+)
+def test_codemeta_property_value_doi(
+    doi: str, expected: list[tuple[str, str, str]], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    identifier = [
+        {"@type": "PropertyValue", "propertyID": "SWHID", "value": "swh:1:dir:" + "0" * 40},
+        {"@type": "PropertyValue", "propertyID": "DOI", "value": doi},
+    ]
+    files = {"CITATION.cff": CFF + 'doi: "10.1/a"\n', "codemeta.json": _codemeta(identifier=identifier)}
+    assert _triples(_check_json(tmp_path, capsys, files)["findings"]) == expected
+
+
 SYNTHETIC = FIXTURES / "synthetic-agree"
 # One planted disagreement per row, in synthetic-agree with CITATION.cff as the source.
 PLANTED = [

@@ -93,8 +93,12 @@ def orcid_encode(orcid: str, form: str) -> str:
 def doi_decode(raw: object) -> str | None:
     """The bare DOI (``10.5281/zenodo.1234567``), or None for a value that isn't one.
 
-    codemeta's ``identifier`` may be any URL or a list: the first DOI in it counts.
+    codemeta's ``identifier`` may be any URL, a schema.org PropertyValue or a list: the first DOI
+    in it counts. A PropertyValue holds a DOI in its ``value`` or ``url`` (``propertyID`` ``DOI``);
+    any other, such as a SWHID or ROR id, is ignored.
     """
+    if isinstance(raw, dict):
+        raw = [raw.get("value"), raw.get("url")]
     if isinstance(raw, list):
         return next(filter(None, map(doi_decode, raw)), None)
     if not isinstance(raw, str):

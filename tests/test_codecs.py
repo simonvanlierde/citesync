@@ -138,6 +138,15 @@ def test_doi_decode_keeps_only_doi_shaped_values() -> None:
     assert codecs.doi_decode(["https://github.com/o/r", "https://doi.org/10.1/a", "10.1/b"]) == "10.1/a"
 
 
+def test_doi_decode_reads_property_values() -> None:
+    swhid = {"@type": "PropertyValue", "propertyID": "SWHID", "value": "swh:1:dir:" + "0" * 40}
+    ror = {"@type": "PropertyValue", "propertyID": "ROR", "url": "https://ror.org/02e2c7k09"}
+    assert codecs.doi_decode([swhid, ror]) is None
+    assert codecs.doi_decode({"@type": "PropertyValue", "propertyID": "doi", "value": "10.1/a"}) == "10.1/a"
+    assert codecs.doi_decode([swhid, {"@type": "PropertyValue", "url": "https://doi.org/10.1/b"}, "10.1/c"]) == "10.1/b"
+    assert codecs.doi_decode({"@type": "PropertyValue", "propertyID": "DOI", "value": "doi:10.1/A"}) == "10.1/A"
+
+
 def test_license_decode_list() -> None:
     assert codecs.license_decode(["MIT", "https://spdx.org/licenses/Apache-2.0"]) == "MIT OR Apache-2.0"
     assert codecs.license_decode([]) is None
