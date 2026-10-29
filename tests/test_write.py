@@ -388,6 +388,29 @@ def test_values_that_compare_equal_are_left_as_written(
     assert codemeta.read_text(encoding="utf-8") == text.replace('"alpha", "beta", "gamma", "delta"', keywords)
 
 
+@pytest.mark.parametrize("ignore", [False, True])
+def test_a_near_miss_keyword_takes_the_source_spelling_in_place(
+    ignore: bool,  # noqa: FBT001
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config = 'write-manifests = ["keywords"]\n' + ("keywords-ignore-separators = true\n" if ignore else "")
+    root = _synthetic(tmp_path / "repo", config)
+    _edit(root / "CITATION.cff", '"beta"', '"big data"')
+    codemeta = _edit(root / "codemeta.json", '"beta"', '"big-data"')
+    pyproject = _edit(root / "pyproject.toml", '"beta"', '"big_data"')
+    for name in (".zenodo.json", "package.json", "Cargo.toml"):
+        _edit(root / name, '"beta"', '"big data"')
+
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
+    if ignore:
+        assert (root / "codemeta.json").read_text(encoding="utf-8") == codemeta
+        assert (root / "pyproject.toml").read_text(encoding="utf-8") == pyproject
+    else:
+        assert '"keywords": ["alpha", "big data", "gamma", "delta"]' in (root / "codemeta.json").read_text("utf-8")
+        assert 'keywords = ["alpha", "big data", "gamma", "delta"]' in (root / "pyproject.toml").read_text("utf-8")
+
+
 def test_write_keeps_the_file_mode(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = _synthetic(tmp_path / "repo")
     shutil.copy(PLANTED / "codemeta.json", root / "codemeta.json")
@@ -713,3 +736,16 @@ def test_diff_reports_an_unreadable_file(tmp_path: Path, capsys: pytest.CaptureF
     code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
     assert (code, out) == (1, "")
     assert "error[unreadable]" in err
+
+
+@pytest.mark.parametrize("source", ["CITATION.cff", "Cargo.toml"])
+def test_cargo_keywords_keep_their_hyphens(source: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # crates.io refuses a keyword with a space, so a hyphenated Cargo.toml keyword matches a spaced one.
+    root = _synthetic(tmp_path / "repo", f'source = "{source}"\nwrite-manifests = ["keywords"]\n')
+    for name in ("CITATION.cff", "codemeta.json", ".zenodo.json", "pyproject.toml", "package.json"):
+        _edit(root / name, '"beta"', '"big data"')
+    cargo = _edit(root / "Cargo.toml", '"beta"', '"big-data"')
+
+    assert _run(capsys, "check", "-q", "--root", str(root))[0] == 0
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
+    assert (root / "Cargo.toml").read_text(encoding="utf-8") == cargo

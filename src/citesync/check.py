@@ -122,7 +122,7 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list
         elif not any(term in d.record for d in docs):
             found.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
-        found.update(compare_term(term, docs, keywords_case_sensitive=config.keywords_case_sensitive))
+        found.update(compare_term(term, docs, kw_key=keyword_key(config)))
     return sorted(found, key=Finding.sort_key)
 
 
@@ -131,7 +131,7 @@ def has_slot(doc: Doc, term: str) -> bool:
     return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
 
 
-def compare_term(term: str, docs: list[Doc], *, keywords_case_sensitive: bool) -> Iterable[Finding]:
+def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
     """Compare ``term`` in ``docs[1:]`` with the source ``docs[0]``.
 
     When the source has no slot or no value for it (D2), the other files that hold
@@ -141,33 +141,31 @@ def compare_term(term: str, docs: list[Doc], *, keywords_case_sensitive: bool) -
     """
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
     if has_slot(source, term) and term in source.record:
-        found = [compare(term, source, doc, keywords_case_sensitive=keywords_case_sensitive) for doc in others]
+        found = [compare(term, source, doc, kw_key=kw_key) for doc in others]
         if term == "author" and "author.@id" not in source.slots:
-            found += _between(term, others, orcid_only=True)
+            found += _between(term, others, orcid_only=True, kw_key=kw_key)
         elif term == "keywords" and not source.is_citation:
-            found += _between(term, others, keywords_case_sensitive=keywords_case_sensitive)
+            found += _between(term, others, kw_key=kw_key)
     else:
-        found = _between(term, others, keywords_case_sensitive=keywords_case_sensitive)
+        found = _between(term, others, kw_key=kw_key)
     return [f for f in found if f]
 
 
 def _between(
-    term: str, holders: list[Doc], *, orcid_only: bool = False, keywords_case_sensitive: bool = False
+    term: str, holders: list[Doc], *, orcid_only: bool = False, kw_key: Callable[[str], str]
 ) -> list[Finding | None]:
     return [
-        compare(term, earlier, later, orcid_only=orcid_only, keywords_case_sensitive=keywords_case_sensitive)
+        compare(term, earlier, later, orcid_only=orcid_only, kw_key=kw_key)
         for i, later in enumerate(holders)
         for earlier in holders[:i]
     ]
 
 
-def compare(
-    term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, keywords_case_sensitive: bool
-) -> Finding | None:
+def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: Callable[[str], str]) -> Finding | None:
     """A finding on ``doc`` when its ``term`` disagrees with ``ref``'s, by the rule for that term and pair.
 
     With ``orcid_only``, authors compare by ORCID alone, for people whose names match. Keywords
-    compare as names do, unless ``keywords_case_sensitive``.
+    compare by ``kw_key`` (:func:`keyword_key`).
     """
     a, b = ref.record[term], doc.record[term]
     both_citation = ref.is_citation and doc.is_citation
@@ -177,17 +175,21 @@ def compare(
         equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
-        key = keyword_key(case_sensitive=keywords_case_sensitive)
+        kw_key = cargo_keyword_key(kw_key, ref, doc)
         if not both_citation:
-            return _keywords_subset(ref, doc, key)
-        equal = set(map(key, a)) == set(map(key, b))
+            return _keywords_subset(ref, doc, kw_key)
+        equal = set(map(kw_key, a)) == set(map(kw_key, b))
     else:  # name, description
         if not both_citation:
             return None  # a manifest name is a package id, a description a one-line summary
         equal = a == b
     if equal:
         return None
-    return Finding(doc.path, term, MISMATCH[term], f"{_show(b)}, {ref.path} has {_show(a)}")
+    detail = f"{_show(b)}, {ref.path} has {_show(a)}"
+    if term == "keywords":
+        misses = [f"{k!r} differs from {near!r}" for k in b if (near := near_miss(k, a, kw_key))]
+        detail += f" ({', '.join(misses)} only in separators)" if misses else ""
+    return Finding(doc.path, term, MISMATCH[term], detail)
 
 
 _KEY = {
@@ -198,9 +200,29 @@ _KEY = {
 }
 
 
-def keyword_key(*, case_sensitive: bool) -> Callable[[str], str]:
-    """What keywords compare by: as names do, or with only the spacing collapsed when ``case_sensitive``."""
-    return codecs.clean if case_sensitive else codecs.name_key
+def keyword_key(config: Config) -> Callable[[str], str]:
+    """What keywords compare by: as names do, or with only the spacing collapsed when case-sensitive.
+
+    With ``keywords-ignore-separators``, hyphens and underscores count as spaces too.
+    """
+    key = codecs.clean if config.keywords_case_sensitive else codecs.name_key
+    return _ignore_separators(key) if config.keywords_ignore_separators else key
+
+
+def cargo_keyword_key(key: Callable[[str], str], *docs: Doc) -> Callable[[str], str]:
+    """``key``, ignoring separators when one of ``docs`` is a Cargo.toml: crates.io refuses a keyword with a space."""
+    return _ignore_separators(key) if any(d.format == "cargo" for d in docs) else key
+
+
+def _ignore_separators(key: Callable[[str], str]) -> Callable[[str], str]:
+    return lambda k: key(codecs.spaced(k))
+
+
+def near_miss(keyword: str, others: Iterable[str], key: Callable[[str], str]) -> str | None:
+    """The one of ``others`` that ``keyword`` misses only by separators, when it isn't among them as it is."""
+    if key(keyword) in map(key, others):
+        return None
+    return next((o for o in others if key(codecs.spaced(o)) == key(codecs.spaced(keyword))), None)
 
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
@@ -212,7 +234,13 @@ def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
     extra = [k for k in manifest.record["keywords"] if key(k) not in known]
     if not extra:
         return None
-    detail = f"{', '.join(extra)}: in {manifest.path}, not in {citation.path}"
+    words = [
+        f"{k} ({citation.path} has {near!r}: differs only in separators)"
+        if (near := near_miss(k, citation.record["keywords"], key))
+        else k
+        for k in extra
+    ]
+    detail = f"{', '.join(words)}: in {manifest.path}, not in {citation.path}"
     return Finding(doc.path, "keywords", "keywords-not-subset", detail)
 
 

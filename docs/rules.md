@@ -64,7 +64,7 @@ To fix: Make the file agree with the source, or the other way round if the sourc
 
 The keywords differ from the source's. Severity: error.
 
-Citation files must hold the same keywords, in any order. A manifest's keywords are checked by `keywords-not-subset` instead. When the source has no place or no value for the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+Citation files must hold the same keywords, in any order. A manifest's keywords are checked by `keywords-not-subset` instead. A keyword that differs from the other file's only in separators (`big-data`, `big_data`, `big data`) is named in the message, and write gives it the source's spelling where it stands; `keywords-ignore-separators = true` makes such keywords equal. They are always equal against Cargo.toml, since crates.io refuses a keyword with a space. When the source has no place or no value for the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
 
 To fix: Make the file agree with the source, or the other way round if the source is wrong.
 
@@ -72,7 +72,7 @@ To fix: Make the file agree with the source, or the other way round if the sourc
 
 A manifest has a keyword the citation file doesn't. Severity: error.
 
-A manifest's keywords must all be in the citation file's, whichever of the two is the source: a citation file can hold more keywords than a registry allows (crates.io allows five).
+A manifest's keywords must all be in the citation file's, whichever of the two is the source: a citation file can hold more keywords than a registry allows (crates.io allows five). A keyword that differs from the other file's only in separators (`big-data`, `big_data`, `big data`) is named in the message, and write gives it the source's spelling where it stands; `keywords-ignore-separators = true` makes such keywords equal. They are always equal against Cargo.toml, since crates.io refuses a keyword with a space.
 
 To fix: Add the keyword to the citation file, or remove it from the manifest.
 

@@ -290,3 +290,10 @@ def test_license_key_drops_parentheses_only_around_or(a: str, b: str, *, equal: 
 
 def test_version_encode_semver_spells_a_dev_release() -> None:
     assert codecs.version_encode_semver("1.0.dev3") == "1.0.0-dev.3"
+
+
+@given(st.lists(st.text("abcXYZ", min_size=1), min_size=1), st.lists(st.sampled_from(["-", "_", " ", "  ", "-_ "])))
+def test_spaced_reads_any_separator_run_as_one_space(words: list[str], seps: list[str]) -> None:
+    joined = "".join(w + (seps[i % len(seps)] if seps else "-") for i, w in enumerate(words))
+    assert codecs.spaced(joined) == " ".join(words)
+    assert codecs.spaced(codecs.spaced(joined)) == codecs.spaced(joined)

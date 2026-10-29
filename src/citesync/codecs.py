@@ -39,6 +39,11 @@ def clean(text: str) -> str:
     return " ".join(text.split())
 
 
+def spaced(text: str) -> str:
+    """Hyphens and underscores read as spaces, so ``big-data``, ``big_data`` and ``big data`` are one word."""
+    return clean(text.replace("-", " ").replace("_", " "))
+
+
 # Licence: an SPDX id, an SPDX URL, or Zenodo's lowercase id.
 
 

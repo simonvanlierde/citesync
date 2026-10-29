@@ -22,6 +22,7 @@ class Config:
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
     keywords_case_sensitive: bool = False
+    keywords_ignore_separators: bool = False
     ignore: tuple[str, ...] = ()
     origin: str = "defaults"
 
@@ -145,6 +146,7 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
     "write-manifests": _write_manifests,
     "keywords-case-sensitive": lambda value, origin: _bool(value, origin, "keywords-case-sensitive"),
+    "keywords-ignore-separators": lambda value, origin: _bool(value, origin, "keywords-ignore-separators"),
     "ignore": _ignore,
 }
 
@@ -163,6 +165,7 @@ def render(config: Config) -> str:
         else "# manifests: not set, so every release manifest at the repo root",
         f"write-manifests = {json.dumps(list(config.write_manifests))}",
         f"keywords-case-sensitive = {json.dumps(config.keywords_case_sensitive)}",
+        f"keywords-ignore-separators = {json.dumps(config.keywords_ignore_separators)}",
         f"ignore = {json.dumps(list(config.ignore))}",
     ]
     return "\n".join(lines)

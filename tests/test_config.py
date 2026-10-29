@@ -64,8 +64,14 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         "# manifests: not set, so every release manifest at the repo root\n"
         "write-manifests = []\n"
         "keywords-case-sensitive = false\n"
+        "keywords-ignore-separators = false\n"
         "ignore = []\n"
     )
+
+
+def test_keywords_ignore_separators(tmp_path: Path) -> None:
+    (tmp_path / "citesync.toml").write_text("keywords-ignore-separators = true\n", encoding="utf-8")
+    assert load_config(tmp_path).keywords_ignore_separators
 
 
 def test_keywords_case_sensitive(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

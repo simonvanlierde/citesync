@@ -25,7 +25,7 @@ from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from citesync import codecs
-from citesync.check import Finding, findings, has_slot, keyword_key, read_docs
+from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, near_miss, read_docs
 from citesync.config import Config
 from citesync.errors import CannotWrite
 from citesync.formats import (
@@ -66,7 +66,7 @@ def write(
         if f.severity == "error" and f.rule not in config.ignore
     }
     source, texts, skipped = docs[0], {}, {}
-    key = keyword_key(case_sensitive=config.keywords_case_sensitive)
+    key = keyword_key(config)
     for doc in docs:  # the source too, for its @context
         terms = [
             t
@@ -245,7 +245,8 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
         old = old.strip()
         return ("git+" if old.startswith("git+") else "") + value + (".git" if old.endswith(".git") else "")
     if term == "keywords":
-        return _keywords(old, value, keyword_key, add=doc.is_citation, remove=source.is_citation or not doc.is_citation)
+        key = cargo_keyword_key(keyword_key, doc, source)
+        return _keywords(old, value, key, add=doc.is_citation, remove=source.is_citation or not doc.is_citation)
     return value
 
 
@@ -299,6 +300,9 @@ def _keywords(old: Any, value: tuple[str, ...], key: Callable[[str], str], *, ad
     """
     items = old if isinstance(old, list) else [old]
     want = set(map(key, value))
+    for i, word in enumerate(items):  # a near miss takes the source's spelling where it stands
+        if (near := near_miss(str(word), value, key)) and key(near) not in {key(str(k)) for k in items}:
+            items[i] = _styled(near, word)
     if remove:
         for i in reversed(range(len(items))):
             if key(str(items[i])) not in want:
