@@ -1,11 +1,13 @@
 """Command line: ``citesync check|write|config|rules|explain``.
 
 Exit codes: 0 when the files agree (after ``write``, once it has written), 1 on any error
-finding (that ``write`` may not fix), 2 when citesync couldn't run. ``write`` then wrote nothing,
+finding (that ``write`` may not fix), 2 when citesync couldn't run. ``write --diff`` exits 1
+when it would change a file, as ``ruff format --diff`` does. ``write`` then wrote nothing,
 unless moving a written file into place failed: files moved before it stay written.
 """
 
 import argparse
+import difflib
 import json
 import os
 import sys
@@ -38,7 +40,8 @@ def _parser() -> argparse.ArgumentParser:
     shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
     sub.add_parser("check", parents=[report], help="report where the files disagree")
-    sub.add_parser("write", parents=[report], help="rewrite the files to agree with the source")
+    write_ = sub.add_parser("write", parents=[report], help="rewrite the files to agree with the source")
+    write_.add_argument("--diff", action="store_true", help="print the changes as a unified diff and write nothing")
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", help="list the rules")
     rules.add_argument("--format", choices=("text", "json"), default="text")
@@ -48,7 +51,10 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """Run the command line and return its exit code."""
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if getattr(args, "diff", False) and args.format != "text":
+        parser.error("--diff prints a unified diff; it takes no --format")
     if args.command in {"rules", "explain"}:
         return _rules(args)
     try:
@@ -56,7 +62,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(render(config))
             return 0
-        written, skipped = write(args.root, config) if args.command == "write" else ([], {})
+        if getattr(args, "diff", False):
+            texts, _ = write(args.root, config, dry_run=True)
+            sys.stdout.write(_diff(args.root, texts))
+            return 1 if texts else 0
+        written, skipped = write(args.root, config) if args.command == "write" else ({}, {})
         findings, files = check(args.root, config)
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)
@@ -64,10 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
         print(f"citesync: {args.root}: unexpected error: {type(err).__name__}: {err}", file=sys.stderr)
         return 2
-    for rule in config.ignore:
-        if not any(f.rule == rule for f in findings):
-            print(f"citesync: warning: ignore entry {rule!r} matched no finding", file=sys.stderr)
-    findings = [f for f in findings if f.rule not in config.ignore]
+    findings = _ignore(findings, config.ignore)
     if args.command == "write":
         if not args.quiet:  # stdout stays one document in the json and github formats
             for path in written:
@@ -78,6 +85,14 @@ def main(argv: list[str] | None = None) -> int:
         ]
     _report(findings, files, args)
     return 1 if any(f.severity == "error" for f in findings) else 0
+
+
+def _ignore(findings: list[Finding], ignore: tuple[str, ...]) -> list[Finding]:
+    """``findings`` less the ignored rules', warning about an ignore entry that matched nothing."""
+    for rule in ignore:
+        if not any(f.rule == rule for f in findings):
+            print(f"citesync: warning: ignore entry {rule!r} matched no finding", file=sys.stderr)
+    return [f for f in findings if f.rule not in ignore]
 
 
 def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> None:
@@ -113,6 +128,20 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         print(f"{where}{severity}[{f.rule}] " + (f"{f.term}: {f.message}" if f.term else f.message))
     if not args.quiet:
         print(total)
+
+
+def _diff(root: Path, texts: dict[str, str]) -> str:
+    """The unified diff from each file to its new text, with git's ``a/`` and ``b/`` prefixes."""
+    return "".join(
+        line
+        for rel, new in texts.items()
+        for line in difflib.unified_diff(
+            (root / rel).read_bytes().decode("utf-8").splitlines(keepends=True),
+            new.splitlines(keepends=True),
+            f"a/{rel}",
+            f"b/{rel}",
+        )
+    )
 
 
 def _count(n: int, noun: str) -> str:

@@ -641,3 +641,35 @@ def test_role_dangling_lists_the_orcids_per_list(tmp_path: Path, capsys: pytest.
         ("author", f"a Role points at {ids[0]}, {ids[1]}, {tail}"),
         ("contributor", f"a Role points at {ids[2]}, {tail}"),
     ]
+
+
+def test_diff_prints_the_edit_and_writes_nothing(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    cff = root / "CITATION.cff"
+    cff.write_text(cff.read_text(encoding="utf-8").replace('version: "1.2.3"', 'version: "1.2.4"'), encoding="utf-8")
+    before = _snapshot(root)
+
+    code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
+    assert (code, err) == (1, "")
+    assert _snapshot(root) == before
+    files = [line for line in out.splitlines() if line.startswith(("--- ", "+++ "))]
+    assert files == [
+        "--- a/codemeta.json",
+        "+++ b/codemeta.json",
+    ]  # .zenodo.json has no version, manifests aren't opted in
+    changed = [line for line in out.splitlines() if line[:1] in "+-" and line[:3] not in {"---", "+++"}]
+    assert changed == ['-  "version": "1.2.3",', '+  "version": "1.2.4",']
+
+    _run(capsys, "write", "-q", "--root", str(root))
+    assert _run(capsys, "write", "--diff", "--root", str(root)) == (
+        0,
+        "",
+        "",
+    )  # manifest errors remain, nothing to write
+
+
+def test_diff_takes_no_format(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["write", "--diff", "--format", "json"])
+    assert exc.value.code == 2
+    assert "--diff" in capsys.readouterr().err
