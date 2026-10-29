@@ -92,6 +92,22 @@ A `Role` entry in codemeta.json's `author` or `contributor` list, as credit-matr
 
 To fix: Add the person back, point the Role at their ORCID, or remove the Role.
 
+## zenodo-license-list
+
+CITATION.cff's `license` is a list, and Zenodo would refuse the release. Severity: error.
+
+When a repo has no .zenodo.json, Zenodo's GitHub integration reads CITATION.cff and loads its `license` as one string, so a list, even of one licence, fails the release with "Citation metadata load failed". Checked only when no .zenodo.json sits beside CITATION.cff.
+
+To fix: Give one licence in CITATION.cff, or add a .zenodo.json, which Zenodo reads instead.
+
+## zenodo-drops-field
+
+Zenodo won't carry this CITATION.cff field into the record. Severity: warning.
+
+Without a .zenodo.json, Zenodo reads CITATION.cff but leaves out `identifiers` and `references`: the DOI comes from the release and the version and date from the tag. Checked only when no .zenodo.json sits beside CITATION.cff.
+
+To fix: Add a .zenodo.json with the field's Zenodo form (`related_identifiers`, `references`) if the record needs it.
+
 ## unreadable
 
 citesync could not read the file. Severity: error.

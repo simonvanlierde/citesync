@@ -12,6 +12,12 @@
       "exit": 1,
       "findings": [
         {
+          "rule": "zenodo-drops-field",
+          "file": "CITATION.cff",
+          "term": "references",
+          "why": "no .zenodo.json, and Zenodo leaves CFF references out of the record"
+        },
+        {
           "rule": "name-mismatch",
           "file": "codemeta.json",
           "term": "name",
@@ -29,6 +35,12 @@
       },
       "exit": 1,
       "findings": [
+        {
+          "rule": "zenodo-drops-field",
+          "file": "CITATION.cff",
+          "term": "references",
+          "why": "no .zenodo.json, and Zenodo leaves CFF references out of the record"
+        },
         {
           "rule": "name-mismatch",
           "file": "codemeta.json",
