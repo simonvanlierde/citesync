@@ -2,13 +2,13 @@
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from citesync import codecs
 from citesync.config import Config
 from citesync.errors import CheckError, UnreadableError
-from citesync.formats import CITATION_FILES, FORMAT_OF, MANIFESTS, Doc, Person, read_doc, slots
-from citesync.mapping import TERMS, Mapping, load_mapping
+from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, slots
+from citesync.mapping import FORMATS, TERMS, Mapping, load_mapping
 from citesync.rules import DOCS_URL, MISMATCH, RULES
 
 
@@ -98,17 +98,16 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
         except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
             problem = UnreadableError(path, f"unexpected shape ({err})")
         unreadable.append(Finding(problem.path, None, "unreadable", problem.message, problem.line, problem.column))
-        fmt = FORMAT_OF[PurePosixPath(path).name]
+        fmt = format_of(path)
         docs.append(Doc(path, fmt, {}, slots(fmt, mapping), None, release=True, readable=False))
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
         docs = [d for d in docs if d.release or d.is_citation or d.path == config.source]
-    order = list(FORMAT_OF.values())
-    return docs[:1] + sorted(docs[1:], key=lambda d: (order.index(d.format), d.path)), unreadable
+    return docs[:1] + sorted(docs[1:], key=lambda d: (FORMATS.index(d.format), d.path)), unreadable
 
 
-def check(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[list[Finding], int]:
+def check(root: Path, config: Config) -> tuple[list[Finding], int]:
     """Every finding for the repo at ``root``, sorted, and the number of files checked."""
-    docs, unreadable = read_docs(root, config, mapping or load_mapping())
+    docs, unreadable = read_docs(root, config, load_mapping())
     findings: set[Finding] = set(unreadable)
     source = docs[0]
     for doc in docs:
@@ -139,15 +138,14 @@ def compare_term(term: str, docs: list[Doc], *, keywords_case_sensitive: bool = 
     keywords of the rest compared that way, since a subset of one isn't a subset of all.
     """
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
-    case = keywords_case_sensitive
     if has_slot(source, term) and term in source.record:
-        found = [compare(term, source, doc, keywords_case_sensitive=case) for doc in others]
+        found = [compare(term, source, doc, keywords_case_sensitive=keywords_case_sensitive) for doc in others]
         if term == "author" and "author.@id" not in source.slots:
             found += _between(term, others, orcid_only=True)
         elif term == "keywords" and not source.is_citation:
-            found += _between(term, others, keywords_case_sensitive=case)
+            found += _between(term, others, keywords_case_sensitive=keywords_case_sensitive)
     else:
-        found = _between(term, others, keywords_case_sensitive=case)
+        found = _between(term, others, keywords_case_sensitive=keywords_case_sensitive)
     return [f for f in found if f]
 
 

@@ -12,5 +12,5 @@ class UnreadableError(CheckError):
     """
 
     def __init__(self, path: str, message: str, line: int | None = None, column: int | None = None) -> None:
-        super().__init__(f"{path}: {message}")
+        super().__init__(f"{path}{f':{line}:{column}' if line else ''}: {message}")
         self.path, self.message, self.line, self.column = path, message, line, column

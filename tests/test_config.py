@@ -91,7 +91,7 @@ def test_write_manifests_all_expands(tmp_path: Path) -> None:
         ('manifests = ["../x/package.json"]\n', "must be relative to the repo root"),
         ('files = "codemeta.json"\n', "files must be a list of paths"),
         ('keywords_case_sensitive = "yes"\n', "keywords_case_sensitive must be true or false"),
-        ("source = \n", "citesync.toml: cannot read config"),
+        ("source = \n", "citesync.toml:1:10: Invalid value"),
         ('ignore = ["version"]\n', "ignore must be a list of rule ids from name-mismatch,"),
         ('ignore = ["unreadable"]\n', "ignore must be a list of rule ids"),
     ],

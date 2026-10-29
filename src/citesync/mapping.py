@@ -25,13 +25,14 @@ type Mapping = dict[tuple[str, str], str | None]
 
 
 @cache
-def load_mapping(name: str = "mapping-local.json") -> Mapping:
+def load_mapping() -> Mapping:
     """Read the vendored mapping and check what citesync needs from it.
 
     Raises:
         CheckError: on an unknown schema major, a duplicate row, or a missing row
             for a term citesync reads.
     """
+    name = "mapping-local.json"
     data = json.loads(files("citesync").joinpath(name).read_text(encoding="utf-8"))
     return check_mapping(data, name)
 

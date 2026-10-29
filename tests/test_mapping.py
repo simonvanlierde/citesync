@@ -10,7 +10,8 @@ import jsonschema
 import pytest
 
 from citesync.errors import CheckError
-from citesync.mapping import check_mapping, load_mapping, relative, resolve
+from citesync.formats import FORMAT_OF
+from citesync.mapping import FORMATS, check_mapping, load_mapping, relative, resolve
 
 PACKAGE = files("citesync")
 
@@ -35,6 +36,11 @@ def test_loads() -> None:
     mapping = load_mapping()
     assert mapping["cff-1.2.0", "identifier"] == "doi | identifiers[type=doi].value"
     assert mapping["cargo", "identifier"] is None
+
+
+def test_formats_are_in_file_order() -> None:
+    """Files other than the source are checked in FORMATS order, so blame never depends on config order."""
+    assert tuple(FORMAT_OF.values()) == FORMATS
 
 
 def _row(data: dict, fmt: str, term: str) -> dict:

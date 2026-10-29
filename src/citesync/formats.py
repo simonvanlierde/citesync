@@ -71,9 +71,17 @@ class Doc:
         return self.format in CITATION_FILES.values()
 
 
-def format_of(path: str) -> str | None:
-    """The format id of a file, from its name."""
-    return FORMAT_OF.get(PurePosixPath(path).name)
+def format_of(path: str) -> str:
+    """The format id of a file, from its name.
+
+    Raises:
+        CheckError: when the name is none of the six files.
+    """
+    fmt = FORMAT_OF.get(PurePosixPath(path).name)
+    if fmt is None:
+        msg = f"{path}: not one of {', '.join(FORMAT_OF)}"
+        raise CheckError(msg)
+    return fmt
 
 
 def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
@@ -84,10 +92,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
             citesync doesn't read.
     """
     fmt = format_of(rel)
-    if fmt is None:
-        msg = f"{rel}: not one of {', '.join(FORMAT_OF)}"
-        raise CheckError(msg)
-    data = _load(root / rel, rel)
+    data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
     data = _adapt(fmt, data, root, rel)
@@ -107,7 +112,12 @@ def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
-def _load(path: Path, rel: str) -> dict[str, Any]:
+def load(path: Path, rel: str) -> dict[str, Any]:
+    """Parse the TOML, JSON or YAML file at ``path``, named ``rel`` in errors.
+
+    Raises:
+        UnreadableError: when it can't be read or parsed, or its top level isn't a mapping.
+    """
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as err:
@@ -237,7 +247,7 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
     for parent in PurePosixPath(rel).parents[1:]:
         candidate = root / parent / "Cargo.toml"
         if candidate.is_file():
-            data = _load(candidate, str(parent / "Cargo.toml"))
+            data = load(candidate, str(parent / "Cargo.toml"))
             if "workspace" in data:
                 return data
     return None
@@ -255,10 +265,10 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
     raw = values[0]
     if term == "keywords":
         items = raw if isinstance(raw, list) else [raw]
-        words = tuple(" ".join(str(w).split()) for w in items if isinstance(w, str) and w.strip())
+        words = tuple(codecs.clean(w) for w in items if isinstance(w, str) and w.strip())
         return words or None
     if term in {"name", "description"}:
-        return (" ".join(raw.split()) or None) if isinstance(raw, str) else None
+        return (codecs.clean(raw) or None) if isinstance(raw, str) else None
     return _DECODE[term](raw)
 
 
@@ -280,7 +290,7 @@ def _person(fmt: str, element: object, parent: str, mapping: Mapping) -> Person 
         return values[0] if values else None
 
     def text(value: object) -> str | None:
-        return (" ".join(value.split()) or None) if isinstance(value, str) else None
+        return (codecs.clean(value) or None) if isinstance(value, str) else None
 
     orcid = codecs.orcid_decode(sub("author.@id"))
     given, family = None, None

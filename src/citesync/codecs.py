@@ -37,7 +37,8 @@ _PEP440_TAG = {"alpha": "a", "a": "a", "beta": "b", "b": "b", "rc": "rc", "c": "
 _SEMVER_TAG = {"a": "alpha", "b": "beta", "rc": "rc"}
 
 
-def _clean(text: str) -> str:
+def clean(text: str) -> str:
+    """Whitespace collapsed to single spaces, and none at either end."""
     return " ".join(text.split())
 
 
@@ -171,8 +172,8 @@ def zenodo_name_decode(raw: object) -> tuple[str | None, str] | None:
         return None
     family, sep, given = raw.partition(",")
     if not sep:
-        return None, _clean(family)
-    return (_clean(given) or None), _clean(family)
+        return None, clean(family)
+    return (clean(given) or None), clean(family)
 
 
 def zenodo_name_encode(given: str | None, family: str) -> str:
@@ -185,19 +186,19 @@ def contact_name_decode(raw: object) -> str | None:
     if not isinstance(raw, str):
         return None
     match = _CONTACT.match(raw.strip())
-    name = _clean(match["name"]) if match else _clean(raw)
+    name = clean(match["name"]) if match else clean(raw)
     return name or None
 
 
 def display_name(given: str | None, family: str | None) -> str | None:
     """``"Given Family"`` from the parts a format holds."""
-    name = _clean(" ".join(part for part in (given, family) if part))
+    name = clean(" ".join(part for part in (given, family) if part))
     return name or None
 
 
 def name_key(name: str) -> str:
     """Names compare case-insensitively, with whitespace collapsed and Unicode in NFC."""
-    return unicodedata.normalize("NFC", _clean(name)).casefold()
+    return unicodedata.normalize("NFC", clean(name)).casefold()
 
 
 # Version: equal as PEP 440 versions, so v1.2.3 = 1.2.3, 1.0 = 1.0.0 and 0.3.1-rc.1 = 0.3.1rc1.

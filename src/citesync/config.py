@@ -1,15 +1,14 @@
 """Find and validate the config: the first location found wins, flags override it."""
 
 import json
-import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from citesync.errors import CheckError
-from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS
-from citesync.mapping import TERMS
+from citesync.errors import CheckError, UnreadableError
+from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS, load
+from citesync.mapping import TERMS, resolve
 from citesync.rules import RULES
 
 
@@ -27,12 +26,12 @@ class Config:
     origin: str = "defaults"
 
 
-# Config tables inside manifests, in the D7 order: (file, keys, origin).
+# Config tables inside manifests, in the D7 order: (file, mapping path, origin).
 _MANIFEST_TABLES = (
-    ("pyproject.toml", ("tool", "citesync"), "pyproject.toml [tool.citesync]"),
-    ("Cargo.toml", ("workspace", "metadata", "citesync"), "Cargo.toml [workspace.metadata.citesync]"),
-    ("Cargo.toml", ("package", "metadata", "citesync"), "Cargo.toml [package.metadata.citesync]"),
-    ("package.json", ("citesync",), 'package.json "citesync"'),
+    ("pyproject.toml", "tool.citesync", "pyproject.toml [tool.citesync]"),
+    ("Cargo.toml", "workspace.metadata.citesync", "Cargo.toml [workspace.metadata.citesync]"),
+    ("Cargo.toml", "package.metadata.citesync", "Cargo.toml [package.metadata.citesync]"),
+    ("package.json", "citesync", 'package.json "citesync"'),
 )
 
 
@@ -44,39 +43,16 @@ def find_config(root: Path) -> tuple[dict[str, Any], str]:
     """
     for name in ("citesync.toml", ".citesync.toml"):
         if (root / name).is_file():
-            return _read(root, name), name
-    for name, keys, origin in _MANIFEST_TABLES:
+            return load(root / name, name), name
+    for name, path, origin in _MANIFEST_TABLES:
         if (root / name).is_file():
             try:
-                table = _dig(_read(root, name), keys)
-            except CheckError:
+                table = next(iter(resolve(load(root / name, name), path)), None)
+            except UnreadableError:
                 continue
             if table is not None:
                 return table, origin
     return {}, "defaults"
-
-
-def _dig(data: dict[str, Any], keys: tuple[str, ...]) -> Any:  # noqa: ANN401 - parsed TOML
-    """The value at ``keys`` in nested tables, or None when a key is missing or a step isn't a table."""
-    node: Any = data
-    for key in keys:
-        if not isinstance(node, dict):
-            return None
-        node = node.get(key)
-    return node
-
-
-def _read(root: Path, name: str) -> dict[str, Any]:
-    try:
-        text = (root / name).read_text(encoding="utf-8")
-        data = json.loads(text) if name.endswith(".json") else tomllib.loads(text)
-    except (OSError, ValueError) as err:  # TOMLDecodeError and JSONDecodeError are ValueErrors
-        msg = f"{name}: cannot read config: {err}"
-        raise CheckError(msg) from err
-    if not isinstance(data, dict):
-        msg = f"{name}: the top level is not a table"
-        raise CheckError(msg)
-    return data
 
 
 def load_config(root: Path, source: str | None = None) -> Config:
@@ -137,13 +113,6 @@ def _write_manifests(value: object, origin: str) -> tuple[str, ...]:
         msg = f"{origin}: write_manifests must be 'all' or a list of {', '.join(TERMS)}, got {value!r}"
         raise CheckError(msg)
     return tuple(TERMS) if "all" in items else tuple(items)
-
-
-def _codemeta_version(value: object, origin: str) -> str:
-    if value not in CODEMETA_VERSIONS:
-        msg = f"{origin}: codemeta_version must be one of {', '.join(CODEMETA_VERSIONS)}"
-        raise CheckError(msg)
-    return str(value)
 
 
 def _ignore(value: object, origin: str) -> tuple[str, ...]:
