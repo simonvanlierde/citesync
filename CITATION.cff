@@ -11,6 +11,7 @@ authors:
     family-names: "van Lierde"
     orcid: "https://orcid.org/0009-0006-6953-909X"
 repository-code: "https://github.com/simonvanlierde/citesync"
+doi: "10.5281/zenodo.23779706"
 license: Apache-2.0
 keywords:
   - "citation"

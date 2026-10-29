@@ -16,5 +16,6 @@
   "issueTracker": "https://github.com/simonvanlierde/citesync/issues",
   "license": "https://spdx.org/licenses/Apache-2.0",
   "programmingLanguage": "Python",
+  "identifier": "https://doi.org/10.5281/zenodo.23779706",
   "keywords": ["citation", "CITATION.cff", "codemeta", "zenodo", "software-metadata", "pre-commit"]
 }
