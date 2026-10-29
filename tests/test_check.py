@@ -357,6 +357,26 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
             [("keywords-not-subset", "Cargo.toml", "keywords")],
             id="manifest-source-other-manifest-subset-of-citation",
         ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": _pyproject('keywords = ["a"]'),
+                "CITATION.cff": CFF + "keywords: [a, b]\n",
+                "Cargo.toml": '[package]\nname = "x"\nkeywords = ["b"]\n',
+            },
+            [],
+            id="manifest-source-no-rule-between-manifests",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": PYPROJECT,
+                "CITATION.cff": CFF + "abstract: a\n",
+                "codemeta.json": _codemeta(name="y", description="b"),
+            },
+            [("description-mismatch", "codemeta.json", "description"), ("name-mismatch", "codemeta.json", "name")],
+            id="manifest-source-citation-names-compared-between-holders",
+        ),
     ],
 )
 def test_holders_beyond_the_source(
@@ -417,6 +437,14 @@ def test_keywords_compare_like_names(
     }
     report = _check_json(tmp_path, capsys, files)
     assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
+
+
+def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = {
+        "CITATION.cff": CFF + "keywords: [b, a]\nauthors:\n  - {given-names: Ada, family-names: Lovelace}\n",
+        "codemeta.json": _codemeta(keywords=["a", "b"], author=_people("ada lovelace")),
+    }
+    assert _split(_check_json(tmp_path, capsys, files))[0] == []
 
 
 @pytest.mark.parametrize(
@@ -567,6 +595,15 @@ def test_not_checked_detail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
     }
 
 
+def test_github_format_quiet_has_no_summary(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
+    _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github", "-q")
+    assert out.splitlines() == [
+        "::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'"
+    ]
+
+
 def test_github_format_escapes_the_file_property(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     (tmp_path / "a,b:c").mkdir()
     (tmp_path / "a,b:c" / "package.json").write_text('{"name": "x", "license": "MIT"}', encoding="utf-8")
@@ -591,8 +628,6 @@ PLAIN, RED = "codemeta.json: error[", "codemeta.json: \033[1;31merror\033[0m["
 def test_colour(
     env: dict[str, str], start: str, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("FORCE_COLOR", raising=False)
-    monkeypatch.delenv("NO_COLOR", raising=False)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
