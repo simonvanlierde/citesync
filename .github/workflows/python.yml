@@ -61,6 +61,8 @@ jobs:
       - run: uv run ruff format --check
       - run: uv run ty check
       - run: uv run pytest
+      # citesync on its own citation files, as the citesync git hook does.
+      - run: uv run citesync check --format github
 
   api:
     # Fails when the public API lost or changed something since the last git tag,
