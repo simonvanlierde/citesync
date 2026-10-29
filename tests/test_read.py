@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from citesync.errors import UnreadableError
 from citesync.formats import Doc, Person, read_doc
 from citesync.mapping import load_mapping
 
@@ -49,6 +50,12 @@ def test_every_fixture_file_has_a_record() -> None:
 def test_cargo_member_without_workspace_drops_inherited_keys(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text('[package]\nname = "x"\nversion.workspace = true\n', encoding="utf-8")
     assert read_doc(tmp_path, "Cargo.toml", load_mapping()).record == {"name": "x"}
+
+
+def test_key_of_the_wrong_shape_is_unreadable(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text('package = "x"\n', encoding="utf-8")
+    with pytest.raises(UnreadableError, match="unexpected shape"):
+        read_doc(tmp_path, "Cargo.toml", load_mapping())
 
 
 def test_npm_person_string_and_codemeta_single_author(tmp_path: Path) -> None:

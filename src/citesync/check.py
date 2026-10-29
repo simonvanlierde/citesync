@@ -92,14 +92,10 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
     for path in discover(root, config):
         try:
             docs.append(read_doc(root, path, mapping))
-            continue
         except UnreadableError as err:
-            problem = err
-        except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
-            problem = UnreadableError(path, f"unexpected shape ({err})")
-        unreadable.append(Finding(problem.path, None, "unreadable", problem.message, problem.line, problem.column))
-        fmt = format_of(path)
-        docs.append(Doc(path, fmt, {}, slots(fmt, mapping), None, release=True, readable=False))
+            unreadable.append(Finding(err.path, None, "unreadable", err.message, err.line, err.column))
+            fmt = format_of(path)
+            docs.append(Doc(path, fmt, {}, slots(fmt, mapping), None, release=True, readable=False))
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
         docs = [d for d in docs if d.release or d.is_citation or d.path == config.source]
     return docs[:1] + sorted(docs[1:], key=lambda d: (FORMATS.index(d.format), d.path)), unreadable

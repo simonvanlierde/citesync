@@ -88,22 +88,25 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
     """Read ``rel`` under ``root`` into its record.
 
     Raises:
-        UnreadableError: when the file can't be read or parsed, or has a format version
-            citesync doesn't read.
+        UnreadableError: when the file can't be read or parsed, has a format version
+            citesync doesn't read, or has a key holding a shape its format doesn't allow.
     """
     fmt = format_of(rel)
     data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
-    data = _adapt(fmt, data, root, rel)
     record = {}
-    for term in TERMS:
-        path = mapping[fmt, term]
-        if path is None:
-            continue
-        value = _read_term(fmt, term, data, path, mapping)
-        if value is not None:
-            record[term] = value
+    try:
+        data = _adapt(fmt, data, root, rel)
+        for term in TERMS:
+            path = mapping[fmt, term]
+            if path is None:
+                continue
+            value = _read_term(fmt, term, data, path, mapping)
+            if value is not None:
+                record[term] = value
+    except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
+        raise UnreadableError(rel, f"unexpected shape ({err})") from err
     return Doc(rel, fmt, record, slots(fmt, mapping), version, release)
 
 
