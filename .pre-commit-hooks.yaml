@@ -1,0 +1,9 @@
+# citesync reads every file whatever was staged, so the hook takes no file names.
+- id: citesync
+  name: citesync
+  description: checks that CITATION.cff, codemeta.json, .zenodo.json and the package manifests agree
+  entry: citesync check
+  language: python
+  pass_filenames: false
+  always_run: false
+  files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|\.?citesync\.toml)$

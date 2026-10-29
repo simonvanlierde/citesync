@@ -99,7 +99,21 @@ ignore = ["description-mismatch"]          # rule ids whose findings to drop
 
 An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
 
-Not built yet: the `diff` format, the pre-commit hook, and creating a citation file listed under `files` that doesn't exist yet.
+Not built yet: the `diff` format, and creating a citation file listed under `files` that doesn't exist yet.
+
+## Pre-commit hook
+
+For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/simonvanlierde/citesync
+    rev: v0.1.0
+    hooks:
+      - id: citesync
+```
+
+The hook runs `citesync check` from the repo root when a commit changes CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, `citesync.toml` or `.citesync.toml`, at any depth. It always checks every file, not only the staged ones, and fails the commit on an error finding.
 
 ## Development
 
