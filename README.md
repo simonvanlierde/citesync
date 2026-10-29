@@ -73,7 +73,7 @@ A file citesync can't read or parse is an `unreadable` finding, with the parser'
 }
 ```
 
-Findings are sorted by file, rule and field, and positions count from 1. `file` is null for a field no file holds, and `term` (the CodeMeta term) is null for `unreadable`. JSON always lists every finding: `-q` and `-v` change only the text and GitHub output. [tests/output.schema.json](tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields; ignore what you don't know. Removing or retyping a field bumps `version`, in a major release. `--format github` writes one workflow annotation per finding, titled `citesync <rule>`, and ends with a notice that counts them all, since GitHub shows only the first ten of each level.
+Findings are sorted by file, rule and field, and positions count from 1. A value longer than 80 characters is cut to 77 and ends in `...` in the message. `file` is null for a field no file holds, and `term` (the CodeMeta term) is null for `unreadable`. JSON always lists every finding: `-q` and `-v` change only the text and GitHub output. [tests/output.schema.json](tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields; ignore what you don't know. Removing or retyping a field bumps `version`, in a major release. `--format github` writes one workflow annotation per finding, titled `citesync <rule>`, and ends with a notice that counts them all, since GitHub shows only the first ten of each level.
 
 Spellings are normalised before comparing: SPDX ids, SPDX URLs and Zenodo's lowercase ids; ORCID URLs and bare iDs; Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`; DOIs with or without `https://doi.org/`, and a codemeta `identifier` given as a schema.org PropertyValue (`propertyID` `DOI`, or a DOI as its `value` or `url`; other PropertyValues, such as a SWHID, are skipped); repository URLs as npm's hosted-git-info reads them: `git+`, `.git`, `http://`, `www.`, the host's case, npm shorthands (`github:owner/repo`, `owner/repo`), SSH remotes, and a branch, tag or file page on GitHub, GitLab, Codeberg, Gitea or Bitbucket (`…/tree/v1.0`, as Zenodo's GitHub integration writes), with GitHub paths in any case; CFF `name-particle` and `name-suffix`, read as part of the family name; a licence list, read as `A OR B`; PEP 621 url labels as packaging normalises them (`Source Code`, `homepage`); versions as PEP 440 versions (`v1.2.3` = `1.2.3`, `1.0` = `1.0.0`, `0.3.1-rc.1` = `0.3.1rc1`, `1.0.0-dev.1` = `1.0.0.dev1`), while a version that isn't one (`unreleased`) must match exactly. Names and keywords compare case-insensitively, with whitespace collapsed and Unicode in NFC; set `keywords-case-sensitive = true` to compare keywords by case too. Findings show each file's own spelling. Manifests are compared on version, authors' names, licence, repository URL and keywords, not on name or description. npm's one `author` is compared with the first author.
 
@@ -99,7 +99,38 @@ ignore = ["description-mismatch"]          # rule ids whose findings to drop
 
 An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
 
-Not built yet: the `diff` format, the pre-commit hook, and creating a citation file listed under `files` that doesn't exist yet.
+Not built yet: the `diff` format, and creating a citation file listed under `files` that doesn't exist yet.
+
+## Pre-commit hook
+
+For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/simonvanlierde/citesync
+    rev: v0.1.0
+    hooks:
+      - id: citesync
+      - id: citesync-write
+```
+
+The hook runs `citesync check` from the repo root when a commit changes CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, `citesync.toml` or `.citesync.toml`, at any depth. It always checks every file, not only the staged ones, and fails the commit on an error finding. `citesync-write` runs `citesync write` only when you ask for it: `prek run citesync-write --stage manual --all-files`.
+
+## Tested on real repositories
+
+The tests copy the metadata files of five public repositories byte for byte (commits in [tests/fixtures/SOURCES.txt](tests/fixtures/SOURCES.txt)) and check that citesync reports exactly these findings, with CITATION.cff as the source.
+
+| Repository | Config | Findings | Exit | Why |
+| --- | --- | --- | ---: | --- |
+| sourceledger | none | codemeta.json `context-mismatch` | 1 | codemeta.json uses the CodeMeta 4.0 context, and citesync expects 3.0 unless `codemeta-version` says otherwise. pyproject.toml and .zenodo.json agree on every field |
+| credit-matrix | none | codemeta.json `name-mismatch` | 1 | codemeta.json names it "CRediT Matrix", CITATION.cff "CRediT Matrix: drafting CRediT contribution statements with co-authors". The root package.json is private, so it is skipped |
+| credit-matrix | `manifests = ["src/core/package.json"]` | codemeta.json `name-mismatch` | 1 | As above. The package agrees: its version, licence and author match, its keywords are a subset, and its `git+…/credit-matrix.git` repository names the same repository |
+| jsonvet | none | Cargo.toml `keywords-not-subset` | 1 | The workspace keywords include `lint`, and CITATION.cff has `linter`. Only Cargo.toml holds a version, so there is nothing to compare it with |
+| jsonvet | `manifests = ["crates/jsonvet-cli/pyproject.toml"]` | that pyproject.toml `keywords-not-subset`; `not-checked` version (info) | 1 | The same keyword. The list replaces the root manifests and the pyproject version is `dynamic`, so no file holds a version |
+| r9lab | none | codemeta.json `context-mismatch` | 1 | As sourceledger. The root pyproject.toml has no `[build-system]` and the root package.json is private, so no manifest is checked |
+| project-templates | none | `not-checked` version (info) | 0 | CITATION.cff alone, with no version |
+
+A made-up set where all six files agree exits 0 with each of them as the source.
 
 ## Development
 
@@ -117,7 +148,13 @@ prek install     # git hooks
 just check       # lint, types and tests for every stack here
 just fmt         # apply each stack's fixes and formatting
 just hooks       # the git hooks, as the checks workflow runs them
+just mutation    # mutation-test the comparison code (not in CI)
 ```
+
+`just mutation` changes `check.py` and `codecs.py` one small step at a time and fails if the tests
+still pass on a change that `tests/mutation-baseline.txt` does not list. A change that
+cannot alter behaviour goes in that file with the reason. It also fails on a listed
+change the tests now catch, so the list stays true.
 
 uv locks only releases at least a week old. If `just check` fails on
 a security fix newer than that, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`,

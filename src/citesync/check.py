@@ -127,7 +127,7 @@ def has_slot(doc: Doc, term: str) -> bool:
     return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
 
 
-def compare_term(term: str, docs: list[Doc], *, keywords_case_sensitive: bool = False) -> Iterable[Finding]:
+def compare_term(term: str, docs: list[Doc], *, keywords_case_sensitive: bool) -> Iterable[Finding]:
     """Compare ``term`` in ``docs[1:]`` with the source ``docs[0]``.
 
     When the source has no slot or no value for it (D2), the other files that hold
@@ -158,7 +158,7 @@ def _between(
 
 
 def compare(
-    term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, keywords_case_sensitive: bool = False
+    term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, keywords_case_sensitive: bool
 ) -> Finding | None:
     """A finding on ``doc`` when its ``term`` disagrees with ``ref``'s, by the rule for that term and pair.
 
@@ -167,11 +167,7 @@ def compare(
     """
     a, b = ref.record[term], doc.record[term]
     both_citation = ref.is_citation and doc.is_citation
-    if term in {"name", "description"}:
-        if not both_citation:
-            return None  # a manifest name is a package id, a description a one-line summary
-        equal = a == b
-    elif term in _KEY:
+    if term in _KEY:
         equal = _KEY[term](a) == _KEY[term](b)
     elif term == "author":
         equal = _same_people(ref, doc, names=not orcid_only)
@@ -181,7 +177,9 @@ def compare(
         if not both_citation:
             return _keywords_subset(ref, doc, key)
         equal = set(map(key, a)) == set(map(key, b))
-    else:
+    else:  # name, description
+        if not both_citation:
+            return None  # a manifest name is a package id, a description a one-line summary
         equal = a == b
     if equal:
         return None
@@ -214,7 +212,7 @@ def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
     return Finding(doc.path, "keywords", "keywords-not-subset", detail)
 
 
-def _same_people(ref: Doc, doc: Doc, *, names: bool = True) -> bool:
+def _same_people(ref: Doc, doc: Doc, *, names: bool) -> bool:
     """Same names in the same order, ORCIDs equal where both have one. npm's one author is the first.
 
     Without ``names``, only the ORCIDs of people at the same place with the same name count.

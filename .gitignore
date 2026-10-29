@@ -34,3 +34,6 @@ coverage/
 
 # Rust
 target/
+
+# mutmut working copy
+mutants/

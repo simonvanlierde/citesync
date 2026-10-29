@@ -17,6 +17,26 @@ default:
 check:
     @just py-check
 
+# Mutation-test the modules in pyproject's [tool.mutmut]. Fails on a survivor not in
+# tests/mutation-baseline.txt, and on a listed one that no longer survives, so the list stays true.
+mutation:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Byte order, so sort and comm agree on the ǁ in class method names.
+    export LC_ALL=C
+    # mutmut reuses results from mutants/ even after the tests change, so start clean.
+    rm -rf mutants
+    uv run mutmut run >/dev/null
+    survivors=$(uv run mutmut results | sed -n 's/^ *\(.*\): survived$/\1/p' | sort)
+    listed=$(grep -v '^#' tests/mutation-baseline.txt | awk '{ print $1 }' | sort)
+    new=$(comm -23 <(echo "$survivors" | sed '/^$/d') <(echo "$listed"))
+    gone=$(comm -13 <(echo "$survivors") <(echo "$listed" | sed '/^$/d'))
+    echo "$(echo "$survivors" | grep -c . || true) survivors; not in tests/mutation-baseline.txt:"
+    echo "${new:-none}"
+    echo "listed but no longer surviving (drop them):"
+    echo "${gone:-none}"
+    [ -z "$new$gone" ]
+
 # Fix and format every stack here, as each stack's `fmt` recipe does.
 fmt:
     @just py-fmt

@@ -237,6 +237,7 @@ def test_unreadable_file_is_a_finding(
     jsonschema.validate(report, OUTPUT_SCHEMA)
     [found] = [f for f in report["findings"] if f["rule"] == "unreadable"]
     assert (code, err, found["file"], found["term"]) == (1, "", name, None)
+    assert report["summary"]["files"] == (1 if name == "CITATION.cff" else 2)
     assert message in found["message"]
     assert (found["line"], found["column"]) == (position or (None, None))
     _, github, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github")
@@ -259,7 +260,8 @@ def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytes
         ("version-mismatch", ".zenodo.json", "version"),
         ("unreadable", "CITATION.cff", None),
     ]
-    assert {(f["file"], f["term"]) for f in info} == {("CITATION.cff", term) for term in TERMS}
+    assert [(f["file"], f["term"]) for f in info] == [("CITATION.cff", term) for term in sorted(TERMS)]
+    assert {f["message"] for f in info} == {"not compared with the source: it can't be read"}
     assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 8}
 
 
@@ -365,12 +367,80 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
         pytest.param(
             "pyproject.toml",
             {
-                "pyproject.toml": PYPROJECT,
+                "pyproject.toml": _pyproject('description = "z"'),
                 "CITATION.cff": CFF + "abstract: a\n",
                 "codemeta.json": _codemeta(name="y", description="b"),
             },
             [("description-mismatch", "codemeta.json", "description"), ("name-mismatch", "codemeta.json", "name")],
             id="manifest-source-citation-names-compared-between-holders",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": PYPROJECT,
+                "CITATION.cff": CFF_AB,
+                "codemeta.json": _codemeta(author=_people("A C")),
+            },
+            [("author-mismatch", "codemeta.json", "author")],
+            id="manifest-source-without-authors-holders-compared-by-name",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": _pyproject('authors = [{ name = "A B" }]'),
+                "CITATION.cff": CFF_AB,
+                "codemeta.json": _codemeta(author=_people("A B", "X Y")),
+            },
+            [("author-mismatch", "codemeta.json", "author")],
+            id="manifest-source-holders-with-different-author-counts",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {"pyproject.toml": _pyproject('keywords = ["a", "z"]'), "CITATION.cff": CFF + "keywords: [a]\n"},
+            [("keywords-not-subset", "CITATION.cff", "keywords")],
+            id="manifest-source-keywords-not-in-citation",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "citesync.toml": "keywords-case-sensitive = true\n",
+                "pyproject.toml": _pyproject('keywords = ["lca"]'),
+                "CITATION.cff": CFF + "keywords: [lca]\n",
+                "codemeta.json": _codemeta(keywords=["LCA"]),
+            },
+            [
+                ("keywords-mismatch", "codemeta.json", "keywords"),
+                ("keywords-not-subset", "codemeta.json", "keywords"),
+            ],
+            id="manifest-source-holders-keywords-case-sensitive",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "citesync.toml": "keywords-case-sensitive = true\n",
+                "pyproject.toml": PYPROJECT,
+                "CITATION.cff": CFF + "keywords: [lca]\n",
+                "codemeta.json": _codemeta(keywords=["LCA"]),
+            },
+            [("keywords-mismatch", "codemeta.json", "keywords")],
+            id="manifest-source-without-keywords-case-sensitive",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {"pyproject.toml": '[project]\nname = "x"\nversion = "1.0.0"\n', "CITATION.cff": CFF + "version: 2.0.0\n"},
+            [("version-mismatch", "CITATION.cff", "version")],
+            id="unreleased-manifest-source-still-checked",
+        ),
+        pytest.param(
+            "CITATION.cff",
+            {
+                "citesync.toml": 'files = ["codemeta.json"]\n',
+                "CITATION.cff": CFF,
+                "codemeta.json": _codemeta(),
+                ".zenodo.json": json.dumps({"title": "z"}),
+            },
+            [],
+            id="files-config-limits-the-citation-files",
         ),
     ],
 )
@@ -415,7 +485,12 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
             "keywords-case-sensitive = true\n",
             [
                 ("keywords-mismatch", "codemeta.json", "keywords", "Life Cycle, lca, CITATION.cff has life cycle, LCA"),
-                ("keywords-not-subset", "pyproject.toml", "keywords", "Lca: in pyproject.toml, not in CITATION.cff"),
+                (
+                    "keywords-not-subset",
+                    "pyproject.toml",
+                    "keywords",
+                    "Lca, Life Cycle: in pyproject.toml, not in CITATION.cff",
+                ),
             ],
         ),
     ],
@@ -428,7 +503,7 @@ def test_keywords_compare_like_names(
         "citesync.toml": config,
         "CITATION.cff": CFF + "keywords: [life  cycle, LCA]\n",
         "codemeta.json": _codemeta(keywords=["Life Cycle", "lca"]),
-        "pyproject.toml": _pyproject('keywords = ["Lca"]'),
+        "pyproject.toml": _pyproject('keywords = ["Lca", "Life Cycle"]'),
     }
     report = _check_json(tmp_path, capsys, files)
     assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
@@ -440,6 +515,28 @@ def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixt
         "codemeta.json": _codemeta(keywords=["a", "b"], author=_people("ada lovelace")),
     }
     assert _split(_check_json(tmp_path, capsys, files))[0] == []
+
+
+@pytest.mark.parametrize(
+    ("orcid", "expected"), [(ORCID_A, []), (ORCID_B, [f"'? ({ORCID_B})', CITATION.cff has '? ({ORCID_A})'"])]
+)
+def test_authors_without_names_compare_by_orcid(
+    orcid: str, expected: list[str], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    files = {
+        "CITATION.cff": CFF + f"authors:\n  - orcid: https://orcid.org/{ORCID_A}\n",
+        "codemeta.json": _codemeta(author=[{"@id": f"https://orcid.org/{orcid}"}]),
+    }
+    assert [f["message"] for f in _split(_check_json(tmp_path, capsys, files))[0]] == expected
+
+
+@pytest.mark.parametrize(("length", "shown"), [(80, "n" * 80), (81, "n" * 77 + "...")])
+def test_long_values_are_cut_in_messages(
+    length: int, shown: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    files = {"CITATION.cff": CFF, "codemeta.json": _codemeta(name="n" * length)}
+    [finding] = _split(_check_json(tmp_path, capsys, files))[0]
+    assert finding["message"] == f"'{shown}', CITATION.cff has 'x'"
 
 
 @pytest.mark.parametrize(

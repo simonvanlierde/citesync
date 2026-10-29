@@ -15,6 +15,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Output as text, JSON (`--format json` or `--json`) or GitHub workflow annotations (`--format github`). Text is coloured on a terminal (`NO_COLOR` and `FORCE_COLOR` are honoured) and ends with a summary line; `--quiet` prints only errors. JSON is one document with a `version`, the tool, a summary and the findings, each with its rule, severity, help, a link to the rule's docs and its position when known. GitHub output ends with a notice that counts the findings. JSON always lists every finding, whatever `-q` or `-v` say.
 - A JSON compatibility policy: a minor release may add rule ids and optional fields, so ignore what you don't know; removing or retyping a field bumps the report's `version`, in a major release.
 - `citesync --version`.
+- A pre-commit hook, `citesync`, for prek or pre-commit. It runs `citesync check` when a commit changes a citation file, a package manifest or citesync's config, at any depth, and fails the commit on an error finding.
+- A manual-stage hook, `citesync-write`, that runs `citesync write` when you ask for it.
 - `ignore` in the config drops the findings of the rules it lists, and warns about an entry that matched nothing.
 - `citesync config`, and config discovery from `citesync.toml`, `.citesync.toml`, pyproject.toml, Cargo.toml or package.json. Config keys are kebab-case, such as `codemeta-version`.
 - The field mapping, vendored from codemeta-drift with its JSON Schema.

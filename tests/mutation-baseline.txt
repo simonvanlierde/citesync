@@ -1,0 +1,8 @@
+# Mutants that `just mutation` allows to survive, one per line, then the reason.
+# Mutant numbers shift when their function changes: rerun and recheck each line then.
+citesync.check.xǁFindingǁsort_key__mutmut_3  every finding with no file gets the same stand-in, and they already sort last
+citesync.check.xǁFindingǁsort_key__mutmut_5  only unreadable has no term, and a file has at most one, so its stand-in is never compared
+citesync.check.x_read_docs__mutmut_35  readable is only read as a truth value, and None is falsy like False
+citesync.check.x__between__mutmut_2  the default is used only for authors (orcid_only=True), where keywords_case_sensitive is not read
+citesync.check.x__same_people__mutmut_18  zip's strict=None is falsy, the same as False
+citesync.check.x__same_people__mutmut_21  zip's strict defaults to False

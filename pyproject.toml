@@ -24,6 +24,7 @@ Issues = "https://github.com/simonvanlierde/citesync/issues"
 dev = [
   "hypothesis>=6.140",
   "jsonschema>=4.25",
+  "mutmut==3.8.0",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "ruff>=0.17.1",
@@ -91,6 +92,13 @@ testpaths = ["tests"]
 # Coverage is opt-in via `pytest --cov` (`just py-cov`), not addopts, because it
 # slows every plain test run. No fail_under until there is a suite worth setting
 # one against.
+# Mutation testing (`just mutation`, not in CI) covers the comparison code only.
+[tool.mutmut]
+source_paths = ["src/citesync"]
+only_mutate = ["src/citesync/check.py", "src/citesync/codecs.py"]
+pytest_add_cli_args_test_selection = ["tests"]
+also_copy = ["docs", ".pre-commit-hooks.yaml"]
+
 [tool.coverage.run]
 source = ["src"]
 branch = true

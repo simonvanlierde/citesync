@@ -1,6 +1,7 @@
 """Property tests on every codec: decode(encode(x)) == x for normalised values, and decoding is idempotent."""
 
 import re
+from collections.abc import Callable
 
 import pytest
 from hypothesis import example, given
@@ -140,6 +141,24 @@ def test_repo_key_path_case() -> None:
     assert codecs.repo_key("https://gitlab.com/g/sub/r/-/tree/main") == "https://gitlab.com/g/sub/r"
     assert codecs.repo_key("https://github.com/tree/r") == "https://github.com/tree/r"  # an owner named tree
     assert codecs.repo_key("https://example.org/o/r/tree/main") == "https://example.org/o/r/tree/main"
+    assert codecs.repo_key("https://user@example.org/o/BOX/") == "https://example.org/o/BOX"
+
+
+@pytest.mark.parametrize(
+    ("decode", "raw", "expected"),
+    [
+        (codecs.orcid_decode, "https://orcid.org/0000-0002-1825-009x/", "0000-0002-1825-009X"),
+        (codecs.repo_decode, "https://github.com/o/BOX/", "https://github.com/o/BOX"),
+        (codecs.zenodo_name_decode, None, None),
+        (codecs.zenodo_name_decode, "  ", None),
+        (codecs.contact_name_decode, "Ada <ada", "Ada <ada"),  # no closing >, so the whole string
+        (codecs.version_decode, None, None),
+        (codecs.version_decode, True, None),
+        (codecs.version_decode, {"a": 1}, None),
+    ],
+)
+def test_decode_edge_cases(decode: Callable[[object], object], raw: object, expected: object) -> None:
+    assert decode(raw) == expected
 
 
 def test_doi_decode_keeps_only_doi_shaped_values() -> None:
@@ -255,3 +274,19 @@ def test_version_key_spellings_agree(release: str, tag: str, n: str) -> None:
 )
 def test_version_key_equality(a: str, b: str, *, equal: bool) -> None:
     assert (codecs.version_key(a) == codecs.version_key(b)) is equal
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "equal"),
+    [
+        ("(MIT OR Apache-2.0)", "mit or apache-2.0", True),
+        ("(MIT AND Apache-2.0) OR GPL-3.0", "MIT AND Apache-2.0 OR GPL-3.0", False),
+        ("(GPL-2.0 WITH Classpath-exception-2.0) OR MIT", "GPL-2.0 WITH Classpath-exception-2.0 OR MIT", False),
+    ],
+)
+def test_license_key_drops_parentheses_only_around_or(a: str, b: str, *, equal: bool) -> None:
+    assert (codecs.license_key(a) == codecs.license_key(b)) is equal
+
+
+def test_version_encode_semver_spells_a_dev_release() -> None:
+    assert codecs.version_encode_semver("1.0.dev3") == "1.0.0-dev.3"
