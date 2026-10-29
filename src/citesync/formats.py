@@ -55,6 +55,7 @@ class Doc:
         release: False for a manifest that isn't released: a pyproject.toml with no
             ``[build-system]``, a private package.json.
         readable: False for a file citesync couldn't read, whose record is empty.
+        dangling_roles: For codemeta.json, (list, ORCID) for each Role whose person isn't listed.
     """
 
     path: str
@@ -64,6 +65,7 @@ class Doc:
     version: str | None
     release: bool
     readable: bool = True
+    dangling_roles: tuple[tuple[str, str], ...] = ()
 
     @property
     def is_citation(self) -> bool:
@@ -95,9 +97,11 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
     data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
-    record = {}
+    record, roles = {}, ()
     try:
         data = _adapt(fmt, data, root, rel)
+        if fmt == "codemeta":
+            roles = dangling_roles(data)
         for term in TERMS:
             path = mapping[fmt, term]
             if path is None:
@@ -107,7 +111,29 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
                 record[term] = value
     except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
         raise UnreadableError(rel, f"unexpected shape ({err})") from err
-    return Doc(rel, fmt, record, slots(fmt, mapping), version, release)
+    return Doc(rel, fmt, record, slots(fmt, mapping), version, release, dangling_roles=roles)
+
+
+def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:
+    """Each CodeMeta Role in ``author`` or ``contributor`` whose ``schema:author`` ORCID no listed Person has.
+
+    A Role names its person by ORCID (credit-matrix writes CRediT roles this way); a Role
+    with no ORCID there is skipped. The Role itself is never read.
+    """
+    entries = [
+        (key, entry)
+        for key in ("author", "contributor")
+        for entry in (data[key] if isinstance(data.get(key), list) else [data.get(key)])
+        if isinstance(entry, dict)
+    ]
+    people = {codecs.orcid_decode(e.get("@id")) for _, e in entries if e.get("@type") != "Role"}
+    found = []
+    for key, entry in entries:
+        target = entry.get("schema:author")
+        orcid = codecs.orcid_decode(target.get("@id") if isinstance(target, dict) else target)
+        if entry.get("@type") == "Role" and orcid and orcid not in people:
+            found.append((key, orcid))
+    return tuple(found)
 
 
 def slots(fmt: str, mapping: Mapping) -> frozenset[str]:

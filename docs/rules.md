@@ -84,6 +84,14 @@ The configured version is `codemeta-version`, 3.0 by default. citesync reads Cod
 
 To fix: Change the `@context` to the configured version, or set `codemeta-version` in the config.
 
+## role-dangling
+
+A CodeMeta Role in codemeta.json points at a person who isn't listed. Severity: warning.
+
+A `Role` entry in codemeta.json's `author` or `contributor` list, as credit-matrix writes CRediT roles, names its person by ORCID in `schema:author`. The rule warns when no `Person` in either list has that ORCID as its `@id`, as after someone is replaced. The role itself is not checked, and `write` never changes a Role.
+
+To fix: Add the person back, point the Role at their ORCID, or remove the Role.
+
 ## unreadable
 
 citesync could not read the file. Severity: error.
