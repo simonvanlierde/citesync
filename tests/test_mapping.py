@@ -37,6 +37,10 @@ def test_loads() -> None:
     assert mapping["cargo", "identifier"] is None
 
 
+def _row(data: dict, fmt: str, term: str) -> dict:
+    return next(r for r in data["rows"] if (r["format"], r["term"]) == (fmt, term))
+
+
 @pytest.mark.parametrize(
     ("change", "message"),
     [
@@ -44,6 +48,11 @@ def test_loads() -> None:
         (lambda d: d["rows"].pop(0), "no row for cff-1.2.0 name"),
         (lambda d: d["rows"].append(dict(d["rows"][0])), "two rows for cff-1.2.0 name"),
         (lambda d: d["rows"][0].update(path="title[0]"), "bad step 'title[0]'"),
+        (lambda d: d["rows"].remove(_row(d, "cff-1.2.0", "author.@id")), "no row for cff-1.2.0 author.@id"),
+        (
+            lambda d: _row(d, "pep621", "author").update(path=None),
+            "pep621 author.givenName has a path but pep621 author has none",
+        ),
     ],
 )
 def test_mapping_refused(change: Callable[[dict], object], message: str) -> None:

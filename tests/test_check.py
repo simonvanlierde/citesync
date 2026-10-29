@@ -343,3 +343,105 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
         (".zenodo.json", "'10.1/c', CITATION.cff has '10.1/a'"),
         ("codemeta.json", "'10.1/b', CITATION.cff has '10.1/a'"),
     ]
+
+
+SYNTHETIC = FIXTURES / "synthetic-agree"
+# One planted disagreement per row, in synthetic-agree with CITATION.cff as the source.
+PLANTED = [
+    (
+        "codemeta.json",
+        '"name": "synthagree"',
+        '"name": "other"',
+        "MISMATCH",
+        "name",
+        "'other', CITATION.cff has 'synthagree'",
+    ),
+    (
+        "Cargo.toml",
+        'version = "1.2.3"',
+        'version = "1.2.4"',
+        "MISMATCH",
+        "version",
+        "'1.2.4', CITATION.cff has '1.2.3'",
+    ),
+    (
+        ".zenodo.json",
+        '"Lovelace, Ada",\n      "orcid": "0000-0002-1825-0097"\n    },\n    {\n      "name": "Turing, Alan"',
+        '"Turing, Alan"\n    },\n    {\n      "name": "Lovelace, Ada",\n      "orcid": "0000-0002-1825-0097"',
+        "MISMATCH",
+        "author",
+        (
+            "'Alan Turing; Ada Lovelace (0000-0002-1825-0097)',"
+            " CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'"
+        ),
+    ),
+    ("codemeta.json", "0000-0002-1825-0097", "0000-0001-5109-3700", "MISMATCH", "author", None),
+    ("pyproject.toml", 'license = "Apache-2.0"', 'license = "MIT"', "MISMATCH", "license", None),
+    ("codemeta.json", "zenodo.1234567", "zenodo.7654321", "MISMATCH", "identifier", None),
+    (
+        ".zenodo.json",
+        '"https://github.com/example/synthagree"',
+        '"https://github.com/example/other"',
+        "MISMATCH",
+        "codeRepository",
+        None,
+    ),
+    (
+        "package.json",
+        "git+https://github.com/example/synthagree.git",
+        "github:example/other",
+        "MISMATCH",
+        "codeRepository",
+        None,
+    ),
+    (".zenodo.json", '"description": "A made-up', '"description": "Another made-up', "MISMATCH", "description", None),
+    ("codemeta.json", '"gamma", "delta"]', '"gamma"]', "MISMATCH", "keywords", None),
+    (
+        "package.json",
+        '"gamma", "delta"]',
+        '"gamma", "delta", "omega"]',
+        "NOT_SUBSET",
+        "keywords",
+        "omega: in package.json, not in CITATION.cff",
+    ),
+    ("codemeta.json", "codemeta/3.0", "codemeta/2.0", "CONTEXT", "@context", "2.0, configured 3.0"),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "old", "new", "code", "term", "detail"), PLANTED, ids=[f"{p[0]}-{p[4]}-{p[3]}" for p in PLANTED]
+)
+def test_one_planted_disagreement(
+    name: str,
+    old: str,
+    new: str,
+    code: str,
+    term: str,
+    detail: str | None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = tmp_path / "repo"
+    shutil.copytree(SYNTHETIC, root)
+    text = (root / name).read_text(encoding="utf-8")
+    assert text.count(old) == 1
+    (root / name).write_text(text.replace(old, new), encoding="utf-8")
+    code_, out, _ = _run(capsys, "check", "--root", str(root), "--json")
+    findings = json.loads(out)["findings"]
+    assert (code_, _triples(findings)) == (1, [(code, name, term)])
+    if detail is not None:
+        assert findings[0]["detail"] == detail
+
+
+def test_not_checked_detail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    info = _check_json(tmp_path, capsys, {"CITATION.cff": CFF})["info"]
+    assert info[0] == {"code": "NOT_CHECKED", "file": "", "term": "author", "detail": "no file holds a value"}
+
+
+def test_github_format_escapes_the_file_property(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "a,b:c").mkdir()
+    (tmp_path / "a,b:c" / "package.json").write_text('{"name": "x", "license": "MIT"}', encoding="utf-8")
+    (tmp_path / "CITATION.cff").write_text(CFF + "license: Apache-2.0\n", encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('manifests = ["a,b:c/package.json"]\n', encoding="utf-8")
+    _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github")
+    assert out.startswith("::error file=a%2Cb%3Ac/package.json,title=")

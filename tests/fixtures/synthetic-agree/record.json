@@ -83,6 +83,7 @@
         }
       ],
       "license": "apache-2.0",
+      "codeRepository": "https://github.com/example/synthagree",
       "description": "A made-up package whose metadata files all agree.",
       "keywords": [
         "alpha",

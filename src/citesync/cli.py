@@ -69,12 +69,18 @@ def _report(findings: list[Finding], info: list[Finding], fmt: str, *, verbose: 
     if fmt == "github":
         for f in shown:
             level = "notice" if f.code == "NOT_CHECKED" else "error"
-            where = f"file={f.file}," if f.file else ""
-            message = f"{f.term}: {f.detail}".replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            where = f"file={_escape(f.file, property_=True)}," if f.file else ""
+            message = _escape(f"{f.term}: {f.detail}")
             print(f"::{level} {where}title=citesync {f.code}::{message}")
         return
     for f in shown:
         print(f)
+
+
+def _escape(text: str, *, property_: bool = False) -> str:
+    """Escape for a workflow command; a property value also escapes ``:`` and ``,``."""
+    text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return text.replace(":", "%3A").replace(",", "%2C") if property_ else text
 
 
 if __name__ == "__main__":

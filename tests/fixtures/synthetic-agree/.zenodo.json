@@ -13,5 +13,17 @@
     }
   ],
   "license": "apache-2.0",
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.1234/synthagree-paper",
+      "scheme": "doi"
+    },
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/example/synthagree",
+      "scheme": "url"
+    }
+  ],
   "keywords": ["alpha", "beta", "gamma", "delta"]
 }
