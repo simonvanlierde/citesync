@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- `python -m citesync` runs the command line, as `citesync` does. It failed with "No module named citesync.__main__".
+
 ## [0.1.0] - 2026-10-29
 
 ### Added
