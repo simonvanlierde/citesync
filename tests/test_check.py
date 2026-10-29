@@ -809,3 +809,33 @@ def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pyt
     code, out, err = _run(capsys, "check", "--root", str(tmp_path), "--json")
     assert (code, err) == (0, "citesync: warning: ignore entry 'doi-mismatch' matched no finding\n")
     assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 7
+
+
+@pytest.mark.parametrize("zenodo", [False, True])
+@pytest.mark.parametrize(
+    ("cff", "expected"),
+    [
+        ("license: [MIT, Apache-2.0]\n", [("zenodo-license-list", "error", "license")]),
+        ("license: [MIT]\n", [("zenodo-license-list", "error", "license")]),
+        ("license: MIT\n", []),
+        (
+            "identifiers:\n  - {type: doi, value: 10.1000/paper}\nreferences:\n  - {type: article, title: t}\n",
+            [("zenodo-drops-field", "warning", "identifiers"), ("zenodo-drops-field", "warning", "references")],
+        ),
+        ("identifiers:\n  - {type: doi, value: 10.5281/ZENODO.1}\n", []),  # Zenodo links its own records
+    ],
+)
+def test_what_zenodo_reads_from_cff_alone(
+    cff: str,
+    expected: list[tuple[str, str, str]],
+    zenodo: bool,  # noqa: FBT001
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    files = {"CITATION.cff": CFF + cff}
+    if zenodo:  # Zenodo then reads .zenodo.json alone, so CITATION.cff can hold what it likes
+        files[".zenodo.json"] = json.dumps({"title": "x"})
+    report = _check_json(tmp_path, capsys, files)
+    found = [(f["rule"], f["severity"], f["term"]) for f in _split(report)[0] if f["rule"].startswith("zenodo-")]
+    assert found == ([] if zenodo else expected)
+    assert all(f["file"] == "CITATION.cff" for f in report["findings"] if f["rule"].startswith("zenodo-"))

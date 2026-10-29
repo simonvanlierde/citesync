@@ -120,6 +120,22 @@ RULES = {
         " ORCID as its `@id`, as after someone is replaced. The role itself is not checked, and `write` never"
         " changes a Role.",
     ),
+    "zenodo-license-list": Rule(
+        "error",
+        "CITATION.cff's `license` is a list, and Zenodo would refuse the release.",
+        "Give one licence in CITATION.cff, or add a .zenodo.json, which Zenodo reads instead.",
+        "When a repo has no .zenodo.json, Zenodo's GitHub integration reads CITATION.cff and loads its `license`"
+        ' as one string, so a list, even of one licence, fails the release with "Citation metadata load failed".'
+        " Checked only when no .zenodo.json sits beside CITATION.cff.",
+    ),
+    "zenodo-drops-field": Rule(
+        "warning",
+        "Zenodo won't carry this CITATION.cff field into the record.",
+        "Add a .zenodo.json with the field's Zenodo form (`related_identifiers`, `references`) if the record needs it.",
+        "Without a .zenodo.json, Zenodo reads CITATION.cff but leaves out `identifiers` and `references`: the"
+        " DOI comes from the release and the version and date from the tag. Checked only when no .zenodo.json"
+        " sits beside CITATION.cff.",
+    ),
     "unreadable": Rule(
         "error",
         "citesync could not read the file.",

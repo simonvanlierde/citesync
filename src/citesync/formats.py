@@ -56,6 +56,8 @@ class Doc:
             ``[build-system]``, a private package.json.
         readable: False for a file citesync couldn't read, whose record is empty.
         dangling_roles: For codemeta.json, (list, ORCID) for each Role whose person isn't listed.
+        zenodo_gaps: For a CITATION.cff with no .zenodo.json beside it, (key, rule id) for each
+            key Zenodo refuses or drops when it archives a release.
     """
 
     path: str
@@ -66,6 +68,7 @@ class Doc:
     release: bool
     readable: bool = True
     dangling_roles: tuple[tuple[str, str], ...] = ()
+    zenodo_gaps: tuple[tuple[str, str], ...] = ()
 
     @property
     def is_citation(self) -> bool:
@@ -98,6 +101,8 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
     record, roles = {}, ()
+    no_zenodo = not (root / rel).with_name(".zenodo.json").is_file()
+    gaps = zenodo_gaps(data) if fmt == CITATION_FILES["CITATION.cff"] and no_zenodo else ()
     try:
         data = _adapt(fmt, data, root, rel)
         if fmt == "codemeta":
@@ -111,7 +116,24 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
                 record[term] = value
     except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
         raise UnreadableError(rel, f"unexpected shape ({err})") from err
-    return Doc(rel, fmt, record, slots(fmt, mapping), version, release, dangling_roles=roles)
+    return Doc(rel, fmt, record, slots(fmt, mapping), version, release, dangling_roles=roles, zenodo_gaps=gaps)
+
+
+def zenodo_gaps(cff: dict[str, Any]) -> tuple[tuple[str, str], ...]:
+    """The CITATION.cff keys Zenodo refuses or drops when it reads the file instead of a .zenodo.json.
+
+    Zenodo loads ``license`` as one string, so a list fails the release, and it doesn't carry
+    ``identifiers`` or ``references`` into the record (zenodo-rdm ``github/schemas.py``, 2026-10).
+    A Zenodo DOI among the identifiers is no loss: Zenodo links its own records.
+    """
+    gaps = [("license", "zenodo-license-list")] if isinstance(cff.get("license"), list) else []
+    ids = [i for i in cff.get("identifiers") or [] if not _zenodo_doi(i)]
+    dropped = {"identifiers": ids, "references": cff.get("references")}
+    return (*gaps, *((key, "zenodo-drops-field") for key, held in dropped.items() if held))
+
+
+def _zenodo_doi(identifier: object) -> bool:
+    return isinstance(identifier, dict) and "10.5281/zenodo." in str(identifier.get("value", "")).casefold()
 
 
 def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:

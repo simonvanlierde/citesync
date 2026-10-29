@@ -116,6 +116,8 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list
             orcids = ", ".join(orcid for k, orcid in doc.dangling_roles if k == key)
             detail = f"a Role points at {orcids}, which no Person in author or contributor has"
             found.add(Finding(doc.path, key, "role-dangling", detail))
+        for key, rule in doc.zenodo_gaps:
+            found.add(Finding(doc.path, key, rule, _ZENODO_GAPS[rule]))
     for term in TERMS:
         if not source.readable and has_slot(source, term):
             found.add(Finding(source.path, term, "not-checked", "not compared with the source: it can't be read"))
@@ -124,6 +126,12 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list
             continue
         found.update(compare_term(term, docs, kw_key=keyword_key(config)))
     return sorted(found, key=Finding.sort_key)
+
+
+_ZENODO_GAPS = {
+    "zenodo-license-list": "a list: with no .zenodo.json, Zenodo reads one licence and refuses the release",
+    "zenodo-drops-field": "with no .zenodo.json, Zenodo leaves this out of the record",
+}
 
 
 def has_slot(doc: Doc, term: str) -> bool:
