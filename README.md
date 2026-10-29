@@ -131,7 +131,13 @@ prek install     # git hooks
 just check       # lint, types and tests for every stack here
 just fmt         # apply each stack's fixes and formatting
 just hooks       # the git hooks, as the checks workflow runs them
+just mutation    # mutation-test the comparison code (not in CI)
 ```
+
+`just mutation` changes `check.py` and `codecs.py` one small step at a time and fails if the tests
+still pass on a change that `tests/mutation-baseline.txt` does not list. A change that
+cannot alter behaviour goes in that file with the reason. It also fails on a listed
+change the tests now catch, so the list stays true.
 
 uv locks only releases at least a week old. If `just check` fails on
 a security fix newer than that, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`,

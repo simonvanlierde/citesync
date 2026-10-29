@@ -2,6 +2,8 @@
 
 import re
 
+from collections.abc import Callable
+
 import pytest
 from hypothesis import example, given
 from hypothesis import strategies as st
@@ -140,6 +142,24 @@ def test_repo_key_path_case() -> None:
     assert codecs.repo_key("https://gitlab.com/g/sub/r/-/tree/main") == "https://gitlab.com/g/sub/r"
     assert codecs.repo_key("https://github.com/tree/r") == "https://github.com/tree/r"  # an owner named tree
     assert codecs.repo_key("https://example.org/o/r/tree/main") == "https://example.org/o/r/tree/main"
+    assert codecs.repo_key("https://user@example.org/o/BOX/") == "https://example.org/o/BOX"
+
+
+@pytest.mark.parametrize(
+    ("decode", "raw", "expected"),
+    [
+        (codecs.orcid_decode, "https://orcid.org/0000-0002-1825-009x/", "0000-0002-1825-009X"),
+        (codecs.repo_decode, "https://github.com/o/BOX/", "https://github.com/o/BOX"),
+        (codecs.zenodo_name_decode, None, None),
+        (codecs.zenodo_name_decode, "  ", None),
+        (codecs.contact_name_decode, "Ada <ada", "Ada <ada"),  # no closing >, so the whole string
+        (codecs.version_decode, None, None),
+        (codecs.version_decode, True, None),
+        (codecs.version_decode, {"a": 1}, None),
+    ],
+)
+def test_decode_edge_cases(decode: Callable[[object], object], raw: object, expected: object) -> None:
+    assert decode(raw) == expected
 
 
 def test_doi_decode_keeps_only_doi_shaped_values() -> None:
