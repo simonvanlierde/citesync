@@ -3,7 +3,7 @@
   "version": "1.2.3",
   "description": "Made-up package.",
   "author": "Ada Lovelace",
-  "contributors": [{ "name": "Alan Turing" }],
+  "contributors": [{ "name": "Grace Hopper" }],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

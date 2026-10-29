@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "citesync check --format json",
+  "description": "Output of `citesync check --format json`. Fields change only in a major release of schema_version.",
+  "type": "object",
+  "required": ["schema_version", "findings", "info"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "findings": {
+      "description": "Disagreements, sorted by file, term and code. Any finding makes the exit code 1.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "info": {
+      "description": "NOT_CHECKED terms: no file holds a value. Never changes the exit code.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["code", "file", "term", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "enum": ["MISMATCH", "NOT_SUBSET", "CONTEXT", "NOT_CHECKED"] },
+        "file": { "type": "string", "description": "Relative to the repo root; empty for NOT_CHECKED." },
+        "term": { "type": "string", "description": "A CodeMeta term, or @context." },
+        "detail": { "type": "string" }
+      }
+    }
+  }
+}

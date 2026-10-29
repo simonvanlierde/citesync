@@ -1,8 +1,5 @@
 {
-  "open_questions": [
-    "npm has one `author` and a `contributors` list: with two authors, does the adapter read author + contributors as the ordered author list? The fixture assumes yes.",
-    "Source is a manifest: citation files compare keywords 'equal as sets' against it, but manifests are meant to hold a subset. The fixture uses identical keyword sets so both readings agree."
-  ],
+  "open_questions": [],
   "cases": [
     {
       "name": "source-CITATION.cff",
@@ -58,5 +55,9 @@
       "findings": [],
       "info": []
     }
+  ],
+  "settled": [
+    "2026-10-29: npm's single `author` is compared with the first author only, and `contributors` is ignored. package.json lists Grace Hopper as a contributor, whom no other file names, to show that.",
+    "2026-10-29: keywords between a manifest and a citation file: the manifest's are a subset of the citation file's, whatever the source. The sets here are equal, so both directions hold."
   ]
 }
