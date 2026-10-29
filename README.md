@@ -111,9 +111,10 @@ repos:
     rev: v0.1.0
     hooks:
       - id: citesync
+      - id: citesync-write
 ```
 
-The hook runs `citesync check` from the repo root when a commit changes CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, `citesync.toml` or `.citesync.toml`, at any depth. It always checks every file, not only the staged ones, and fails the commit on an error finding.
+The hook runs `citesync check` from the repo root when a commit changes CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, `citesync.toml` or `.citesync.toml`, at any depth. It always checks every file, not only the staged ones, and fails the commit on an error finding. `citesync-write` runs `citesync write` only when you ask for it: `prek run citesync-write --stage manual --all-files`.
 
 ## Tested on real repositories
 

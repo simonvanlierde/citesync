@@ -6,3 +6,12 @@
   language: python
   pass_filenames: false
   files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|\.?citesync\.toml)$
+# Writing changes files, so it runs only when asked: `prek run citesync-write --stage manual --all-files`.
+- id: citesync-write
+  name: citesync write
+  description: rewrites the citation files, and the manifest fields listed in write-manifests, to agree with the source
+  entry: citesync write
+  language: python
+  pass_filenames: false
+  stages: [manual]
+  files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|\.?citesync\.toml)$

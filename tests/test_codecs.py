@@ -1,7 +1,6 @@
 """Property tests on every codec: decode(encode(x)) == x for normalised values, and decoding is idempotent."""
 
 import re
-
 from collections.abc import Callable
 
 import pytest
@@ -275,3 +274,19 @@ def test_version_key_spellings_agree(release: str, tag: str, n: str) -> None:
 )
 def test_version_key_equality(a: str, b: str, *, equal: bool) -> None:
     assert (codecs.version_key(a) == codecs.version_key(b)) is equal
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "equal"),
+    [
+        ("(MIT OR Apache-2.0)", "mit or apache-2.0", True),
+        ("(MIT AND Apache-2.0) OR GPL-3.0", "MIT AND Apache-2.0 OR GPL-3.0", False),
+        ("(GPL-2.0 WITH Classpath-exception-2.0) OR MIT", "GPL-2.0 WITH Classpath-exception-2.0 OR MIT", False),
+    ],
+)
+def test_license_key_drops_parentheses_only_around_or(a: str, b: str, *, equal: bool) -> None:
+    assert (codecs.license_key(a) == codecs.license_key(b)) is equal
+
+
+def test_version_encode_semver_spells_a_dev_release() -> None:
+    assert codecs.version_encode_semver("1.0.dev3") == "1.0.0-dev.3"

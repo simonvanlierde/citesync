@@ -21,3 +21,8 @@ def test_files_pattern_matches_at_any_depth(name: str, folder: str) -> None:
 @pytest.mark.parametrize("path", ["README.md", "xCITATION.cff", "package.json.bak", "uv.lock"])
 def test_files_pattern_skips_other_files(path: str) -> None:
     assert not re.search(HOOK["files"], path)
+
+
+def test_write_hook_runs_only_when_asked() -> None:
+    check, write = YAML(typ="safe").load(Path(__file__).parent.parent / ".pre-commit-hooks.yaml")
+    assert (write["entry"], write["stages"], write["files"]) == ("citesync write", ["manual"], check["files"])

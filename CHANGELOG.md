@@ -16,6 +16,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A JSON compatibility policy: a minor release may add rule ids and optional fields, so ignore what you don't know; removing or retyping a field bumps the report's `version`, in a major release.
 - `citesync --version`.
 - A pre-commit hook, `citesync`, for prek or pre-commit. It runs `citesync check` when a commit changes a citation file, a package manifest or citesync's config, at any depth, and fails the commit on an error finding.
+- A manual-stage hook, `citesync-write`, that runs `citesync write` when you ask for it.
 - `ignore` in the config drops the findings of the rules it lists, and warns about an entry that matched nothing.
 - `citesync config`, and config discovery from `citesync.toml`, `.citesync.toml`, pyproject.toml, Cargo.toml or package.json. Config keys are kebab-case, such as `codemeta-version`.
 - The field mapping, vendored from codemeta-drift with its JSON Schema.
