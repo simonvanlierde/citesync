@@ -1,0 +1,62 @@
+{
+  "open_questions": [
+    "npm has one `author` and a `contributors` list: with two authors, does the adapter read author + contributors as the ordered author list? The fixture assumes yes.",
+    "Source is a manifest: citation files compare keywords 'equal as sets' against it, but manifests are meant to hold a subset. The fixture uses identical keyword sets so both readings agree."
+  ],
+  "cases": [
+    {
+      "name": "source-CITATION.cff",
+      "config": {
+        "source": "CITATION.cff"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-codemeta.json",
+      "config": {
+        "source": "codemeta.json"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-.zenodo.json",
+      "config": {
+        "source": ".zenodo.json"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-pyproject.toml",
+      "config": {
+        "source": "pyproject.toml"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-Cargo.toml",
+      "config": {
+        "source": "Cargo.toml"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    },
+    {
+      "name": "source-package.json",
+      "config": {
+        "source": "package.json"
+      },
+      "exit": 0,
+      "findings": [],
+      "info": []
+    }
+  ]
+}

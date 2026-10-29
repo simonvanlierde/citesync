@@ -1,0 +1,13 @@
+{
+  "name": "synthagree",
+  "version": "1.2.3",
+  "description": "Made-up package.",
+  "author": "Ada Lovelace",
+  "contributors": [{ "name": "Alan Turing" }],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/example/synthagree.git"
+  },
+  "keywords": ["alpha", "beta", "gamma", "delta"]
+}

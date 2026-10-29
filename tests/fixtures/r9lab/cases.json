@@ -1,0 +1,22 @@
+{
+  "open_questions": [
+    "codemeta.json `contributor` and .zenodo.json `contributors` have no CFF counterpart: assumes they are ignored (only `author`/`creators` are compared).",
+    "CFF `license: AGPL-3.0-or-later` vs Zenodo `agpl-3.0-or-later` vs SPDX URL: assumes case-insensitive SPDX comparison after the codec."
+  ],
+  "cases": [
+    {
+      "name": "defaults",
+      "config": {},
+      "exit": 1,
+      "findings": [
+        {
+          "code": "CONTEXT",
+          "file": "codemeta.json",
+          "term": "@context",
+          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta_version defaults to 3.0"
+        }
+      ],
+      "info": []
+    }
+  ]
+}

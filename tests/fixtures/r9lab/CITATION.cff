@@ -1,0 +1,32 @@
+# More info: https://github.com/citation-file-format/citation-file-format/blob/main/schema-guide.md
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "van Lierde"
+    given-names: "Simon"
+    orcid: "https://orcid.org/0009-0006-6953-909X"
+    email: "s.n.van.lierde@cml.leidenuniv.nl"
+    affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+title: "R9lab: an open research platform for product disassembly data"
+abstract: "R9lab is an open-source research platform for recording how durable products are built and how they come apart. Users break a product down into components and record materials, weight, dimensions, photographs and notes on recyclability, disassemblability and remanufacturability. The records are to be released as a citable dataset under CC BY 4.0. It is built to turn the routine work of repairers, refurbishers and recyclers into primary data for industrial ecology and circular economy research, such as life cycle assessment and computer vision."
+version: 0.5.0
+identifiers:
+  # The concept DOI always resolves to the newest release, which is what a "cite this
+  # software" identifier should do. Version DOIs live on the Zenodo concept record.
+  - type: doi
+    value: 10.5281/zenodo.16637742
+    description: Concept DOI for all versions of R9lab
+date-released: 2026-10-13
+url: https://r9lab.io
+repository-code: "https://github.com/CMLPlatform/r9lab"
+license: "AGPL-3.0-or-later"
+keywords:
+  - "circular economy"
+  - "industrial ecology"
+  - "product disassembly"
+  - "bill of materials"
+  - "life cycle assessment"
+  - "open data"
+  - "research data"
+  - "citizen science"
+  - "computer vision"

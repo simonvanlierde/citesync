@@ -1,0 +1,27 @@
+# GitHub's "Cite this repository" button and Zenodo's release archive both read this.
+cff-version: 1.2.0
+message: If you use this template, please cite it as below.
+type: software
+title: "project-templates"
+# The concept DOI, which always resolves to the newest release.
+doi: "10.5281/zenodo.23701980"
+abstract: >-
+  A Copier template for provenance-first data pipelines, where every row of a dataset
+  built from public sources says which download it came from, plus Python, TypeScript,
+  Rust, Go and Docker projects. Every project gets supply-chain-hardened CI, and public
+  ones get community files and OpenSSF Scorecard; the web-app kind adds legal pages and an
+  accessibility statement.
+authors:
+  - given-names: "Simon"
+    family-names: "van Lierde"
+    orcid: "https://orcid.org/0009-0006-6953-909X"
+repository-code: "https://github.com/simonvanlierde/project-templates"
+license: MIT
+keywords:
+  - copier
+  - project template
+  - research software
+  - provenance
+  - data pipeline
+  - supply-chain security
+  - web app

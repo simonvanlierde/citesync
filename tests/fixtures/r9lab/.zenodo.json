@@ -1,0 +1,39 @@
+{
+  "upload_type": "software",
+  "access_right": "open",
+  "title": "R9lab: an open research platform for product disassembly data",
+  "description": "R9lab is an open-source research platform for recording how durable products are built and how they come apart. Users break a product down into components and record materials, weight, dimensions, photographs and notes on recyclability, disassemblability and remanufacturability. The records are to be released as a citable dataset under CC BY 4.0. It is built to turn the routine work of repairers, refurbishers and recyclers into primary data for industrial ecology and circular economy research, such as life cycle assessment and computer vision.",
+  "creators": [
+    {
+      "name": "van Lierde, Simon",
+      "orcid": "0009-0006-6953-909X",
+      "affiliation": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Donati, Franco",
+      "orcid": "0000-0002-8287-2413",
+      "affiliation": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University",
+      "type": "Supervisor"
+    },
+    {
+      "name": "Visscher, Marin",
+      "orcid": "0000-0002-1847-5181",
+      "affiliation": "Resource Engineering, Faculty of Civil Engineering and Geosciences, Delft University of Technology",
+      "type": "ProjectMember"
+    }
+  ],
+  "license": "agpl-3.0-or-later",
+  "keywords": [
+    "circular economy",
+    "industrial ecology",
+    "product disassembly",
+    "bill of materials",
+    "life cycle assessment",
+    "open data",
+    "research data",
+    "citizen science",
+    "computer vision"
+  ]
+}

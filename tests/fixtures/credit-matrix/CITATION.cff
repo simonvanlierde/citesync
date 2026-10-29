@@ -1,0 +1,102 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "CRediT Matrix: drafting CRediT contribution statements with co-authors"
+abstract: >-
+  CRediT Matrix helps a research team draft the CRediT (Contributor Roles Taxonomy) statement for a paper. Co-authors fill in their own rows through a shared link, and their replies are settled in one review. Contributors can be added from an ORCID iD, a DOI or a tenzing sheet. The tool exports a contribution heatmap and the statement as JATS4R XML, CSV, JSON or Markdown. The web app works offline in nine languages. The credit-matrix npm package adds a command-line tool, a credit-matrix web element, and Quarto and MyST plugins.
+type: software
+authors:
+  - given-names: Simon
+    family-names: van Lierde
+    orcid: "https://orcid.org/0009-0006-6953-909X"
+license: MIT
+repository-code: "https://github.com/simonvanlierde/credit-matrix"
+url: "https://credit.duinlab.nl"
+keywords:
+  - CRediT
+  - contributor roles taxonomy
+  - authorship
+  - contributorship
+  - contribution statement
+  - JATS4R
+  - ORCID
+  - scholarly publishing
+  - open science
+  - research software
+  - Quarto
+  - MyST
+version: "0.8.1"
+date-released: "2026-10-13"
+# Concept DOI: resolves to all versions, so it stays fixed across releases.
+doi: "10.5281/zenodo.21213659"
+references:
+  - type: software
+    title: "CRediT-Generator"
+    notes: "The original Python/Dash CRediT Generator that inspired this app."
+    authors:
+      - name: "IPHYS Bioinformatics"
+    repository-code: "https://github.com/IPHYS-Bioinformatics/CRediT-Generator"
+  - type: article
+    title: "Beyond authorship: attribution, contribution, collaboration, and credit"
+    authors:
+      - family-names: Brand
+        given-names: Amy
+      - family-names: Allen
+        given-names: Liz
+      - family-names: Altman
+        given-names: Micah
+      - family-names: Hlava
+        given-names: Marjorie
+      - family-names: Scott
+        given-names: Jo
+    journal: "Learned Publishing"
+    year: 2015
+    volume: 28
+    issue: 2
+    start: 151
+    end: 155
+    doi: "10.1087/20150211"
+  - type: article
+    title: "Documenting contributions to scholarly articles using CRediT and tenzing"
+    authors:
+      - family-names: Holcombe
+        given-names: Alex O.
+      - family-names: Kovács
+        given-names: Márton
+      - family-names: Aust
+        given-names: Frederik
+      - family-names: Aczel
+        given-names: Balazs
+    journal: "PLOS ONE"
+    year: 2020
+    volume: 15
+    issue: 12
+    doi: "10.1371/journal.pone.0244611"
+  - type: article
+    title: "Method Reporting with Initials for Transparency (MeRIT) promotes more granularity and accountability for author contributions"
+    authors:
+      - family-names: Nakagawa
+        given-names: Shinichi
+      - family-names: Ivimey-Cook
+        given-names: Edward R.
+      - family-names: Grainger
+        given-names: Matthew J.
+      - family-names: O'Dea
+        given-names: Rose E.
+    journal: "Nature Communications"
+    year: 2023
+    volume: 14
+    doi: "10.1038/s41467-023-37039-1"
+  - type: article
+    title: "Facilitating multilingual research publishing: Translations of the Contributor Roles Taxonomy (CRediT)"
+    notes: "Source of the role-name translations vendored in src/core/credit-i18n/translations."
+    authors:
+      - family-names: Holcombe
+        given-names: Alex O.
+      - family-names: Kovacs
+        given-names: Marton
+      - family-names: Lagisz
+        given-names: Malgorzata
+      - name: "et al."
+    journal: "MetaArXiv"
+    year: 2026
+    doi: "10.31222/osf.io/2rp7s_v2"

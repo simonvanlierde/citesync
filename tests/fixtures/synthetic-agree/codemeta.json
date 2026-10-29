@@ -1,0 +1,24 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "synthagree",
+  "description": "A made-up package whose metadata files all agree.",
+  "version": "1.2.3",
+  "identifier": "https://doi.org/10.5281/zenodo.1234567",
+  "codeRepository": "https://github.com/example/synthagree",
+  "license": "https://spdx.org/licenses/Apache-2.0",
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "givenName": "Ada",
+      "familyName": "Lovelace"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Alan",
+      "familyName": "Turing"
+    }
+  ],
+  "keywords": ["alpha", "beta", "gamma", "delta"]
+}

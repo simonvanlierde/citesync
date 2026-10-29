@@ -1,0 +1,21 @@
+{
+  "open_questions": [
+    "Plan Evidence says 'none' for project-templates, but CFF has no version and no other file exists, so by the NOT_CHECKED rule (info only) `version` is reported. Exit stays 0."
+  ],
+  "cases": [
+    {
+      "name": "defaults",
+      "config": {},
+      "exit": 0,
+      "findings": [],
+      "info": [
+        {
+          "code": "NOT_CHECKED",
+          "file": "",
+          "term": "version",
+          "why": "CFF has no version and no other file exists"
+        }
+      ]
+    }
+  ]
+}

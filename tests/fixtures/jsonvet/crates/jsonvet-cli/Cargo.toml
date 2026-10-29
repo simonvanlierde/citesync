@@ -1,0 +1,68 @@
+[package]
+name = "jsonvet-cli"
+description = "The jsonvet command: checks JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines files, with JSON Schema checks and SARIF output."
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "jsonvet"
+path = "src/main.rs"
+# The lib is the documented target; a bin docs page would share target/doc/jsonvet with the jsonvet crate.
+doc = false
+
+# cargo binstall downloads the binary from the GitHub release instead of compiling it. The asset
+# names come from scripts/release-archives.py.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/jsonvet-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/jsonvet-{ target }.zip"
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/jsonvet-{ target }.zip"
+pkg-fmt = "zip"
+
+[dependencies]
+jsonvet = { path = "../jsonvet", version = "=3.2.0" }
+# No default features: they fetch remote `$ref`s over HTTP and read them from disk.
+jsonschema = { version = "0.60.1", default-features = false }
+lexopt = "0.3.2"
+# jsonschema's own `$ref` resolution, so the schema size check follows the `$ref`s it does.
+referencing = { version = "0.60.1", default-features = false }
+serde_json = "1.0.154"
+toml = { version = "1.1.8", default-features = false, features = ["parse", "serde"] }
+ignore = "0.4.33"
+annotate-snippets = "0.12.17"
+
+# Instruction counts under valgrind, not a libtest harness: benches/schema.rs.
+[[bench]]
+name = "schema"
+harness = false
+
+# divan benchmarks of `--schema` that CodSpeed measures in CI (.github/workflows/codspeed.yml):
+# benches/codspeed.rs.
+[[bench]]
+name = "codspeed"
+harness = false
+
+[dev-dependencies]
+divan = { version = "5.0.3", package = "codspeed-divan-compat" }
+gungraun = "0.20.0"
+insta = "1.49.0"
+# Counts the heap tests/schema_memory.rs measures.
+peak_alloc = "0.3.0"
+proptest = "1.12.0"
+
+[lints]
+workspace = true

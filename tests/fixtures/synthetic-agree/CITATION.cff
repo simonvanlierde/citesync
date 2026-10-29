@@ -1,0 +1,21 @@
+# Synthetic fixture: every file below states the same eight fields in its own spelling.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "synthagree"
+abstract: "A made-up package whose metadata files all agree."
+version: "1.2.3"
+authors:
+  - given-names: "Ada"
+    family-names: "Lovelace"
+    orcid: "https://orcid.org/0000-0002-1825-0097"
+  - given-names: "Alan"
+    family-names: "Turing"
+doi: "10.5281/zenodo.1234567"
+repository-code: "https://github.com/example/synthagree"
+license: "Apache-2.0"
+keywords:
+  - "alpha"
+  - "beta"
+  - "gamma"
+  - "delta"
