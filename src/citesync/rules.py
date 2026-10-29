@@ -18,6 +18,13 @@ class Rule:
     details: str
 
 
+# Both keyword rules: what happens to a keyword that only spells its separators differently.
+_SEPARATORS = (
+    " A keyword that differs from the other file's only in separators (`big-data`, `big_data`, `big data`)"
+    " is named in the message, and write gives it the source's spelling where it stands;"
+    " `keywords-ignore-separators = true` makes such keywords equal."
+)
+
 _FIX = "Make the file agree with the source, or the other way round if the source is wrong."
 _D2 = (
     " When the source has no place or no value for the field (pyproject.toml has no DOI),"
@@ -82,7 +89,7 @@ _FIELDS = {
         "The keywords differ from the source's.",
         (
             "Citation files must hold the same keywords, in any order. A manifest's keywords are"
-            " checked by `keywords-not-subset` instead."
+            " checked by `keywords-not-subset` instead." + _SEPARATORS
         ),
     ),
 }
@@ -95,7 +102,7 @@ RULES = {
         "A manifest has a keyword the citation file doesn't.",
         "Add the keyword to the citation file, or remove it from the manifest.",
         "A manifest's keywords must all be in the citation file's, whichever of the two is the source:"
-        " a citation file can hold more keywords than a registry allows (crates.io allows five).",
+        " a citation file can hold more keywords than a registry allows (crates.io allows five)." + _SEPARATORS,
     ),
     "context-mismatch": Rule(
         "error",

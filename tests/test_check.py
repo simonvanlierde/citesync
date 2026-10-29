@@ -518,6 +518,53 @@ def test_keywords_compare_like_names(
     assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
 
 
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        (
+            "",
+            [
+                (
+                    "keywords-mismatch",
+                    "codemeta.json",
+                    "keywords",
+                    (
+                        "industrial-ecology, life_cycle, lca, CITATION.cff has industrial ecology, life cycle, lca"
+                        " ('industrial-ecology' differs from 'industrial ecology', 'life_cycle' differs from"
+                        " 'life cycle' only in separators)"
+                    ),
+                ),
+                (
+                    "keywords-not-subset",
+                    "pyproject.toml",
+                    "keywords",
+                    (
+                        "Industrial_Ecology (CITATION.cff has 'industrial ecology': differs only in separators), x:"
+                        " in pyproject.toml, not in CITATION.cff"
+                    ),
+                ),
+            ],
+        ),
+        (
+            "keywords-ignore-separators = true\n",
+            [("keywords-not-subset", "pyproject.toml", "keywords", "x: in pyproject.toml, not in CITATION.cff")],
+        ),
+    ],
+    ids=["near-miss-named", "separators-ignored"],
+)
+def test_keywords_that_differ_only_in_separators(
+    config: str, expected: list[tuple[str, ...]], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    files = {
+        "citesync.toml": config,
+        "CITATION.cff": CFF + "keywords: [industrial ecology, life cycle, lca]\n",
+        "codemeta.json": _codemeta(keywords=["industrial-ecology", "life_cycle", "lca"]),
+        "pyproject.toml": _pyproject('keywords = ["Industrial_Ecology", "x"]'),
+    }
+    report = _check_json(tmp_path, capsys, files)
+    assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
+
+
 def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     files = {
         "CITATION.cff": CFF + "keywords: [b, a]\nauthors:\n  - {given-names: Ada, family-names: Lovelace}\n",
