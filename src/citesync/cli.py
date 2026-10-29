@@ -1,7 +1,8 @@
 """Command line: ``citesync check|write|config|rules|explain``.
 
 Exit codes: 0 when the files agree (after ``write``, once it has written), 1 on any error
-finding (that ``write`` may not fix), 2 when citesync couldn't run (and ``write`` wrote nothing).
+finding (that ``write`` may not fix), 2 when citesync couldn't run. ``write`` then wrote nothing,
+unless moving a written file into place failed: files moved before it stay written.
 """
 
 import argparse

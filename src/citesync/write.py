@@ -64,12 +64,13 @@ def write(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[l
         if not terms and not context:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
-        new, reasons = _rewrite(doc, source, terms, old, mapping, context, key)
+        crlf = "\r\n" in old  # edited with LF line ends, which the YAML and JSON writers add
+        new, reasons = _rewrite(doc, source, terms, old.replace("\r\n", "\n") if crlf else old, mapping, context, key)
+        new = new.replace("\n", "\r\n") if crlf else new
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
-    for rel, text in texts.items():
-        _replace(root / rel, text)
+    _replace({root / rel: text for rel, text in texts.items()})
     return sorted(texts), skipped
 
 
@@ -87,17 +88,26 @@ def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]
     return "edit it by hand"
 
 
-def _replace(path: Path, text: str) -> None:
-    """Write ``text`` to a temporary file beside ``path``, then move it over ``path``."""
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+def _replace(texts: dict[Path, str]) -> None:
+    """Write each text to a temporary file beside its path, then move them all into place.
+
+    A symlink's target is written, and the link stays. A failure before the moves leaves every
+    file as it was; only a failed move (a rename within one directory) leaves earlier ones moved.
+    """
+    temps: dict[Path, Path] = {}
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
-            file.write(text)
-        shutil.copymode(path, tmp)
-        Path(tmp).replace(path)
-    except BaseException:
-        Path(tmp).unlink(missing_ok=True)
-        raise
+        for link, text in texts.items():
+            path = link.resolve()
+            fd, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+            temps[Path(name)] = path
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
+                file.write(text)
+            shutil.copymode(path, name)
+        for tmp, path in temps.items():
+            tmp.replace(path)
+    finally:
+        for tmp in temps:
+            tmp.unlink(missing_ok=True)  # moved ones are gone already
 
 
 def _rewrite(

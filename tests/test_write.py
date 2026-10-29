@@ -408,6 +408,54 @@ def test_write_keeps_the_file_mode(tmp_path: Path, capsys: pytest.CaptureFixture
     assert sorted(p.name for p in root.iterdir()) == sorted(p.name for p in SYNTHETIC.iterdir())
 
 
+def test_a_symlink_target_is_written(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    (root / "real").mkdir()
+    shutil.copy(PLANTED / "codemeta.json", root / "real" / "codemeta.json")
+    (root / "codemeta.json").unlink()
+    (root / "codemeta.json").symlink_to(Path("real") / "codemeta.json")
+
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "codemeta.json").is_symlink()
+    assert (root / "real" / "codemeta.json").read_bytes() == (EXPECTED / "codemeta.json").read_bytes()
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_crlf_line_ends_stay(name: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    source = "codemeta.json" if name == "CITATION.cff" else "CITATION.cff"
+    root = _synthetic(tmp_path / "repo", f'source = "{source}"\nwrite-manifests = "all"\n')
+    (root / name).write_bytes((PLANTED / name).read_bytes().replace(b"\n", b"\r\n"))
+    if name == "codemeta.json":  # a third author re-dumps the multi-line author list
+        _edit(root / source, "authors:\n", 'authors:\n  - given-names: "Grace"\n    family-names: "Hopper"\n')
+
+    assert _run(capsys, "write", "--root", str(root))[0] == 0
+    written = (root / name).read_bytes()
+    assert not re.search(rb"(?<!\r)\n", written)
+    if name != "codemeta.json":
+        assert written == (EXPECTED / name).read_bytes().replace(b"\n", b"\r\n")
+
+
+def test_a_failed_write_changes_no_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _synthetic(tmp_path / "repo")
+    for name in ("codemeta.json", ".zenodo.json"):
+        shutil.copy(PLANTED / name, root / name)
+    before = _snapshot(root)
+    mkstemp, calls = tempfile.mkstemp, []
+
+    def failing_mkstemp(*args: object, **kwargs: object) -> tuple[int, str]:
+        calls.append(args)
+        if len(calls) == 2:  # the second file
+            raise OSError(28, "No space left on device")
+        return mkstemp(*args, **kwargs)  # ty: ignore[no-matching-overload]
+
+    monkeypatch.setattr("citesync.write.tempfile.mkstemp", failing_mkstemp)
+    code, _, err = _run(capsys, "write", "--root", str(root))
+    assert (code, "No space left on device" in err) == (2, True)
+    assert _snapshot(root) == before
+
+
 # Text edits that each plant one disagreement in the synthetic set, with the term it plants.
 # .zenodo.json holds no version or DOI: as the source it leaves a gap (D2), which write never fills.
 GAPS = {".zenodo.json": {"version", "identifier"}}
