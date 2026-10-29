@@ -1,0 +1,124 @@
+{
+  "CITATION.cff": {
+    "format": "cff-1.2.0",
+    "version": "1.2.0",
+    "release": true,
+    "record": {
+      "name": "jsonvet",
+      "author": [
+        {
+          "name": "Simon van Lierde",
+          "givenName": "Simon",
+          "familyName": "van Lierde",
+          "@id": "0009-0006-6953-909X"
+        }
+      ],
+      "license": "MIT",
+      "identifier": "10.5281/zenodo.23461825",
+      "codeRepository": "https://github.com/simonvanlierde/jsonvet",
+      "description": "A linter for JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines. It reports syntax errors, duplicate keys, each dialect's rules and JSON Schema errors, all with exact positions. The schema comes from --schema, a config file or a file's own $schema. On a terminal, each problem shows as a code frame, and --color controls the color. It also writes SARIF for GitHub code scanning and JSON for scripts and editors. A playground runs it in the browser as WebAssembly. It ships as a pre-commit hook, PyPI wheels, Rust crates, release binaries and a GitHub Action. The repository includes a conformance matrix of JSON5, JSONC, JWCC and JSON Lines parsers.",
+      "keywords": [
+        "json",
+        "json5",
+        "jsonc",
+        "json-lines",
+        "json-schema",
+        "linter",
+        "pre-commit",
+        "pre-commit-hook",
+        "github-action",
+        "sarif",
+        "validator",
+        "webassembly"
+      ]
+    }
+  },
+  "Cargo.toml": {
+    "format": "cargo",
+    "version": null,
+    "release": true,
+    "record": {
+      "version": "3.2.0",
+      "author": [
+        {
+          "name": "Simon van Lierde"
+        }
+      ],
+      "license": "MIT",
+      "codeRepository": "https://github.com/simonvanlierde/jsonvet",
+      "keywords": [
+        "json",
+        "json5",
+        "jsonc",
+        "lint",
+        "pre-commit"
+      ]
+    }
+  },
+  "crates/jsonvet/Cargo.toml": {
+    "format": "cargo",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "jsonvet",
+      "description": "Checks JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines for syntax errors and duplicate keys, with exact positions.",
+      "version": "3.2.0",
+      "author": [
+        {
+          "name": "Simon van Lierde"
+        }
+      ],
+      "license": "MIT",
+      "codeRepository": "https://github.com/simonvanlierde/jsonvet",
+      "keywords": [
+        "json",
+        "json5",
+        "jsonc",
+        "lint",
+        "pre-commit"
+      ]
+    }
+  },
+  "crates/jsonvet-cli/Cargo.toml": {
+    "format": "cargo",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "jsonvet-cli",
+      "description": "The jsonvet command: checks JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines files, with JSON Schema checks and SARIF output.",
+      "version": "3.2.0",
+      "author": [
+        {
+          "name": "Simon van Lierde"
+        }
+      ],
+      "license": "MIT",
+      "codeRepository": "https://github.com/simonvanlierde/jsonvet",
+      "keywords": [
+        "json",
+        "json5",
+        "jsonc",
+        "lint",
+        "pre-commit"
+      ]
+    }
+  },
+  "crates/jsonvet-cli/pyproject.toml": {
+    "format": "pep621",
+    "version": null,
+    "release": true,
+    "record": {
+      "name": "jsonvet",
+      "license": "MIT",
+      "codeRepository": "https://github.com/simonvanlierde/jsonvet",
+      "description": "Checks JSON, I-JSON, JSONC, JWCC (HuJSON), JSON5 and JSON Lines files for syntax errors, duplicate keys and JSON Schema errors, with exact positions.",
+      "keywords": [
+        "json",
+        "json5",
+        "jsonc",
+        "lint",
+        "pre-commit"
+      ]
+    }
+  }
+}
