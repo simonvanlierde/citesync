@@ -32,8 +32,10 @@ from citesync.formats import MANIFESTS, Doc, Person, cff_person, codemeta_versio
 from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative, resolve
 
 
-def write(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[list[str], dict[tuple[str, str], str]]:
-    """Write every finding write may fix; return the paths it changed, sorted, and why it skipped a field.
+def write(
+    root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
+) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+    """Write every finding write may fix; return the new text of each path it changed, and why it skipped a field.
 
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
@@ -41,6 +43,7 @@ def write(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[l
     leaves out stays out. An unreadable file is never written. A value the file's format can't
     spell without losing something is left as it was, its (path, term) mapped to the reason.
     Every new text is made before any file is replaced, so an error leaves the files as they were.
+    With ``dry_run``, nothing is replaced.
 
     Raises:
         CheckError: as :func:`citesync.check.check` does.
@@ -74,8 +77,9 @@ def write(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[l
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
-    _replace({root / rel: text for rel, text in texts.items()})
-    return sorted(texts), skipped
+    if not dry_run:
+        _replace({root / rel: text for rel, text in texts.items()})
+    return dict(sorted(texts.items())), skipped
 
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
