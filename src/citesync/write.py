@@ -204,11 +204,7 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     if term == "license":
         return _license(fmt, value, old)
     if term == "identifier":
-        if isinstance(old, list):  # codemeta: the first DOI in the list is the one read
-            i = next(i for i, el in enumerate(old) if codecs.doi_decode(el))
-            return [*old[:i], _encode(doc, source, term, value, old[i], keyword_key), *old[i + 1 :]]
-        form = "url" if isinstance(old, str) and old.strip().lower().startswith("http") else "bare"
-        return codecs.doi_encode(value, form)
+        return _identifier(value, old)
     if term == "codeRepository":
         if isinstance(old, dict):  # npm's {type, url}
             old["url"] = _encode(doc, source, term, value, old["url"], keyword_key)
@@ -218,6 +214,20 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     if term == "keywords":
         return _keywords(old, value, keyword_key, add=doc.is_citation, remove=source.is_citation or not doc.is_citation)
     return value
+
+
+def _identifier(doi: str, old: Any) -> Any:  # noqa: ANN401
+    """``doi`` in ``old``'s form: a DOI URL or bare, in place inside a codemeta list or PropertyValue."""
+    if isinstance(old, list):  # codemeta: the first DOI in the list is the one read
+        i = next(i for i, el in enumerate(old) if codecs.doi_decode(el))
+        return [*old[:i], _identifier(doi, old[i]), *old[i + 1 :]]
+    if isinstance(old, dict):  # a schema.org PropertyValue: set the keys holding the DOI, keep the rest
+        for key in ("value", "url"):
+            if codecs.doi_decode(old.get(key)):
+                old[key] = _identifier(doi, old[key])
+        return old
+    form = "url" if isinstance(old, str) and old.strip().lower().startswith("http") else "bare"
+    return codecs.doi_encode(doi, form)
 
 
 def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401

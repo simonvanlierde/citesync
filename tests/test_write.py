@@ -355,6 +355,32 @@ def test_an_orcid_match_is_renamed_in_place(tmp_path: Path, capsys: pytest.Captu
     assert (root / ".zenodo.json").read_text(encoding="utf-8") == zenodo.replace("Lovelace, Ada", "Byron, Ada")
 
 
+def _doi(n: int) -> dict[str, str]:
+    return {
+        "@type": "PropertyValue",
+        "propertyID": "DOI",
+        "value": f"10.5281/zenodo.{n}",
+        "url": f"https://doi.org/10.5281/zenodo.{n}",
+    }
+
+
+@pytest.mark.parametrize("listed", [False, True])
+def test_a_property_value_doi_keeps_its_keys(
+    listed: bool,  # noqa: FBT001
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = _synthetic(tmp_path / "repo")
+    swhid = {"@type": "PropertyValue", "propertyID": "SWHID", "value": "swh:1:dir:0"}
+    old = [swhid, _doi(1234567)] if listed else _doi(1234567)
+    _edit(root / "codemeta.json", '"https://doi.org/10.5281/zenodo.1234567"', json.dumps(old))
+    _edit(root / "CITATION.cff", "zenodo.1234567", "zenodo.42")
+
+    _run(capsys, "write", "--root", str(root))
+    identifier = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["identifier"]
+    assert identifier == ([swhid, _doi(42)] if listed else _doi(42))
+
+
 @pytest.mark.parametrize("case_sensitive", [False, True])
 def test_values_that_compare_equal_are_left_as_written(
     case_sensitive: bool,  # noqa: FBT001
