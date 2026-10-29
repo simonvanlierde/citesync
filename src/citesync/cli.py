@@ -45,6 +45,9 @@ def main(argv: list[str] | None = None) -> int:
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)
         return 2
+    except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
+        print(f"citesync: {args.root}: unexpected error: {type(err).__name__}: {err}", file=sys.stderr)
+        return 2
     _report(findings, info, args.format, verbose=args.verbose)
     return 1 if findings else 0
 

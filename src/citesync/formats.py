@@ -104,6 +104,9 @@ def _load(path: Path, rel: str) -> dict[str, Any]:
     except OSError as err:
         msg = f"{rel}: cannot read: {err.strerror}"
         raise CheckError(msg) from err
+    except UnicodeDecodeError as err:
+        msg = f"{rel}: cannot read: not UTF-8 at byte {err.start}"
+        raise CheckError(msg) from err
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)

@@ -31,13 +31,13 @@ def find_config(root: Path) -> tuple[dict[str, Any], str]:
         if (root / name).is_file():
             return _read(root, name), name
     if (root / "pyproject.toml").is_file():
-        table = _read(root, "pyproject.toml").get("tool", {}).get("citesync")
+        table = _dig(_read(root, "pyproject.toml"), ("tool", "citesync"), "pyproject.toml")
         if table is not None:
             return table, "pyproject.toml [tool.citesync]"
     if (root / "Cargo.toml").is_file():
         cargo = _read(root, "Cargo.toml")
         for section in ("workspace", "package"):
-            table = cargo.get(section, {}).get("metadata", {}).get("citesync")
+            table = _dig(cargo, (section, "metadata", "citesync"), "Cargo.toml")
             if table is not None:
                 return table, f"Cargo.toml [{section}.metadata.citesync]"
     if (root / "package.json").is_file():
@@ -45,6 +45,19 @@ def find_config(root: Path) -> tuple[dict[str, Any], str]:
         if table is not None:
             return table, 'package.json "citesync"'
     return {}, "defaults"
+
+
+def _dig(data: dict[str, Any], keys: tuple[str, ...], name: str) -> Any:  # noqa: ANN401 - parsed TOML
+    """The value at ``keys`` in nested tables, or None when a key is missing."""
+    node: Any = data
+    for i, key in enumerate(keys):
+        if not isinstance(node, dict):
+            msg = f"{name}: {'.'.join(keys[:i])} is not a table"
+            raise CheckError(msg)
+        node = node.get(key)
+        if node is None:
+            return None
+    return node
 
 
 def _read(root: Path, name: str) -> dict[str, Any]:

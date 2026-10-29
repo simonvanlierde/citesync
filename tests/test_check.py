@@ -198,3 +198,38 @@ def test_write_is_not_in_this_build(tmp_path: Path, capsys: pytest.CaptureFixtur
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     code, _, err = _run(capsys, "write", "--root", str(tmp_path))
     assert (code, err) == (2, "citesync: write is not implemented in this build\n")
+
+
+@pytest.mark.parametrize(
+    ("name", "content", "message"),
+    [
+        ("CITATION.cff", b"cff-version: 1.2.0\ntitle: \xff\n", "CITATION.cff: cannot read"),
+        ("Cargo.toml", b'package = "x"\n', "Cargo.toml: "),
+        ("Cargo.toml", b"workspace = 3\n", "Cargo.toml: "),
+        ("Cargo.toml", b"workspace = true\n", "Cargo.toml: "),
+        ("pyproject.toml", b'tool = "x"\n', "pyproject.toml: "),
+        ("pyproject.toml", b'[build-system]\n[project]\nname = "x"\ndynamic = 1\n', "pyproject.toml: "),
+    ],
+)
+def test_malformed_file_is_exit_2(
+    name: str, content: bytes, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / name).write_bytes(content)
+    code, out, err = _run(capsys, "check", "--root", str(tmp_path))
+    assert (code, out) == (2, "")
+    assert err.startswith(f"citesync: {message}")
+
+
+def test_unexpected_error_is_exit_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*_: object) -> None:
+        msg = "boom"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr("citesync.cli.check", boom)
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    code, out, err = _run(capsys, "check", "--root", str(tmp_path))
+    assert (code, out) == (2, "")
+    assert err == f"citesync: {tmp_path}: unexpected error: RuntimeError: boom\n"

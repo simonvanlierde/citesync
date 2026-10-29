@@ -57,7 +57,13 @@ def discover(root: Path, config: Config) -> list[str]:
 
 def read_docs(root: Path, config: Config, mapping: Mapping) -> list[Doc]:
     """Read the files to compare, source first, leaving out root manifests that aren't released."""
-    docs = [read_doc(root, path, mapping) for path in discover(root, config)]
+    docs = []
+    for path in discover(root, config):
+        try:
+            docs.append(read_doc(root, path, mapping))
+        except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
+            msg = f"{path}: cannot read: unexpected shape ({err})"
+            raise CheckError(msg) from err
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
         docs = [d for d in docs if d.release or d.is_citation or d.path == config.source]
     return docs
