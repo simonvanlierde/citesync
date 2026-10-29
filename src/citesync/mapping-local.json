@@ -3,7 +3,7 @@
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.1.0+hand"
+    "version": "0.1.0"
   },
   "rows": [
     {
@@ -40,21 +40,19 @@
       "format": "cff-1.2.0",
       "term": "author.@id",
       "path": "authors[].orcid",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "curated:the cell lists person.orcid / identifiers / doi; a person's ORCID is orcid"
     },
     {
       "format": "cff-1.2.0",
       "term": "license",
       "path": "license",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
-      "comment": "The cell also names license-url, which holds a licence URL, not an SPDX id."
+      "source": "curated:the cell lists license / license-url; license-url holds a licence URL, not an SPDX id"
     },
     {
       "format": "cff-1.2.0",
       "term": "identifier",
       "path": "doi | identifiers[type=doi].value",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
-      "comment": "The cell lists identifiers / person.orcid / doi; the row keeps the software DOI."
+      "source": "curated:the cell lists identifiers / person.orcid / doi; the software DOI is doi, or the doi entry of identifiers"
     },
     {
       "format": "cff-1.2.0",
@@ -88,6 +86,30 @@
     },
     {
       "format": "codemeta",
+      "term": "author",
+      "path": "author[]",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "author.givenName",
+      "path": "author[].givenName",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "author.familyName",
+      "path": "author[].familyName",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "author.@id",
+      "path": "author[].@id",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
       "term": "license",
       "path": "license",
       "source": "curated:codemeta's own term"
@@ -114,30 +136,6 @@
       "format": "codemeta",
       "term": "keywords",
       "path": "keywords",
-      "source": "curated:codemeta's own term"
-    },
-    {
-      "format": "codemeta",
-      "term": "author",
-      "path": "author[]",
-      "source": "curated:codemeta's own term"
-    },
-    {
-      "format": "codemeta",
-      "term": "author.givenName",
-      "path": "author[].givenName",
-      "source": "curated:codemeta's own term"
-    },
-    {
-      "format": "codemeta",
-      "term": "author.familyName",
-      "path": "author[].familyName",
-      "source": "curated:codemeta's own term"
-    },
-    {
-      "format": "codemeta",
-      "term": "author.@id",
-      "path": "author[].@id",
       "source": "curated:codemeta's own term"
     },
     {
@@ -174,7 +172,7 @@
       "format": "zenodo",
       "term": "author.@id",
       "path": "creators[].orcid",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "curated:the cell says ORCID; the .zenodo.json key is orcid"
     },
     {
       "format": "zenodo",
@@ -193,7 +191,7 @@
       "format": "zenodo",
       "term": "codeRepository",
       "path": "related_identifiers[relation=isSupplementTo].identifier",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "curated:the cell says related_identifiers.isSupplementTo, a relation, not a key; the URL is the identifier of the entry with that relation"
     },
     {
       "format": "zenodo",
@@ -308,7 +306,7 @@
       "format": "cargo",
       "term": "author.@id",
       "path": null,
-      "source": "crosswalk:crosswalks/Cargo.csv@3.1"
+      "source": "curated:no cell; Cargo has no person identifier"
     },
     {
       "format": "cargo",
@@ -320,7 +318,7 @@
       "format": "cargo",
       "term": "identifier",
       "path": null,
-      "source": "crosswalk:crosswalks/Cargo.csv@3.1"
+      "source": "curated:no cell; Cargo has no DOI field"
     },
     {
       "format": "cargo",
@@ -374,7 +372,7 @@
       "format": "npm",
       "term": "author.@id",
       "path": null,
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "curated:no cell; package.json has no person identifier"
     },
     {
       "format": "npm",
