@@ -99,7 +99,7 @@ files = ["codemeta.json", ".zenodo.json"]  # default: the citation files present
 manifests = ["src/core/package.json"]      # replaces the default root manifests
 write-manifests = ["keywords", "license"]  # or "all"; the manifest fields write may change
 keywords-case-sensitive = true              # default false: keywords compare as names do
-keywords-ignore-separators = true           # default false: big-data and big data stay a near miss
+keywords-ignore-separators = true           # default false: big-data and big data stay a near miss (always equal against Cargo.toml)
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 

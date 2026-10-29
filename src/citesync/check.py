@@ -175,6 +175,7 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
         equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
+        kw_key = cargo_keyword_key(kw_key, ref, doc)
         if not both_citation:
             return _keywords_subset(ref, doc, kw_key)
         equal = set(map(kw_key, a)) == set(map(kw_key, b))
@@ -205,7 +206,16 @@ def keyword_key(config: Config) -> Callable[[str], str]:
     With ``keywords-ignore-separators``, hyphens and underscores count as spaces too.
     """
     key = codecs.clean if config.keywords_case_sensitive else codecs.name_key
-    return (lambda k: key(codecs.spaced(k))) if config.keywords_ignore_separators else key
+    return _ignore_separators(key) if config.keywords_ignore_separators else key
+
+
+def cargo_keyword_key(key: Callable[[str], str], *docs: Doc) -> Callable[[str], str]:
+    """``key``, ignoring separators when one of ``docs`` is a Cargo.toml: crates.io refuses a keyword with a space."""
+    return _ignore_separators(key) if any(d.format == "cargo" for d in docs) else key
+
+
+def _ignore_separators(key: Callable[[str], str]) -> Callable[[str], str]:
+    return lambda k: key(codecs.spaced(k))
 
 
 def near_miss(keyword: str, others: Iterable[str], key: Callable[[str], str]) -> str | None:

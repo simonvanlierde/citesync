@@ -736,3 +736,16 @@ def test_diff_reports_an_unreadable_file(tmp_path: Path, capsys: pytest.CaptureF
     code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
     assert (code, out) == (1, "")
     assert "error[unreadable]" in err
+
+
+@pytest.mark.parametrize("source", ["CITATION.cff", "Cargo.toml"])
+def test_cargo_keywords_keep_their_hyphens(source: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # crates.io refuses a keyword with a space, so a hyphenated Cargo.toml keyword matches a spaced one.
+    root = _synthetic(tmp_path / "repo", f'source = "{source}"\nwrite-manifests = ["keywords"]\n')
+    for name in ("CITATION.cff", "codemeta.json", ".zenodo.json", "pyproject.toml", "package.json"):
+        _edit(root / name, '"beta"', '"big data"')
+    cargo = _edit(root / "Cargo.toml", '"beta"', '"big-data"')
+
+    assert _run(capsys, "check", "-q", "--root", str(root))[0] == 0
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
+    assert (root / "Cargo.toml").read_text(encoding="utf-8") == cargo

@@ -22,7 +22,8 @@ class Rule:
 _SEPARATORS = (
     " A keyword that differs from the other file's only in separators (`big-data`, `big_data`, `big data`)"
     " is named in the message, and write gives it the source's spelling where it stands;"
-    " `keywords-ignore-separators = true` makes such keywords equal."
+    " `keywords-ignore-separators = true` makes such keywords equal. They are always equal against Cargo.toml,"
+    " since crates.io refuses a keyword with a space."
 )
 
 _FIX = "Make the file agree with the source, or the other way round if the source is wrong."
