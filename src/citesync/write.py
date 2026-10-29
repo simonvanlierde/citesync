@@ -27,18 +27,20 @@ from ruamel.yaml.util import load_yaml_guess_indent
 from citesync import codecs
 from citesync.check import Finding, findings, has_slot, keyword_key, read_docs
 from citesync.config import Config
+from citesync.errors import CannotWrite
 from citesync.formats import MANIFESTS, Doc, Person, cff_person, codemeta_version, format_of, person, url_label
 from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative, resolve
 
 
-def write(root: Path, config: Config, mapping: Mapping | None = None) -> list[str]:
-    """Write every finding write may fix, and return the paths it changed, sorted.
+def write(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[list[str], dict[tuple[str, str], str]]:
+    """Write every finding write may fix; return the paths it changed, sorted, and why it skipped a field.
 
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
     where the source holds the term and is what the file was compared with. A field the file
-    leaves out stays out. An unreadable file is never written. Every new text is made before
-    any file is replaced, so an error leaves the files as they were.
+    leaves out stays out. An unreadable file is never written. A value the file's format can't
+    spell without losing something is left as it was, its (path, term) mapped to the reason.
+    Every new text is made before any file is replaced, so an error leaves the files as they were.
 
     Raises:
         CheckError: as :func:`citesync.check.check` does.
@@ -46,7 +48,7 @@ def write(root: Path, config: Config, mapping: Mapping | None = None) -> list[st
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
     fix = {(f.file, f.term) for f in findings(docs, unreadable, config) if f.rule not in config.ignore}
-    source, texts = docs[0], {}
+    source, texts, skipped = docs[0], {}, {}
     key = keyword_key(case_sensitive=config.keywords_case_sensitive)
     for doc in docs:  # the source too, for its @context
         terms = [
@@ -62,16 +64,19 @@ def write(root: Path, config: Config, mapping: Mapping | None = None) -> list[st
         if not terms and not context:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
-        new = _rewrite(doc, source, terms, old, mapping, context, key)
+        new, reasons = _rewrite(doc, source, terms, old, mapping, context, key)
+        skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
     for rel, text in texts.items():
         _replace(root / rel, text)
-    return sorted(texts)
+    return sorted(texts), skipped
 
 
-def advice(finding: Finding, config: Config) -> str:
-    """What to do about a finding write left: a manifest field it may not write can be opted in."""
+def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
+    """What to do about a finding write left: why write skipped it, or that a manifest field can be opted in."""
+    if (reason := skipped.get((str(finding.file), str(finding.term)))) is not None:
+        return f"edit it by hand: {reason}"
     if (
         finding.file
         and finding.term
@@ -103,22 +108,23 @@ def _rewrite(
     mapping: Mapping,
     context: str | None,
     keyword_key: Callable[[str], str],
-) -> str:
+) -> tuple[str, dict[str, str]]:
+    """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
     if doc.format == "cff-1.2.0":
         yaml = _yaml(text)
         data = yaml.load(text)
-        _apply(doc, source, terms, data, mapping, context, keyword_key)
+        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
         out = io.StringIO()
         yaml.dump(data, out)
-        return out.getvalue()
+        return out.getvalue(), skipped
     if doc.path.endswith(".toml"):
         data = tomlkit.parse(text)
-        _apply(doc, source, terms, data, mapping, context, keyword_key)
-        return tomlkit.dumps(data)
+        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
+        return tomlkit.dumps(data), skipped
     old = json.loads(text)
     data = copy.deepcopy(old)
-    _apply(doc, source, terms, data, mapping, context, keyword_key)
-    return _splice(text, old, data)
+    skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
+    return _splice(text, old, data), skipped
 
 
 def _yaml(text: str) -> YAML:
@@ -141,7 +147,8 @@ def _apply(
     mapping: Mapping,
     context: str | None,
     keyword_key: Callable[[str], str],
-) -> None:
+) -> dict[str, str]:
+    skipped = {}
     if context:
         iri = f"https://w3id.org/codemeta/{context}"
         old = data["@context"]
@@ -158,12 +165,17 @@ def _apply(
         old = container[key]
         if isinstance(old, dict) and old.get("workspace") is True:
             continue  # Cargo inherits it from [workspace.package]: edit it there by hand
-        if term == "author":
-            new = _people(doc.format, old, source, path, mapping)
-        else:
-            new = _encode(doc, source, term, source.record[term], old, keyword_key)
+        try:
+            if term == "author":
+                new = _people(doc.format, old, source, path, mapping)
+            else:
+                new = _encode(doc, source, term, source.record[term], old, keyword_key)
+        except CannotWrite as err:
+            skipped[term] = str(err)
+            continue
         if new is not old:
             _set(container, key, _styled(new, old), old)
+    return skipped
 
 
 def _slot(term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
@@ -209,7 +221,15 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
 
 
 def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
-    """CFF and codemeta write ``A OR B`` as a list, codemeta as SPDX URLs where the file does."""
+    """CFF and codemeta write ``A OR B`` as a list, codemeta as SPDX URLs where the file does.
+
+    Raises:
+        CannotWrite: for any compound expression in Zenodo, and ``AND`` or ``WITH`` in CFF and codemeta.
+    """
+    operators = set(spdx.split()) & {"AND", "OR", "WITH"}
+    if fmt == "zenodo" and operators:
+        msg = "Zenodo takes one licence id"
+        raise CannotWrite(msg)
     if fmt == "zenodo":
         return codecs.license_encode(spdx, "zenodo")
     if isinstance(old, dict) and "text" in old:  # PEP 621's legacy {text = ...}
@@ -217,6 +237,9 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
         return old
     if fmt not in {"cff-1.2.0", "codemeta"}:
         return spdx
+    if operators - {"OR"}:
+        msg = "a licence list can only say OR, not AND or WITH"
+        raise CannotWrite(msg)
     first = old[0] if isinstance(old, list) and old else old
     form = "spdx-url" if isinstance(first, str) and first.startswith("http") else "spdx"
     ids = [codecs.license_encode(i, form) for i in spdx.split(" OR ")]
@@ -251,19 +274,31 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping) -> Any
     both have one. Anyone else becomes a new entry, so an email or affiliation
     never moves to a different person. Entries with no name or ORCID stay, at the
     end. npm keeps one author, so only the first is set and the rest stay.
+
+    Raises:
+        CannotWrite: when an entry it would drop holds more than a name and ORCID.
     """
     items = list(old) if isinstance(old, list) else [old]
     decoded = [_decode(fmt, el, path, mapping) for el in items]
     npm = "npm" in {fmt, source.format}
     people: tuple[Person, ...] = source.record["author"][:1] if npm else source.record["author"]
     used: set[int] = set()
-    out = []
+    matches = []
     for p in people:
-        i = _match(decoded, used, p)
+        matches.append(i := _match(decoded, used, p))
+        if i is not None:
+            used.add(i)
+    kept = {matches[0]} if fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
+    for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was
+        if i not in kept and (extra := _extra(fmt, el, path, mapping)):
+            q = decoded[i]
+            msg = f"renaming would drop the {extra} of {(q.name if q and q.name else el)!r}"
+            raise CannotWrite(msg)
+    out = []
+    for p, i in zip(people, matches, strict=True):
         if i is None:
             out.append(_new_person(fmt, p, path, mapping, items[0] if items else None))
             continue
-        used.add(i)
         q = decoded[i]
         assert q is not None  # noqa: S101 - _match skips entries that read as no one
         if codecs.name_key(q.name or "") != codecs.name_key(p.name or ""):
@@ -277,6 +312,16 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping) -> Any
         return out[0] if len(out) == 1 or fmt == "npm" else out
     _relist(old, out)
     return old
+
+
+def _extra(fmt: str, element: Any, path: str, mapping: Mapping) -> str | None:  # noqa: ANN401
+    """What an author entry holds besides a name and ORCID: a key, or an npm or Cargo string's email or url."""
+    if isinstance(element, str):
+        return "email" if "<" in element else "url" if "(" in element else None
+    if not isinstance(element, dict):
+        return None
+    names = {relative(at, path) for t in PERSON_TERMS if (at := mapping[fmt, t])}
+    return next((str(k) for k in element if k not in names | {"@type", "name", "name-particle", "name-suffix"}), None)
 
 
 def _relist(old: list[Any], new: list[Any]) -> None:

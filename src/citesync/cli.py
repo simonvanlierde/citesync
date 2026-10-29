@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(render(config))
             return 0
-        written = write(args.root, config) if args.command == "write" else []
+        written, skipped = write(args.root, config) if args.command == "write" else ([], {})
         findings, files = check(args.root, config)
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)
@@ -72,7 +72,8 @@ def main(argv: list[str] | None = None) -> int:
             for path in written:
                 print(f"wrote {path}", file=sys.stdout if args.format == "text" else sys.stderr)
         findings = [
-            f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config)})") for f in findings
+            f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config, skipped)})")
+            for f in findings
         ]
     _report(findings, files, args)
     return 1 if any(f.severity == "error" for f in findings) else 0

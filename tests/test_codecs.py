@@ -1,17 +1,22 @@
 """Property tests on every codec: decode(encode(x)) == x for normalised values, and decoding is idempotent."""
 
+import re
+
 import pytest
 from hypothesis import example, given
 from hypothesis import strategies as st
 
 from citesync import codecs
+from citesync.errors import CannotWrite
 
 SPDX = st.from_regex(r"[A-Za-z0-9][A-Za-z0-9.+-]{0,30}", fullmatch=True)
 ORCID = st.from_regex(r"[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]", fullmatch=True)
 DOI = st.from_regex(r"10\.[0-9]{4,9}/[A-Za-z0-9._;()/:-]{1,30}", fullmatch=True)
 WORD = st.from_regex(r"[A-Za-zÀ-ÿ'][A-Za-zÀ-ÿ' -]{0,20}[A-Za-zÀ-ÿ']", fullmatch=True).map(lambda s: " ".join(s.split()))
 NUMBER = r"(0|[1-9][0-9]{0,2})"
-PRE_RELEASE = st.from_regex(rf"{NUMBER}(\.{NUMBER}){{0,3}}(a|b|rc){NUMBER}", fullmatch=True)
+PRE_RELEASE = st.from_regex(
+    rf"v?{NUMBER}(\.{NUMBER}){{0,2}}((a|b|rc){NUMBER})?(\.dev{NUMBER})?(\+[a-z0-9]{{1,5}})?", fullmatch=True
+)
 
 
 @given(SPDX)
@@ -185,9 +190,29 @@ def test_contact_name(name: str) -> None:
     assert codecs.contact_name_decode(codecs.contact_name_decode(name)) == name
 
 
+# semver.org's regular expression, without the named groups
+SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
+    r"(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+)
+
+
 @given(PRE_RELEASE)
+@example("v1.2.3")
+@example("1.0")
+@example("1.2.3rc1")
+@example("1.2.3.dev0")
 def test_version_semver_round_trip(version: str) -> None:
-    assert codecs.version_key(codecs.version_encode_semver(version)) == codecs.version_key(version)
+    semver = codecs.version_encode_semver(version)
+    assert SEMVER.match(semver), semver
+    assert codecs.version_key(semver) == codecs.version_key(version)
+
+
+@pytest.mark.parametrize("version", ["1.2.3.post1", "2!1.0", "1.2.3.4", "unreleased"])
+def test_version_semver_cannot_spell(version: str) -> None:
+    with pytest.raises(CannotWrite, match=f"semver has no spelling for {re.escape(version)}"):
+        codecs.version_encode_semver(version)
 
 
 @given(st.text())

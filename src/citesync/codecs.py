@@ -11,6 +11,8 @@ from urllib.parse import urlsplit
 
 from packaging.version import InvalidVersion, Version
 
+from citesync.errors import CannotWrite
+
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
 _SLASHES_AND_SPACE = re.compile(r"^[\s/]+|[\s/]+$")  # "/\r0" is "0", as decoding it again gives
@@ -29,11 +31,6 @@ _REF_TAIL = {
     "bitbucket.org": re.compile(_OWNER_REPO_TAIL.format("src")),
 }
 _CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
-_PRE = re.compile(
-    r"^(?P<release>\d+(?:\.\d+)*)[-_.]?(?P<tag>alpha|a|beta|b|rc|c|preview|pre)[-_.]?(?P<n>\d*)(?P<local>\+.*)?$",
-    re.IGNORECASE | re.ASCII,  # int() would read other scripts' digits too
-)
-_PEP440_TAG = {"alpha": "a", "a": "a", "beta": "b", "b": "b", "rc": "rc", "c": "rc", "pre": "rc", "preview": "rc"}
 _SEMVER_TAG = {"a": "alpha", "b": "beta", "rc": "rc"}
 
 
@@ -224,9 +221,21 @@ def version_key(version: str) -> Version | str:
 
 
 def version_encode_semver(version: str) -> str:
-    """A PEP 440 pre-release in semver spelling: ``0.3.1rc1`` is ``0.3.1-rc.1``."""
-    match = _PRE.match(version)
-    if not match:
-        return version
-    tag = _SEMVER_TAG[_PEP440_TAG[match["tag"].lower()]]
-    return f"{match['release']}-{tag}.{int(match['n'] or 0)}{match['local'] or ''}"
+    """``version`` in semver spelling: ``v1.2rc1`` is ``1.2.0-rc.1``, ``1.0.dev3`` is ``1.0.0-dev.3``.
+
+    Raises:
+        CannotWrite: for a version semver has no spelling for: not PEP 440, a post-release,
+            an epoch, or more than three release numbers.
+    """
+    try:
+        v = Version(version)
+    except InvalidVersion:
+        v = None
+    if v is None or v.post is not None or v.epoch or len(v.release) > 3:  # semver has major.minor.patch only
+        msg = f"semver has no spelling for {version}"
+        raise CannotWrite(msg)
+    pre = [_SEMVER_TAG[v.pre[0]], v.pre[1]] if v.pre else []
+    dev = ["dev", v.dev] if v.dev is not None else []
+    suffix = ".".join(map(str, pre + dev))
+    release = ".".join(map(str, (*v.release, 0, 0)[:3]))
+    return release + (f"-{suffix}" if suffix else "") + (f"+{v.local}" if v.local else "")

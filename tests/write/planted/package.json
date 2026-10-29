@@ -2,7 +2,7 @@
   "name": "synthagree",
   "version": "1.2.4",
   "description": "Made-up package.",
-  "author": "Alan Turing <alan@example.org>",
+  "author": "Alan Turing",
   "contributors": [{ "name": "Grace Hopper" }],
   "license": "Apache-2.0",
   "repository": {

@@ -249,6 +249,112 @@ def test_an_ignored_finding_is_not_written(tmp_path: Path, capsys: pytest.Captur
     assert codemeta.read_text(encoding="utf-8") == text
 
 
+def _edit(path: Path, old: str, new: str) -> str:
+    text = path.read_text(encoding="utf-8")
+    assert old in text, old
+    path.write_text(text.replace(old, new), encoding="utf-8")
+    return text.replace(old, new)
+
+
+# source, an edit to it; the file write must leave, an edit planted in it first; the reason write gives
+CANNOT = [
+    *(
+        ("CITATION.cff", '"Turing"', '"Turning"', name, old, new, f"renaming would drop the {what} of 'Alan Turing'")
+        for name, old, new, what in [
+            ("codemeta.json", '"familyName": "Turing"', '"familyName": "Turing", "email": "a@x.org"', "email"),
+            (".zenodo.json", '"name": "Turing, Alan"', '"name": "Turing, Alan", "affiliation": "NPL"', "affiliation"),
+            ("pyproject.toml", '{ name = "Alan Turing" }', '{ name = "Alan Turing", email = "a@x.org" }', "email"),
+            ("Cargo.toml", '"Alan Turing"', '"Alan Turing <a@x.org>"', "email"),
+        ]
+    ),
+    (
+        "CITATION.cff",
+        '"Lovelace"',
+        '"Byron"',
+        "package.json",
+        '"Ada Lovelace"',
+        '"Ada Lovelace (https://x.org)"',
+        "renaming would drop the url of 'Ada Lovelace'",
+    ),
+    (
+        "codemeta.json",
+        '"familyName": "Turing"',
+        '"familyName": "Turning"',
+        "CITATION.cff",
+        'family-names: "Turing"\n',
+        'family-names: "Turing"\n    affiliation: "NPL"\n',
+        "renaming would drop the affiliation of 'Alan Turing'",
+    ),
+    ("CITATION.cff", '"1.2.3"', '"1.2.3.post1"', "Cargo.toml", "", "", "semver has no spelling for 1.2.3.post1"),
+    ("CITATION.cff", '"1.2.3"', '"2!1.0"', "package.json", "", "", "semver has no spelling for 2!1.0"),
+    ("CITATION.cff", '"Apache-2.0"', '"MIT OR Apache-2.0"', ".zenodo.json", "", "", "Zenodo takes one licence id"),
+    ("CITATION.cff", '"Apache-2.0"', '"MIT AND Apache-2.0"', ".zenodo.json", "", "", "Zenodo takes one licence id"),
+    (
+        "CITATION.cff",
+        '"Apache-2.0"',
+        '"MIT AND Apache-2.0"',
+        "codemeta.json",
+        "",
+        "",
+        "a licence list can only say OR, not AND or WITH",
+    ),
+    (
+        "codemeta.json",
+        '"https://spdx.org/licenses/Apache-2.0"',
+        '"MIT AND Apache-2.0"',
+        "CITATION.cff",
+        "",
+        "",
+        "a licence list can only say OR, not AND or WITH",
+    ),
+]
+
+
+@pytest.mark.parametrize(("source", "old", "new", "name", "planted", "plant", "reason"), CANNOT)
+def test_a_value_write_cannot_spell_is_left_with_the_reason(
+    source: str,
+    old: str,
+    new: str,
+    name: str,
+    planted: str,
+    plant: str,
+    reason: str,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = _synthetic(tmp_path / "repo", f'source = "{source}"\nwrite-manifests = "all"\n')
+    if planted:
+        _edit(root / name, planted, plant)
+    before = (root / name).read_bytes()
+    _edit(root / source, old, new)
+
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert (root / name).read_bytes() == before
+    assert any(
+        line.startswith(f"{name}: ") and line.endswith(f" (edit it by hand: {reason})") for line in out.splitlines()
+    ), out
+
+
+def test_an_or_licence_becomes_a_list(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "pyproject.toml"\n')
+    _edit(root / "pyproject.toml", '"Apache-2.0"', '"MIT OR Apache-2.0"')
+    _run(capsys, "write", "--root", str(root))
+    assert "license:\n  - MIT\n  - Apache-2.0\n" in (root / "CITATION.cff").read_text(encoding="utf-8")
+    licences = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["license"]
+    assert licences == ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]
+
+
+def test_an_orcid_match_is_renamed_in_place(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'write-manifests = "all"\n')
+    zenodo = _edit(
+        root / ".zenodo.json", '"name": "Lovelace, Ada",', '"name": "Lovelace, Ada",\n      "affiliation": "x",'
+    )
+    _edit(root / "CITATION.cff", '"Lovelace"', '"Byron"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / ".zenodo.json").read_text(encoding="utf-8") == zenodo.replace("Lovelace, Ada", "Byron, Ada")
+
+
 @pytest.mark.parametrize("case_sensitive", [False, True])
 def test_values_that_compare_equal_are_left_as_written(
     case_sensitive: bool,  # noqa: FBT001
@@ -281,7 +387,7 @@ def test_write_keeps_the_file_mode(tmp_path: Path, capsys: pytest.CaptureFixture
 GAPS = {".zenodo.json": {"version", "identifier"}}
 EDITS = [
     ("codemeta.json", '"version": "1.2.3"', '"version": "2.0.0rc1"', "version"),
-    ("codemeta.json", '"familyName": "Turing"', '"familyName": "Turning"', "author"),
+    ("codemeta.json", '"familyName": "Lovelace"', '"familyName": "Byron"', "author"),
     ("codemeta.json", "codemeta/3.0", "codemeta/3.1", "@context"),
     ("codemeta.json", '"gamma", "delta"]', '"gamma", "omega"]', "keywords"),
     (".zenodo.json", '"Lovelace, Ada"', '"Lovelace, Augusta Ada"', "author"),
@@ -298,7 +404,7 @@ EDITS = [
     (
         "package.json",
         '"author": "Ada Lovelace"',
-        '"author": { "name": "Ada King", "email": "ada@example.org" }',
+        '"author": { "name": "Ada King" }',
         "author",
     ),
     ("package.json", "example/synthagree.git", "example/synth.git", "codeRepository"),
