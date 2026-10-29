@@ -110,3 +110,44 @@ def test_bad_config_exits_2(text: str, message: str, tmp_path: Path, capsys: pyt
     assert main(["check", "--root", str(tmp_path)]) == 2
     assert message in capsys.readouterr().err
     assert main(["config", "--root", str(tmp_path)]) == 2
+
+
+def test_root_is_found_from_a_subdirectory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Without --root, citesync walks up to the citation files, as ruff walks up to its config."""
+    (tmp_path / ".git").mkdir()
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "name": "y"}), encoding="utf-8"
+    )
+    (tmp_path / "src" / "pkg").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path / "src" / "pkg")
+    assert main(["check"]) == 1
+    assert capsys.readouterr().out.startswith("codemeta.json: error[name-mismatch]")
+
+
+@pytest.mark.parametrize(("marker", "content"), [(origin, text) for origin, _, text in LOCATIONS[::2]])
+def test_root_is_found_by_its_config(
+    marker: str, content: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    name = marker.split(maxsplit=1)[0]
+    (tmp_path / name).write_text(content, encoding="utf-8")
+    (tmp_path / "sub").mkdir()
+    monkeypatch.chdir(tmp_path / "sub")
+    assert main(["config"]) == 0
+    assert capsys.readouterr().out.startswith(f"# from {marker}")
+
+
+def test_the_walk_stops_at_the_git_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A submodule (its .git is a file) or a nested repo is its own root: the outer repo's files are not its."""
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    inner = tmp_path / "vendor" / "lib"
+    inner.mkdir(parents=True)
+    (inner / ".git").write_text("gitdir: ../../.git/modules/lib\n", encoding="utf-8")
+    (inner / "src").mkdir()
+    monkeypatch.chdir(inner / "src")
+    assert main(["check"]) == 2
+    assert "CITATION.cff" in capsys.readouterr().err

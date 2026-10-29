@@ -16,7 +16,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 from citesync.check import Finding, check
-from citesync.config import Config, load_config, render
+from citesync.config import Config, find_root, load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain
 from citesync.write import advice, write
@@ -31,7 +31,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"%(prog)s {version('citesync')}")
     sub = parser.add_subparsers(dest="command", required=True)
     root = argparse.ArgumentParser(add_help=False)
-    root.add_argument("--root", type=Path, default=Path(), help="repo root (default: the current directory)")
+    root.add_argument(
+        "--root",
+        type=Path,
+        help="repo root (default: the nearest directory up with a citation file or config, inside the git repo)",
+    )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
     report = argparse.ArgumentParser(add_help=False, parents=[root])
     report.add_argument("--format", choices=("text", "json", "github"), default="text")
@@ -58,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in {"rules", "explain"}:
         return _rules(args)
     try:
+        args.root = args.root or find_root(Path.cwd())
         config = load_config(args.root, args.source)
         if args.command == "config":
             print(render(config))

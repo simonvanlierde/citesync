@@ -17,6 +17,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Output as text, JSON (`--format json` or `--json`) or GitHub workflow annotations (`--format github`). Text is coloured on a terminal (`NO_COLOR` and `FORCE_COLOR` are honoured) and ends with a summary line; `--quiet` prints only errors. JSON is one document with a `version`, the tool, a summary and the findings, each with its rule, severity, help, a link to the rule's docs and its position when known. GitHub output ends with a notice that counts the findings. JSON always lists every finding, whatever `-q` or `-v` say.
 - A JSON compatibility policy: a minor release may add rule ids and optional fields, so ignore what you don't know; removing or retyping a field bumps the report's `version`, in a major release.
 - `citesync --version`.
+- Without `--root`, citesync walks up from the current directory to the nearest directory with a citation file or a citesync config, stopping at the git root.
 - A `role-dangling` warning for a CodeMeta `Role` in codemeta.json's `author` or `contributor` list, such as a CRediT role from credit-matrix, whose `schema:author` ORCID no listed person has. `write` keeps Roles as they are.
 - A pre-commit hook, `citesync`, for prek or pre-commit. It runs `citesync check` when a commit changes a citation file, a package manifest or citesync's config, at any depth, and fails the commit on an error finding.
 - A manual-stage hook, `citesync-write`, that runs `citesync write` when you ask for it.

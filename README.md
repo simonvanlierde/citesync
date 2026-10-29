@@ -32,6 +32,8 @@ citesync write --diff               # print what write would change, and change 
 citesync --version
 ```
 
+Run from a subdirectory, citesync finds the repo root as ruff does: it walks up to the nearest directory with a citation file or a citesync config, and stops at the git root, so a submodule keeps its own files. File paths in findings are relative to that root.
+
 Each finding is one line, `file: severity[rule] field: message`, and a last line counts them:
 
 ```text
