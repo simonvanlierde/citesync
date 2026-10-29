@@ -8,7 +8,7 @@ from typing import Any
 
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS, load
-from citesync.mapping import TERMS, resolve
+from citesync.mapping import resolve
 from citesync.rules import RULES
 
 
@@ -20,7 +20,6 @@ class Config:
     codemeta_version: str = "3.0"
     files: tuple[str, ...] | None = None
     manifests: tuple[str, ...] | None = None
-    write_manifests: tuple[str, ...] = ()
     keywords_case_sensitive: bool = False
     ignore: tuple[str, ...] = ()
     origin: str = "defaults"
@@ -107,14 +106,6 @@ def _paths(value: object, names: dict[str, str], origin: str, key: str) -> tuple
     return tuple(_path(item, names, origin, key) for item in value)
 
 
-def _write_manifests(value: object, origin: str) -> tuple[str, ...]:
-    items = [value] if isinstance(value, str) else value
-    if not isinstance(items, list) or not all(isinstance(i, str) and (i in TERMS or i == "all") for i in items):
-        msg = f"{origin}: write_manifests must be 'all' or a list of {', '.join(TERMS)}, got {value!r}"
-        raise CheckError(msg)
-    return tuple(TERMS) if "all" in items else tuple(items)
-
-
 def _ignore(value: object, origin: str) -> tuple[str, ...]:
     ignorable = [rule for rule in RULES if rule != "unreadable"]  # a file citesync can't read always fails
     if not isinstance(value, list) or not all(isinstance(i, str) and i in ignorable for i in value):
@@ -129,7 +120,6 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "codemeta_version": _codemeta_version,
     "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
     "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
-    "write_manifests": _write_manifests,
     "keywords_case_sensitive": lambda value, origin: _bool(value, origin, "keywords_case_sensitive"),
     "ignore": _ignore,
 }
@@ -147,7 +137,6 @@ def render(config: Config) -> str:
         f"manifests = {json.dumps(list(config.manifests))}"
         if config.manifests is not None
         else "# manifests: not set, so every release manifest at the repo root",
-        f"write_manifests = {json.dumps(list(config.write_manifests))}",
         f"keywords_case_sensitive = {json.dumps(config.keywords_case_sensitive)}",
         f"ignore = {json.dumps(list(config.ignore))}",
     ]

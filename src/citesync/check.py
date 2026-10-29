@@ -60,7 +60,7 @@ def discover(root: Path, config: Config) -> list[str]:
 
     Default: every citation file present, and every manifest at the root. A
     ``manifests`` list replaces the default list. A listed citation file that
-    doesn't exist yet is skipped: there is nothing to compare until write makes it.
+    doesn't exist yet is skipped: there is nothing to compare.
 
     Raises:
         CheckError: when the source or a listed manifest is missing.

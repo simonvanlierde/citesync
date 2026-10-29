@@ -205,10 +205,11 @@ def test_exit_2(
     assert message in err
 
 
-def test_write_is_not_in_this_build(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
-    code, _, err = _run(capsys, "write", "--root", str(tmp_path))
-    assert (code, err) == (2, "citesync: write is not implemented in this build\n")
+def test_write_is_not_a_command(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exit_:
+        main(["write"])
+    assert exit_.value.code == 2
+    assert "invalid choice: 'write'" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(

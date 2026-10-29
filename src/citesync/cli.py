@@ -33,7 +33,6 @@ def _parser() -> argparse.ArgumentParser:
     shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
-    sub.add_parser("write", parents=[root], help="not implemented in this build")
     rules = sub.add_parser("rules", help="list the rules")
     rules.add_argument("--format", choices=("text", "json"), default="text")
     sub.add_parser("explain", help="print a rule's documentation").add_argument("rule", help="a rule id")
@@ -50,9 +49,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(render(config))
             return 0
-        if args.command == "write":
-            print("citesync: write is not implemented in this build", file=sys.stderr)
-            return 2
         findings, files = check(args.root, config)
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)

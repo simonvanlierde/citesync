@@ -85,14 +85,13 @@ source = "CITATION.cff"                  # any of the six files
 codemeta_version = "3.0"
 files = ["codemeta.json", ".zenodo.json"]  # default: the citation files present
 manifests = ["src/core/package.json"]      # replaces the default root manifests
-write_manifests = ["keywords", "license"]  # or "all"; for write, not built yet
 keywords_case_sensitive = true              # default false: keywords compare as names do
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 
 An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
 
-Not built yet: `citesync write`, which exits 2 in this build, the `diff` format, and the pre-commit hook.
+Not built yet: `citesync write`, the `diff` format, and the pre-commit hook.
 
 ## Development
 
