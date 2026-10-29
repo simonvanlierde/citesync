@@ -80,9 +80,9 @@ To fix: Add the keyword to the citation file, or remove it from the manifest.
 
 codemeta.json's `@context` is not the configured CodeMeta version. Severity: error.
 
-The configured version is `codemeta_version`, 3.0 by default. citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.
+The configured version is `codemeta-version`, 3.0 by default. citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.
 
-To fix: Change the `@context` to the configured version, or set `codemeta_version` in the config.
+To fix: Change the `@context` to the configured version, or set `codemeta-version` in the config.
 
 ## unreadable
 

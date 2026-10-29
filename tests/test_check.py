@@ -418,7 +418,7 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
     [
         ("", []),
         (
-            "keywords_case_sensitive = true\n",
+            "keywords-case-sensitive = true\n",
             [
                 ("keywords-mismatch", "codemeta.json", "keywords", "Life Cycle, lca, CITATION.cff has life cycle, LCA"),
                 ("keywords-not-subset", "pyproject.toml", "keywords", "Lca: in pyproject.toml, not in CITATION.cff"),

@@ -59,19 +59,24 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
     assert capsys.readouterr().out == (
         "# from defaults\n"
         'source = "CITATION.cff"\n'
-        'codemeta_version = "3.0"\n'
+        'codemeta-version = "3.0"\n'
         "# files: not set, so every citation file present\n"
         "# manifests: not set, so every release manifest at the repo root\n"
-        "keywords_case_sensitive = false\n"
+        "keywords-case-sensitive = false\n"
         "ignore = []\n"
     )
 
 
 def test_keywords_case_sensitive(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    (tmp_path / "citesync.toml").write_text("keywords_case_sensitive = true\n", encoding="utf-8")
-    assert load_config(tmp_path).keywords_case_sensitive is True
+    (tmp_path / "citesync.toml").write_text(
+        'keywords-case-sensitive = true\ncodemeta-version = "4.0"\n', encoding="utf-8"
+    )
+    config = load_config(tmp_path)
+    assert (config.keywords_case_sensitive, config.codemeta_version) == (True, "4.0")
     assert main(["config", "--root", str(tmp_path)]) == 0
-    assert "keywords_case_sensitive = true\n" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert 'codemeta-version = "4.0"\n' in out
+    assert "keywords-case-sensitive = true\n" in out
 
 
 @pytest.mark.parametrize(
@@ -79,11 +84,13 @@ def test_keywords_case_sensitive(tmp_path: Path, capsys: pytest.CaptureFixture[s
     [
         ('sources = "CITATION.cff"\n', "citesync.toml: unknown key sources"),
         ('write_manifests = "all"\n', "citesync.toml: unknown key write_manifests"),
-        ('codemeta_version = "3.2"\n', "codemeta_version must be one of"),
+        ('codemeta-version = "3.2"\n', "codemeta-version must be one of"),
+        ('codemeta_version = "3.0"\n', "citesync.toml: unknown key codemeta_version"),
+        ("keywords_case_sensitive = true\n", "citesync.toml: unknown key keywords_case_sensitive"),
         ('manifests = ["CITATION.cff"]\n', "manifests must name one of"),
         ('manifests = ["../x/package.json"]\n', "must be relative to the repo root"),
         ('files = "codemeta.json"\n', "files must be a list of paths"),
-        ('keywords_case_sensitive = "yes"\n', "keywords_case_sensitive must be true or false"),
+        ('keywords-case-sensitive = "yes"\n', "keywords-case-sensitive must be true or false"),
         ("source = \n", "citesync.toml:1:10: Invalid value"),
         ('ignore = ["version"]\n', "ignore must be a list of rule ids from name-mismatch,"),
         ('ignore = ["unreadable"]\n', "ignore must be a list of rule ids"),

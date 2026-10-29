@@ -14,9 +14,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A file citesync can't read or parse is an `unreadable` finding, with the parser's line and column when it gives them, and the other files are still checked against each other.
 - Output as text, JSON (`--format json` or `--json`) or GitHub workflow annotations (`--format github`). Text is coloured on a terminal (`NO_COLOR` and `FORCE_COLOR` are honoured) and ends with a summary line; `--quiet` prints only errors. JSON is one document with a `version`, the tool, a summary and the findings, each with its rule, severity, help, a link to the rule's docs and its position when known. GitHub output ends with a notice that counts the findings.
 - `ignore` in the config drops the findings of the rules it lists, and warns about an entry that matched nothing.
-- `citesync config`, and config discovery from `citesync.toml`, `.citesync.toml`, pyproject.toml, Cargo.toml or package.json.
+- `citesync config`, and config discovery from `citesync.toml`, `.citesync.toml`, pyproject.toml, Cargo.toml or package.json. Config keys are kebab-case, such as `codemeta-version`.
 - The field mapping, vendored from codemeta-drift with its JSON Schema.
-- Keywords compare case-insensitively, as author names do, so `LCA` matches `lca`. Set `keywords_case_sensitive = true` in the config to compare them by case.
+- Keywords compare case-insensitively, as author names do, so `LCA` matches `lca`. Set `keywords-case-sensitive = true` in the config to compare them by case.
 - Repository URLs compare by the repository they name: `http://www.github.com/Owner/Repo/tree/v1.0` matches `https://github.com/owner/repo`. Branch, tag and file pages count on GitHub, GitLab, Codeberg, Gitea and Bitbucket; paths ignore case on GitHub only. Findings show the URLs as written.
 - A codemeta.json `identifier` given as a schema.org PropertyValue is read as a DOI when its `propertyID` is `DOI` or its `value` or `url` is a DOI. Other PropertyValues, such as a SWHID or a ROR id, are skipped.
 - Versions compare as PEP 440 versions, so `v1.2.3` matches `1.2.3`, `1.0` matches `1.0.0` and `0.3.1-rc.1` matches `0.3.1rc1`. A version that isn't PEP 440, such as `unreleased`, must match exactly.

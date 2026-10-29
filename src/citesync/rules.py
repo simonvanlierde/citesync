@@ -100,8 +100,8 @@ RULES = {
     "context-mismatch": Rule(
         "error",
         "codemeta.json's `@context` is not the configured CodeMeta version.",
-        "Change the `@context` to the configured version, or set `codemeta_version` in the config.",
-        "The configured version is `codemeta_version`, 3.0 by default. citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.",
+        "Change the `@context` to the configured version, or set `codemeta-version` in the config.",
+        "The configured version is `codemeta-version`, 3.0 by default. citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.",
     ),
     "unreadable": Rule(
         "error",

@@ -13,7 +13,7 @@
           "rule": "context-mismatch",
           "file": "codemeta.json",
           "term": "@context",
-          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta_version defaults to 3.0"
+          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version defaults to 3.0"
         }
       ],
       "info": []

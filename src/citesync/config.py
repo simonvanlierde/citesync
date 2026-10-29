@@ -68,7 +68,7 @@ def load_config(root: Path, source: str | None = None) -> Config:
     if unknown:
         msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(_PARSE)}"
         raise CheckError(msg)
-    config = Config(origin=origin, **{key: _PARSE[key](value, origin) for key, value in raw.items()})
+    config = Config(origin=origin, **{key.replace("-", "_"): _PARSE[key](value, origin) for key, value in raw.items()})
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
     return config
@@ -76,7 +76,7 @@ def load_config(root: Path, source: str | None = None) -> Config:
 
 def _codemeta_version(value: object, origin: str) -> str:
     if value not in CODEMETA_VERSIONS:
-        msg = f"{origin}: codemeta_version must be one of {', '.join(CODEMETA_VERSIONS)}"
+        msg = f"{origin}: codemeta-version must be one of {', '.join(CODEMETA_VERSIONS)}"
         raise CheckError(msg)
     return str(value)
 
@@ -117,10 +117,10 @@ def _ignore(value: object, origin: str) -> tuple[str, ...]:
 # One parser per key; each raises CheckError naming the key.
 _PARSE: dict[str, Callable[[object, str], Any]] = {
     "source": lambda value, origin: _path(value, FORMAT_OF, origin, "source"),
-    "codemeta_version": _codemeta_version,
+    "codemeta-version": _codemeta_version,
     "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
     "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
-    "keywords_case_sensitive": lambda value, origin: _bool(value, origin, "keywords_case_sensitive"),
+    "keywords-case-sensitive": lambda value, origin: _bool(value, origin, "keywords-case-sensitive"),
     "ignore": _ignore,
 }
 
@@ -130,14 +130,14 @@ def render(config: Config) -> str:
     lines = [
         f"# from {config.origin}",
         f"source = {json.dumps(config.source)}",
-        f"codemeta_version = {json.dumps(config.codemeta_version)}",
+        f"codemeta-version = {json.dumps(config.codemeta_version)}",
         f"files = {json.dumps(list(config.files))}"
         if config.files is not None
         else "# files: not set, so every citation file present",
         f"manifests = {json.dumps(list(config.manifests))}"
         if config.manifests is not None
         else "# manifests: not set, so every release manifest at the repo root",
-        f"keywords_case_sensitive = {json.dumps(config.keywords_case_sensitive)}",
+        f"keywords-case-sensitive = {json.dumps(config.keywords_case_sensitive)}",
         f"ignore = {json.dumps(list(config.ignore))}",
     ]
     return "\n".join(lines)
