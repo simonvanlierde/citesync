@@ -533,3 +533,53 @@ def test_write_then_check_finds_nothing(
         assert _run(capsys, "check", "-q", "--root", str(root)) == (0, "", "")
         assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
         assert _snapshot(root) == after
+
+
+ADA = "https://orcid.org/0000-0002-1825-0097"
+SOFTWARE = "https://credit.niso.org/contributor-roles/software/"
+
+
+def _with_roles(root: Path) -> tuple[list[object], list[object]]:
+    """Add CodeMeta Role objects, as credit-matrix plans to print them, to the author and contributor lists."""
+    path = root / "codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    role = {"@type": "Role", "schema:author": ADA, "roleName": SOFTWARE}
+    data["author"].append(role)
+    data["contributor"] = [{"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}, role]
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return _roles(root)
+
+
+def _roles(root: Path) -> tuple[list[object], list[object]]:
+    data = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    return [a for a in data["author"] if a.get("@type") == "Role"], data["contributor"]
+
+
+def test_roles_add_no_findings(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    _with_roles(root)
+    assert _run(capsys, "check", "-q", "--root", str(root)) == (0, "", "")
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ('version: "1.2.3"', 'version: "1.2.4"'),
+        ('family-names: "Turing"', 'family-names: "Turing-Smith"'),
+        ('  - given-names: "Alan"\n    family-names: "Turing"\n', ""),
+    ],
+    ids=["version", "rename", "removal"],
+)
+def test_write_keeps_roles(old: str, new: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Role objects pass through a write untouched, since citesync knows no CRediT."""
+    root = _synthetic(tmp_path / "repo", 'source = "CITATION.cff"\nwrite-manifests = "all"\n')
+    before = _with_roles(root)
+    cff = root / "CITATION.cff"
+    text = cff.read_text(encoding="utf-8")
+    assert old in text
+    cff.write_text(text.replace(old, new), encoding="utf-8")
+
+    code, out, err = _run(capsys, "write", "--root", str(root))
+    assert (code, err) == (0, ""), out
+    assert "wrote codemeta.json" in out
+    assert _roles(root) == before
