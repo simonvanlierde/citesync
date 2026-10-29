@@ -2,6 +2,7 @@
 
 import json
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -9,8 +10,7 @@ from typing import Any
 from citesync.errors import CheckError
 from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS
 from citesync.mapping import TERMS
-
-KEYS = ("source", "codemeta_version", "files", "manifests", "write_manifests", "keywords_case_sensitive")
+from citesync.rules import RULES
 
 
 @dataclass(frozen=True)
@@ -23,41 +23,46 @@ class Config:
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
     keywords_case_sensitive: bool = False
+    ignore: tuple[str, ...] = ()
     origin: str = "defaults"
 
 
+# Config tables inside manifests, in the D7 order: (file, keys, origin).
+_MANIFEST_TABLES = (
+    ("pyproject.toml", ("tool", "citesync"), "pyproject.toml [tool.citesync]"),
+    ("Cargo.toml", ("workspace", "metadata", "citesync"), "Cargo.toml [workspace.metadata.citesync]"),
+    ("Cargo.toml", ("package", "metadata", "citesync"), "Cargo.toml [package.metadata.citesync]"),
+    ("package.json", ("citesync",), 'package.json "citesync"'),
+)
+
+
 def find_config(root: Path) -> tuple[dict[str, Any], str]:
-    """The raw config table and where it came from, in the D7 order; ``({}, "defaults")`` when none."""
+    """The raw config table and where it came from, in the D7 order; ``({}, "defaults")`` when none.
+
+    A manifest that can't be read, or has a non-table on the way to the config table,
+    holds no config here: the check reports it as ``unreadable`` if it is broken.
+    """
     for name in ("citesync.toml", ".citesync.toml"):
         if (root / name).is_file():
             return _read(root, name), name
-    if (root / "pyproject.toml").is_file():
-        table = _dig(_read(root, "pyproject.toml"), ("tool", "citesync"), "pyproject.toml")
-        if table is not None:
-            return table, "pyproject.toml [tool.citesync]"
-    if (root / "Cargo.toml").is_file():
-        cargo = _read(root, "Cargo.toml")
-        for section in ("workspace", "package"):
-            table = _dig(cargo, (section, "metadata", "citesync"), "Cargo.toml")
+    for name, keys, origin in _MANIFEST_TABLES:
+        if (root / name).is_file():
+            try:
+                table = _dig(_read(root, name), keys)
+            except CheckError:
+                continue
             if table is not None:
-                return table, f"Cargo.toml [{section}.metadata.citesync]"
-    if (root / "package.json").is_file():
-        table = _read(root, "package.json").get("citesync")
-        if table is not None:
-            return table, 'package.json "citesync"'
+                return table, origin
     return {}, "defaults"
 
 
-def _dig(data: dict[str, Any], keys: tuple[str, ...], name: str) -> Any:  # noqa: ANN401 - parsed TOML
-    """The value at ``keys`` in nested tables, or None when a key is missing."""
+def _dig(data: dict[str, Any], keys: tuple[str, ...]) -> Any:  # noqa: ANN401 - parsed TOML
+    """The value at ``keys`` in nested tables, or None when a key is missing or a step isn't a table."""
     node: Any = data
-    for i, key in enumerate(keys):
+    for key in keys:
         if not isinstance(node, dict):
-            msg = f"{name}: {'.'.join(keys[:i])} is not a table"
-            raise CheckError(msg)
-        node = node.get(key)
-        if node is None:
             return None
+        node = node.get(key)
     return node
 
 
@@ -84,27 +89,13 @@ def load_config(root: Path, source: str | None = None) -> Config:
     if not isinstance(raw, dict):
         msg = f"{origin}: the citesync config is not a table"
         raise CheckError(msg)
-    unknown = sorted(set(raw) - set(KEYS))
+    unknown = sorted(set(raw) - set(_PARSE))
     if unknown:
-        msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(KEYS)}"
+        msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(_PARSE)}"
         raise CheckError(msg)
-    config = Config(origin=origin)
-    if "source" in raw:
-        config = replace(config, source=_path(raw["source"], FORMAT_OF, origin, "source"))
+    config = Config(origin=origin, **{key: _PARSE[key](value, origin) for key, value in raw.items()})
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
-    if "codemeta_version" in raw:
-        config = replace(config, codemeta_version=_codemeta_version(raw["codemeta_version"], origin))
-    if "files" in raw:
-        config = replace(config, files=_paths(raw["files"], CITATION_FILES, origin, "files"))
-    if "manifests" in raw:
-        config = replace(config, manifests=_paths(raw["manifests"], MANIFESTS, origin, "manifests"))
-    if "write_manifests" in raw:
-        config = replace(config, write_manifests=_write_manifests(raw["write_manifests"], origin))
-    if "keywords_case_sensitive" in raw:
-        config = replace(
-            config, keywords_case_sensitive=_bool(raw["keywords_case_sensitive"], origin, "keywords_case_sensitive")
-        )
     return config
 
 
@@ -148,6 +139,33 @@ def _write_manifests(value: object, origin: str) -> tuple[str, ...]:
     return tuple(TERMS) if "all" in items else tuple(items)
 
 
+def _codemeta_version(value: object, origin: str) -> str:
+    if value not in CODEMETA_VERSIONS:
+        msg = f"{origin}: codemeta_version must be one of {', '.join(CODEMETA_VERSIONS)}"
+        raise CheckError(msg)
+    return str(value)
+
+
+def _ignore(value: object, origin: str) -> tuple[str, ...]:
+    ignorable = [rule for rule in RULES if rule != "unreadable"]  # a file citesync can't read always fails
+    if not isinstance(value, list) or not all(isinstance(i, str) and i in ignorable for i in value):
+        msg = f"{origin}: ignore must be a list of rule ids from {', '.join(ignorable)}, got {value!r}"
+        raise CheckError(msg)
+    return tuple(value)
+
+
+# One parser per key; each raises CheckError naming the key.
+_PARSE: dict[str, Callable[[object, str], Any]] = {
+    "source": lambda value, origin: _path(value, FORMAT_OF, origin, "source"),
+    "codemeta_version": _codemeta_version,
+    "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
+    "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
+    "write_manifests": _write_manifests,
+    "keywords_case_sensitive": lambda value, origin: _bool(value, origin, "keywords_case_sensitive"),
+    "ignore": _ignore,
+}
+
+
 def render(config: Config) -> str:
     """The config as TOML, headed by where it came from (``citesync config``)."""
     lines = [
@@ -162,5 +180,6 @@ def render(config: Config) -> str:
         else "# manifests: not set, so every release manifest at the repo root",
         f"write_manifests = {json.dumps(list(config.write_manifests))}",
         f"keywords_case_sensitive = {json.dumps(config.keywords_case_sensitive)}",
+        f"ignore = {json.dumps(list(config.ignore))}",
     ]
     return "\n".join(lines)

@@ -10,7 +10,7 @@
       "exit": 1,
       "findings": [
         {
-          "code": "MISMATCH",
+          "rule": "name-mismatch",
           "file": "codemeta.json",
           "term": "name",
           "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
@@ -28,7 +28,7 @@
       "exit": 1,
       "findings": [
         {
-          "code": "MISMATCH",
+          "rule": "name-mismatch",
           "file": "codemeta.json",
           "term": "name",
           "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"

@@ -8,6 +8,7 @@ import jsonschema
 import pytest
 
 from citesync.cli import main
+from citesync.mapping import TERMS
 
 FIXTURES = Path(__file__).parent / "fixtures"
 OUTPUT_SCHEMA = json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8"))
@@ -30,8 +31,14 @@ def _run(capsys: pytest.CaptureFixture[str], *args: str) -> tuple[int, str, str]
     return code, out, err
 
 
-def _triples(items: list[dict[str, str]]) -> list[tuple[str, str, str]]:
-    return [(i["code"], i["file"], i["term"]) for i in items]
+def _triples(items: list[dict]) -> list[tuple[str, str | None, str | None]]:
+    return [(i["rule"], i["file"], i["term"]) for i in items]
+
+
+def _split(report: dict) -> tuple[list[dict], list[dict]]:
+    """The findings that fail a run, and the info."""
+    findings = report["findings"]
+    return [f for f in findings if f["severity"] != "info"], [f for f in findings if f["severity"] == "info"]
 
 
 @pytest.mark.parametrize(("repo", "case"), CASES, ids=[f"{r}-{c['name']}" for r, c in CASES])
@@ -44,14 +51,15 @@ def test_fixture_case(repo: str, case: dict, tmp_path: Path, capsys: pytest.Capt
     report = json.loads(out)
     jsonschema.validate(report, OUTPUT_SCHEMA)
     assert (code, err) == (case["exit"], "")
-    assert sorted(_triples(report["findings"])) == sorted(_triples(case["findings"]))
-    assert sorted(_triples(report["info"])) == sorted(_triples(case["info"]))
+    findings, info = _split(report)
+    assert _triples(findings) == _triples(case["findings"])
+    assert _triples(info) == _triples(case["info"])
 
-    # Text: one line per finding, NOT_CHECKED only with -v, nothing when clean.
+    # Text: one line per finding and a summary, not-checked only with -v.
     _, text, _ = _run(capsys, "check", "--root", str(root))
-    assert len(text.splitlines()) == len(case["findings"])
+    assert len(text.splitlines()) == len(case["findings"]) + 1
     _, verbose, _ = _run(capsys, "check", "--root", str(root), "-v")
-    assert len(verbose.splitlines()) == len(case["findings"]) + len(case["info"])
+    assert len(verbose.splitlines()) == len(case["findings"]) + len(case["info"]) + 1
 
 
 PYPROJECT = '[build-system]\nrequires = []\n\n[project]\nname = "x"\n'
@@ -68,7 +76,7 @@ D2_TABLE = [
         "identifier",
         "pyproject.toml",
         {"CITATION.cff": CFF + 'doi: "10.1/a"\n', "codemeta.json": _codemeta(identifier="https://doi.org/10.1/b")},
-        [("MISMATCH", "codemeta.json", "identifier")],
+        [("doi-mismatch", "codemeta.json", "identifier")],
         [],
         id="no-slot-two-holders-disagree",
     ),
@@ -88,7 +96,7 @@ D2_TABLE = [
         "pyproject.toml",
         {"CITATION.cff": CFF},
         [],
-        [("NOT_CHECKED", "", "identifier")],
+        [("not-checked", None, "identifier")],
         id="no-slot-no-holder",
     ),
     pytest.param(
@@ -99,7 +107,7 @@ D2_TABLE = [
             "codemeta.json": _codemeta(version="1.0.0"),
             ".zenodo.json": json.dumps({"title": "x", "version": "2.0.0"}),
         },
-        [("MISMATCH", ".zenodo.json", "version")],
+        [("version-mismatch", ".zenodo.json", "version")],
         [],
         id="empty-source-two-holders-disagree",
     ),
@@ -128,9 +136,9 @@ def test_d2_gap(
     for name, text in files.items():
         (tmp_path / name).write_text(text, encoding="utf-8")
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--source", source, "--json")
-    report = json.loads(out)
-    assert _triples(report["findings"]) == findings
-    assert [t for t in _triples(report["info"]) if t[2] == term] == info
+    errors, notes = _split(json.loads(out))
+    assert _triples(errors) == findings
+    assert [t for t in _triples(notes) if t[2] == term] == info
     assert code == (1 if findings else 0)
 
 
@@ -140,10 +148,10 @@ def test_versions_compare_as_pep440(
 ) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF + f"version: {cff}\n", encoding="utf-8")
     (tmp_path / "codemeta.json").write_text(_codemeta(version=codemeta), encoding="utf-8")
-    assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "", "")
+    assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "0 errors, 0 warnings in 2 files\n", "")
     (tmp_path / "codemeta.json").write_text(_codemeta(version="0.3.1rc2"), encoding="utf-8")
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
-    assert (code, out.split(":")[0]) == (1, "MISMATCH codemeta.json")
+    assert (code, out.split(" ")[:2]) == (1, ["codemeta.json:", "error[version-mismatch]"])
 
 
 def test_findings_are_sorted_and_text_matches_codemeta_drift(
@@ -157,12 +165,14 @@ def test_findings_are_sorted_and_text_matches_codemeta_drift(
     (tmp_path / ".zenodo.json").write_text(json.dumps({"title": "z", "license": "apache-2.0"}), encoding="utf-8")
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
     assert code == 1
-    assert [line.split(":")[0:2] for line in out.splitlines()] == [
-        ["MISMATCH .zenodo.json", " license"],
-        ["MISMATCH .zenodo.json", " name"],
-        ["CONTEXT codemeta.json", " @context"],
-        ["MISMATCH codemeta.json", " name"],
-        ["MISMATCH codemeta.json", " version"],
+    assert _run(capsys, "check", "--root", str(tmp_path), "--quiet")[1] == out.rsplit("5 errors", 1)[0]
+    assert out.splitlines() == [
+        ".zenodo.json: error[license-mismatch] license: 'apache-2.0', CITATION.cff has 'MIT'",
+        ".zenodo.json: error[name-mismatch] name: 'z', CITATION.cff has 'x'",
+        "codemeta.json: error[context-mismatch] @context: 4.0, configured 3.0",
+        "codemeta.json: error[name-mismatch] name: 'y', CITATION.cff has 'x'",
+        "codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'",
+        "5 errors, 0 warnings in 3 files",
     ]
 
 
@@ -172,17 +182,15 @@ def test_github_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> No
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github", "-v")
     lines = out.splitlines()
     assert code == 1
-    assert lines[0] == "::error file=codemeta.json,title=citesync MISMATCH::name: 'y', CITATION.cff has 'x'"
-    assert all(line.startswith("::notice title=citesync NOT_CHECKED::") for line in lines[1:])
+    assert lines[0] == "::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'"
+    assert all(line.startswith("::notice title=citesync not-checked::") for line in lines[1:-1])
+    assert lines[-1] == "::notice::citesync: 1 error, 0 warnings in 2 files"
 
 
 @pytest.mark.parametrize(
     ("files", "args", "message"),
     [
         ({"codemeta.json": _codemeta()}, [], "CITATION.cff: the source file is missing"),
-        ({"CITATION.cff": CFF.replace("1.2.0", "1.1.0")}, [], "cff-version '1.1.0'"),
-        ({"CITATION.cff": CFF, "codemeta.json": '{"@context": "https://schema.org"}'}, [], "is not CodeMeta"),
-        ({"CITATION.cff": CFF, "codemeta.json": "{"}, [], "codemeta.json: cannot parse"),
         ({"CITATION.cff": CFF, "citesync.toml": 'manifests = ["sub/package.json"]'}, [], "sub/package.json: listed"),
         ({"CITATION.cff": CFF}, ["--source", "README.md"], "--source: source must name one of"),
     ],
@@ -204,24 +212,60 @@ def test_write_is_not_in_this_build(tmp_path: Path, capsys: pytest.CaptureFixtur
 
 
 @pytest.mark.parametrize(
-    ("name", "content", "message"),
+    ("name", "content", "message", "position"),
     [
-        ("CITATION.cff", b"cff-version: 1.2.0\ntitle: \xff\n", "CITATION.cff: cannot read"),
-        ("Cargo.toml", b'package = "x"\n', "Cargo.toml: "),
-        ("Cargo.toml", b"workspace = 3\n", "Cargo.toml: "),
-        ("Cargo.toml", b"workspace = true\n", "Cargo.toml: "),
-        ("pyproject.toml", b'tool = "x"\n', "pyproject.toml: "),
-        ("pyproject.toml", b'[build-system]\n[project]\nname = "x"\ndynamic = 1\n', "pyproject.toml: "),
+        ("CITATION.cff", b"cff-version: 1.2.0\ntitle: \xff\n", "not UTF-8 at byte 26", None),
+        ("CITATION.cff", b"cff-version: 1.2.0\ntitle: [x\n", "expected ',' or ']', but got '<stream end>'", (3, 1)),
+        ("CITATION.cff", CFF.replace("1.2.0", "1.1.0").encode(), "cff-version '1.1.0', citesync reads 1.2.0", None),
+        ("codemeta.json", b"{", "Expecting property name enclosed in double quotes", (1, 2)),
+        ("codemeta.json", b'{"@context": "https://schema.org"}', "is not CodeMeta", None),
+        ("codemeta.json", b"[]", "the top level is not a mapping", None),
+        ("pyproject.toml", b"[project\n", "Expected ']' at the end of a table declaration", (1, 9)),
+        ("Cargo.toml", b'package = "x"\n', "unexpected shape", None),
+        ("Cargo.toml", b"workspace = 3\n", "unexpected shape", None),
+        ("Cargo.toml", b"workspace = true\n", "unexpected shape", None),
+        ("pyproject.toml", b'[build-system]\n[project]\nname = "x"\ndynamic = 1\n', "unexpected shape", None),
     ],
 )
-def test_malformed_file_is_exit_2(
-    name: str, content: bytes, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+def test_unreadable_file_is_a_finding(
+    name: str,
+    content: bytes,
+    message: str,
+    position: tuple[int, int] | None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     (tmp_path / name).write_bytes(content)
-    code, out, err = _run(capsys, "check", "--root", str(tmp_path))
-    assert (code, out) == (2, "")
-    assert err.startswith(f"citesync: {message}")
+    code, out, err = _run(capsys, "check", "--root", str(tmp_path), "--json")
+    report = json.loads(out)
+    jsonschema.validate(report, OUTPUT_SCHEMA)
+    [found] = [f for f in report["findings"] if f["rule"] == "unreadable"]
+    assert (code, err, found["file"], found["term"]) == (1, "", name, None)
+    assert message in found["message"]
+    assert (found["line"], found["column"]) == (position or (None, None))
+    _, github, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github")
+    where = f"line={position[0]},col={position[1]}," if position else ""
+    assert f"::error file={name},{where}title=citesync unreadable::" in github
+
+
+def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    report = _check_json(
+        tmp_path,
+        capsys,
+        {
+            "CITATION.cff": "title: [\n",
+            "codemeta.json": _codemeta(version="1.0.0"),
+            ".zenodo.json": json.dumps({"title": "x", "version": "2.0.0"}),
+        },
+    )
+    findings, info = _split(report)
+    assert _triples(findings) == [
+        ("version-mismatch", ".zenodo.json", "version"),
+        ("unreadable", "CITATION.cff", None),
+    ]
+    assert {(f["file"], f["term"]) for f in info} == {("CITATION.cff", term) for term in TERMS}
+    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 8}
 
 
 def test_unexpected_error_is_exit_2(
@@ -270,7 +314,7 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
                 "codemeta.json": _codemeta(author=_people("A B", "X Y")),
                 "pyproject.toml": _pyproject('authors = [{ name = "A B" }]'),
             },
-            [("MISMATCH", "codemeta.json", "author")],
+            [("author-mismatch", "codemeta.json", "author")],
             id="orcid-source-names-only-against-source",
         ),
         pytest.param(
@@ -280,7 +324,7 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
                 "CITATION.cff": CFF + "authors:\n  - {given-names: A, family-names: C}\n",
                 "codemeta.json": _codemeta(author=_people("A B")),
             },
-            [("MISMATCH", "CITATION.cff", "author")],
+            [("author-mismatch", "CITATION.cff", "author")],
             id="manifest-source-blames-only-the-disagreeing-file",
         ),
         pytest.param(
@@ -290,7 +334,7 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
                 "CITATION.cff": CFF_AB.replace("B}", f"B, orcid: 'https://orcid.org/{ORCID_A}'}}"),
                 "codemeta.json": _codemeta(author=_people("A B", orcid=ORCID_B)),
             },
-            [("MISMATCH", "codemeta.json", "author")],
+            [("author-mismatch", "codemeta.json", "author")],
             id="manifest-source-orcids-compared-between-holders",
         ),
         pytest.param(
@@ -300,7 +344,7 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
                 "CITATION.cff": CFF + "keywords: [a, b]\n",
                 "codemeta.json": _codemeta(keywords=["a", "c"]),
             },
-            [("MISMATCH", "codemeta.json", "keywords")],
+            [("keywords-mismatch", "codemeta.json", "keywords")],
             id="manifest-source-citation-keywords-equal",
         ),
         pytest.param(
@@ -310,7 +354,7 @@ CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
                 "CITATION.cff": CFF + "keywords: [a]\n",
                 "Cargo.toml": '[package]\nname = "x"\nkeywords = ["z"]\n',
             },
-            [("NOT_SUBSET", "Cargo.toml", "keywords")],
+            [("keywords-not-subset", "Cargo.toml", "keywords")],
             id="manifest-source-other-manifest-subset-of-citation",
         ),
     ],
@@ -323,7 +367,7 @@ def test_holders_beyond_the_source(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     report = _check_json(tmp_path, capsys, files, "--source", source)
-    assert _triples(report["findings"]) == expected
+    assert _triples(_split(report)[0]) == expected
 
 
 def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -342,7 +386,7 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
     for report in reports:
         report["findings"] = [f for f in report["findings"] if f["term"] == "identifier"]
     assert reports[0] == reports[1]
-    assert [(f["file"], f["detail"]) for f in reports[0]["findings"]] == [
+    assert [(f["file"], f["message"]) for f in reports[0]["findings"]] == [
         (".zenodo.json", "'10.1/c', CITATION.cff has '10.1/a'"),
         ("codemeta.json", "'10.1/b', CITATION.cff has '10.1/a'"),
     ]
@@ -355,8 +399,8 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
         (
             "keywords_case_sensitive = true\n",
             [
-                ("MISMATCH", "codemeta.json", "keywords", "Life Cycle, lca, CITATION.cff has life cycle, LCA"),
-                ("NOT_SUBSET", "pyproject.toml", "keywords", "Lca: in pyproject.toml, not in CITATION.cff"),
+                ("keywords-mismatch", "codemeta.json", "keywords", "Life Cycle, lca, CITATION.cff has life cycle, LCA"),
+                ("keywords-not-subset", "pyproject.toml", "keywords", "Lca: in pyproject.toml, not in CITATION.cff"),
             ],
         ),
     ],
@@ -372,7 +416,7 @@ def test_keywords_compare_like_names(
         "pyproject.toml": _pyproject('keywords = ["Lca"]'),
     }
     report = _check_json(tmp_path, capsys, files)
-    assert [(f["code"], f["file"], f["term"], f["detail"]) for f in report["findings"]] == expected
+    assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
 
 
 @pytest.mark.parametrize(
@@ -394,11 +438,11 @@ def test_repository_urls_compare_by_key(
         "CITATION.cff": CFF + "repository-code: https://github.com/Example/R\n",
         ".zenodo.json": json.dumps(zenodo),
     }
-    assert [f["detail"] for f in _check_json(tmp_path, capsys, files)["findings"]] == expected
+    assert [f["message"] for f in _split(_check_json(tmp_path, capsys, files))[0]] == expected
 
 
 @pytest.mark.parametrize(
-    ("doi", "expected"), [("10.1/a", []), ("10.1/b", [("MISMATCH", "codemeta.json", "identifier")])]
+    ("doi", "expected"), [("10.1/a", []), ("10.1/b", [("doi-mismatch", "codemeta.json", "identifier")])]
 )
 def test_codemeta_property_value_doi(
     doi: str, expected: list[tuple[str, str, str]], tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -408,7 +452,7 @@ def test_codemeta_property_value_doi(
         {"@type": "PropertyValue", "propertyID": "DOI", "value": doi},
     ]
     files = {"CITATION.cff": CFF + 'doi: "10.1/a"\n', "codemeta.json": _codemeta(identifier=identifier)}
-    assert _triples(_check_json(tmp_path, capsys, files)["findings"]) == expected
+    assert _triples(_split(_check_json(tmp_path, capsys, files))[0]) == expected
 
 
 SYNTHETIC = FIXTURES / "synthetic-agree"
@@ -418,7 +462,7 @@ PLANTED = [
         "codemeta.json",
         '"name": "synthagree"',
         '"name": "other"',
-        "MISMATCH",
+        "name-mismatch",
         "name",
         "'other', CITATION.cff has 'synthagree'",
     ),
@@ -426,7 +470,7 @@ PLANTED = [
         "Cargo.toml",
         'version = "1.2.3"',
         'version = "1.2.4"',
-        "MISMATCH",
+        "version-mismatch",
         "version",
         "'1.2.4', CITATION.cff has '1.2.3'",
     ),
@@ -434,21 +478,21 @@ PLANTED = [
         ".zenodo.json",
         '"Lovelace, Ada",\n      "orcid": "0000-0002-1825-0097"\n    },\n    {\n      "name": "Turing, Alan"',
         '"Turing, Alan"\n    },\n    {\n      "name": "Lovelace, Ada",\n      "orcid": "0000-0002-1825-0097"',
-        "MISMATCH",
+        "author-mismatch",
         "author",
         (
             "'Alan Turing; Ada Lovelace (0000-0002-1825-0097)',"
             " CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'"
         ),
     ),
-    ("codemeta.json", "0000-0002-1825-0097", "0000-0001-5109-3700", "MISMATCH", "author", None),
-    ("pyproject.toml", 'license = "Apache-2.0"', 'license = "MIT"', "MISMATCH", "license", None),
-    ("codemeta.json", "zenodo.1234567", "zenodo.7654321", "MISMATCH", "identifier", None),
+    ("codemeta.json", "0000-0002-1825-0097", "0000-0001-5109-3700", "author-mismatch", "author", None),
+    ("pyproject.toml", 'license = "Apache-2.0"', 'license = "MIT"', "license-mismatch", "license", None),
+    ("codemeta.json", "zenodo.1234567", "zenodo.7654321", "doi-mismatch", "identifier", None),
     (
         ".zenodo.json",
         '"https://github.com/example/synthagree"',
         '"https://github.com/example/other"',
-        "MISMATCH",
+        "repository-mismatch",
         "codeRepository",
         None,
     ),
@@ -456,21 +500,28 @@ PLANTED = [
         "package.json",
         "git+https://github.com/example/synthagree.git",
         "github:example/other",
-        "MISMATCH",
+        "repository-mismatch",
         "codeRepository",
         None,
     ),
-    (".zenodo.json", '"description": "A made-up', '"description": "Another made-up', "MISMATCH", "description", None),
-    ("codemeta.json", '"gamma", "delta"]', '"gamma"]', "MISMATCH", "keywords", None),
+    (
+        ".zenodo.json",
+        '"description": "A made-up',
+        '"description": "Another made-up',
+        "description-mismatch",
+        "description",
+        None,
+    ),
+    ("codemeta.json", '"gamma", "delta"]', '"gamma"]', "keywords-mismatch", "keywords", None),
     (
         "package.json",
         '"gamma", "delta"]',
         '"gamma", "delta", "omega"]',
-        "NOT_SUBSET",
+        "keywords-not-subset",
         "keywords",
         "omega: in package.json, not in CITATION.cff",
     ),
-    ("codemeta.json", "codemeta/3.0", "codemeta/2.0", "CONTEXT", "@context", "2.0, configured 3.0"),
+    ("codemeta.json", "codemeta/3.0", "codemeta/2.0", "context-mismatch", "@context", "2.0, configured 3.0"),
 ]
 
 
@@ -493,15 +544,27 @@ def test_one_planted_disagreement(
     assert text.count(old) == 1
     (root / name).write_text(text.replace(old, new), encoding="utf-8")
     code_, out, _ = _run(capsys, "check", "--root", str(root), "--json")
-    findings = json.loads(out)["findings"]
+    findings, _ = _split(json.loads(out))
     assert (code_, _triples(findings)) == (1, [(code, name, term)])
     if detail is not None:
-        assert findings[0]["detail"] == detail
+        assert findings[0]["message"] == detail
 
 
 def test_not_checked_detail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    info = _check_json(tmp_path, capsys, {"CITATION.cff": CFF})["info"]
-    assert info[0] == {"code": "NOT_CHECKED", "file": "", "term": "author", "detail": "no file holds a value"}
+    info = _check_json(tmp_path, capsys, {"CITATION.cff": CFF})["findings"]
+    assert info[0] == {
+        "rule": "not-checked",
+        "severity": "info",
+        "file": None,
+        "term": "author",
+        "message": "no file holds a value",
+        "help": "Add the field to the source if the files should carry it.",
+        "url": "https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md#not-checked",
+        "line": None,
+        "column": None,
+        "end_line": None,
+        "end_column": None,
+    }
 
 
 def test_github_format_escapes_the_file_property(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -511,3 +574,36 @@ def test_github_format_escapes_the_file_property(tmp_path: Path, capsys: pytest.
     (tmp_path / "citesync.toml").write_text('manifests = ["a,b:c/package.json"]\n', encoding="utf-8")
     _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github")
     assert out.startswith("::error file=a%2Cb%3Ac/package.json,title=")
+
+
+PLAIN, RED = "codemeta.json: error[", "codemeta.json: \033[1;31merror\033[0m["
+
+
+@pytest.mark.parametrize(
+    ("env", "start"),
+    [
+        ({}, PLAIN),
+        ({"FORCE_COLOR": "1"}, RED),
+        ({"FORCE_COLOR": "0"}, PLAIN),
+        ({"FORCE_COLOR": "1", "NO_COLOR": "1"}, PLAIN),
+    ],
+)
+def test_colour(
+    env: dict[str, str], start: str, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
+    assert _run(capsys, "check", "--root", str(tmp_path))[1].startswith(start)
+
+
+def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('ignore = ["name-mismatch", "doi-mismatch"]\n', encoding="utf-8")
+    code, out, err = _run(capsys, "check", "--root", str(tmp_path), "--json")
+    assert (code, err) == (0, "citesync: warning: ignore entry 'doi-mismatch' matched no finding\n")
+    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 7

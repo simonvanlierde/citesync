@@ -64,6 +64,7 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         "# manifests: not set, so every release manifest at the repo root\n"
         "write_manifests = []\n"
         "keywords_case_sensitive = false\n"
+        "ignore = []\n"
     )
 
 
@@ -91,6 +92,8 @@ def test_write_manifests_all_expands(tmp_path: Path) -> None:
         ('files = "codemeta.json"\n', "files must be a list of paths"),
         ('keywords_case_sensitive = "yes"\n', "keywords_case_sensitive must be true or false"),
         ("source = \n", "citesync.toml: cannot read config"),
+        ('ignore = ["version"]\n', "ignore must be a list of rule ids from name-mismatch,"),
+        ('ignore = ["unreadable"]\n', "ignore must be a list of rule ids"),
     ],
 )
 def test_bad_config_exits_2(text: str, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

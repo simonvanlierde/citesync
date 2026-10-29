@@ -13,10 +13,10 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ruamel.yaml import YAML
-from ruamel.yaml.error import YAMLError
+from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
-from citesync.errors import CheckError
+from citesync.errors import CheckError, UnreadableError
 from citesync.mapping import PERSON_TERMS, TERMS, Mapping, relative, resolve
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
@@ -28,6 +28,7 @@ CFF_VERSIONS = ("1.2.0",)
 _CODEMETA_CONTEXT = re.compile(r"^https?://w3id\.org/codemeta/v?(\d+\.\d+)/?$")
 _NPM_BARE_REPO = re.compile(r"^[\w.-]+/[\w.-]+$")
 _URL_LABELS = {"source": "Source", "sourcecode": "Source", "repository": "Repository", "homepage": "Homepage"}
+_TOML_AT = re.compile(r" \(at (?:line (\d+), column (\d+)|end of document)\)$")
 _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
 
 
@@ -53,6 +54,7 @@ class Doc:
         version: The detected format version (CFF and codemeta only).
         release: False for a manifest that isn't released: a pyproject.toml with no
             ``[build-system]``, a private package.json.
+        readable: False for a file citesync couldn't read, whose record is empty.
     """
 
     path: str
@@ -61,6 +63,7 @@ class Doc:
     slots: frozenset[str]
     version: str | None
     release: bool
+    readable: bool = True
 
     @property
     def is_citation(self) -> bool:
@@ -77,7 +80,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
     """Read ``rel`` under ``root`` into its record.
 
     Raises:
-        CheckError: when the file can't be read or parsed, or has a format version
+        UnreadableError: when the file can't be read or parsed, or has a format version
             citesync doesn't read.
     """
     fmt = format_of(rel)
@@ -96,19 +99,21 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
         value = _read_term(fmt, term, data, path, mapping)
         if value is not None:
             record[term] = value
-    slots = frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
-    return Doc(rel, fmt, record, slots, version, release)
+    return Doc(rel, fmt, record, slots(fmt, mapping), version, release)
+
+
+def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
+    """The terms and person sub-terms ``fmt`` has a place for."""
+    return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
 def _load(path: Path, rel: str) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as err:
-        msg = f"{rel}: cannot read: {err.strerror}"
-        raise CheckError(msg) from err
+        raise UnreadableError(rel, f"cannot read: {err.strerror}") from err
     except UnicodeDecodeError as err:
-        msg = f"{rel}: cannot read: not UTF-8 at byte {err.start}"
-        raise CheckError(msg) from err
+        raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)
@@ -116,12 +121,19 @@ def _load(path: Path, rel: str) -> dict[str, Any]:
             data = json.loads(text)
         else:
             data = YAML(typ="base").load(text)  # every scalar a string: version 1.10 is not the float 1.1
-    except (tomllib.TOMLDecodeError, json.JSONDecodeError, YAMLError) as err:
-        msg = f"{rel}: cannot parse: {err}"
-        raise CheckError(msg) from err
+    except json.JSONDecodeError as err:
+        raise UnreadableError(rel, err.msg, err.lineno, err.colno) from err
+    except tomllib.TOMLDecodeError as err:  # its position is only in the message before Python 3.14
+        match = _TOML_AT.search(str(err))
+        line, column = (int(match[1]), int(match[2])) if match and match[1] else (None, None)
+        raise UnreadableError(rel, _TOML_AT.sub("", str(err)), line, column) from err
+    except MarkedYAMLError as err:
+        mark = err.problem_mark
+        raise UnreadableError(rel, err.problem or str(err), mark and mark.line + 1, mark and mark.column + 1) from err
+    except YAMLError as err:
+        raise UnreadableError(rel, str(err)) from err
     if not isinstance(data, dict):
-        msg = f"{rel}: the top level is not a mapping"
-        raise CheckError(msg)
+        raise UnreadableError(rel, "the top level is not a mapping")
     return data
 
 
@@ -139,14 +151,13 @@ def _detect_version(fmt: str, data: dict[str, Any], rel: str) -> str | None:
     if fmt == "codemeta":
         version = codemeta_version(data.get("@context"))
         if version not in CODEMETA_VERSIONS:
-            msg = f"{rel}: @context {data.get('@context')!r} is not CodeMeta {', '.join(CODEMETA_VERSIONS)}"
-            raise CheckError(msg)
+            msg = f"@context {data.get('@context')!r} is not CodeMeta {', '.join(CODEMETA_VERSIONS)}"
+            raise UnreadableError(rel, msg)
         return version
     if fmt == "cff-1.2.0":
         version = str(data.get("cff-version"))
         if version not in CFF_VERSIONS:
-            msg = f"{rel}: cff-version {data.get('cff-version')!r}, citesync reads 1.2.0"
-            raise CheckError(msg)
+            raise UnreadableError(rel, f"cff-version {data.get('cff-version')!r}, citesync reads 1.2.0")
         return version
     return None
 

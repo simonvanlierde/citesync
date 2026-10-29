@@ -10,7 +10,7 @@
       "exit": 1,
       "findings": [
         {
-          "code": "CONTEXT",
+          "rule": "context-mismatch",
           "file": "codemeta.json",
           "term": "@context",
           "why": "@context is https://w3id.org/codemeta/4.0 but codemeta_version defaults to 3.0"

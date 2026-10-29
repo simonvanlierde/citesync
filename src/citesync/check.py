@@ -2,31 +2,57 @@
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from citesync import codecs
 from citesync.config import Config
-from citesync.errors import CheckError
-from citesync.formats import CITATION_FILES, FORMAT_OF, MANIFESTS, Doc, Person, read_doc
+from citesync.errors import CheckError, UnreadableError
+from citesync.formats import CITATION_FILES, FORMAT_OF, MANIFESTS, Doc, Person, read_doc, slots
 from citesync.mapping import TERMS, Mapping, load_mapping
+from citesync.rules import DOCS_URL, MISMATCH, RULES
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True)
 class Finding:
-    """One disagreement, or with ``NOT_CHECKED`` a term no file holds. Sorted by file, term and code."""
+    """One finding from a rule in :data:`citesync.rules.RULES`.
 
-    file: str
-    term: str
-    code: str
-    detail: str = field(compare=False)
+    ``file`` is None for a ``not-checked`` term no file holds, ``term`` None for an
+    ``unreadable`` file. ``line`` and ``column`` are 1-based, when known.
+    """
 
-    def __str__(self) -> str:
-        where = f"{self.file}: " if self.file else ""
-        return f"{self.code} {where}{self.term}: {self.detail}"
+    file: str | None
+    term: str | None
+    rule: str
+    message: str = field(compare=False)  # one finding per file, term and rule: the first comparison wins
+    line: int | None = field(default=None, compare=False)
+    column: int | None = field(default=None, compare=False)
 
-    def as_dict(self) -> dict[str, str]:
+    @property
+    def severity(self) -> str:
+        """``error``, ``warning`` or ``info``, from the rule."""
+        return RULES[self.rule].severity
+
+    def sort_key(self) -> tuple[bool, str, str, str]:
+        """Findings sort by file, rule and term; those on no file come last."""
+        return (self.file is None, self.file or "", self.rule, self.term or "")
+
+    def as_dict(self) -> dict[str, str | int | None]:
         """The JSON form."""
-        return {"code": self.code, "file": self.file, "term": self.term, "detail": self.detail}
+        rule = RULES[self.rule]
+        return {
+            "rule": self.rule,
+            "severity": rule.severity,
+            "file": self.file,
+            "term": self.term,
+            "message": self.message,
+            "help": rule.help,
+            "url": f"{DOCS_URL}#{self.rule}",
+            "line": self.line,
+            "column": self.column,
+            # shortcut: no parser here reports where a problem ends; fill these when one does.
+            "end_line": None,
+            "end_column": None,
+        }
 
 
 def discover(root: Path, config: Config) -> list[str]:
@@ -55,41 +81,48 @@ def discover(root: Path, config: Config) -> list[str]:
     return list(dict.fromkeys(paths))
 
 
-def read_docs(root: Path, config: Config, mapping: Mapping) -> list[Doc]:
+def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], list[Finding]]:
     """Read the files to compare, leaving out root manifests that aren't released.
 
     The source comes first, then the others in a fixed order (citation files, then
     manifests, by format), so which file a finding names never depends on config order.
+    A file that can't be read gives an ``unreadable`` finding and an empty doc in its place.
     """
-    docs = []
+    docs, unreadable = [], []
     for path in discover(root, config):
         try:
             docs.append(read_doc(root, path, mapping))
+            continue
+        except UnreadableError as err:
+            problem = err
         except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
-            msg = f"{path}: cannot read: unexpected shape ({err})"
-            raise CheckError(msg) from err
+            problem = UnreadableError(path, f"unexpected shape ({err})")
+        unreadable.append(Finding(problem.path, None, "unreadable", problem.message, problem.line, problem.column))
+        fmt = FORMAT_OF[PurePosixPath(path).name]
+        docs.append(Doc(path, fmt, {}, slots(fmt, mapping), None, release=True, readable=False))
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
         docs = [d for d in docs if d.release or d.is_citation or d.path == config.source]
     order = list(FORMAT_OF.values())
-    return docs[:1] + sorted(docs[1:], key=lambda d: (order.index(d.format), d.path))
+    return docs[:1] + sorted(docs[1:], key=lambda d: (order.index(d.format), d.path)), unreadable
 
 
-def check(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[list[Finding], list[Finding]]:
-    """Findings and ``NOT_CHECKED`` info for the repo at ``root``, each sorted."""
-    docs = read_docs(root, config, mapping or load_mapping())
-    findings: set[Finding] = set()
-    info = []
+def check(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[list[Finding], int]:
+    """Every finding for the repo at ``root``, sorted, and the number of files checked."""
+    docs, unreadable = read_docs(root, config, mapping or load_mapping())
+    findings: set[Finding] = set(unreadable)
+    source = docs[0]
     for doc in docs:
-        if doc.format == "codemeta" and doc.version != config.codemeta_version:
-            findings.add(
-                Finding(doc.path, "@context", "CONTEXT", f"{doc.version}, configured {config.codemeta_version}")
-            )
+        if doc.readable and doc.format == "codemeta" and doc.version != config.codemeta_version:
+            detail = f"{doc.version}, configured {config.codemeta_version}"
+            findings.add(Finding(doc.path, "@context", "context-mismatch", detail))
     for term in TERMS:
-        if not any(term in d.record for d in docs):
-            info.append(Finding("", term, "NOT_CHECKED", "no file holds a value"))
+        if not source.readable and has_slot(source, term):
+            findings.add(Finding(source.path, term, "not-checked", "not compared with the source: it can't be read"))
+        elif not any(term in d.record for d in docs):
+            findings.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
         findings.update(compare_term(term, docs, keywords_case_sensitive=config.keywords_case_sensitive))
-    return sorted(findings), sorted(info)
+    return sorted(findings, key=Finding.sort_key), len(docs)
 
 
 def has_slot(doc: Doc, term: str) -> bool:
@@ -156,7 +189,7 @@ def compare(
         equal = a == b
     if equal:
         return None
-    return Finding(doc.path, term, "MISMATCH", f"{_show(b)}, {ref.path} has {_show(a)}")
+    return Finding(doc.path, term, MISMATCH[term], f"{_show(b)}, {ref.path} has {_show(a)}")
 
 
 _KEY = {
@@ -177,7 +210,7 @@ def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
     if not extra:
         return None
     detail = f"{', '.join(extra)}: in {manifest.path}, not in {citation.path}"
-    return Finding(doc.path, "keywords", "NOT_SUBSET", detail)
+    return Finding(doc.path, "keywords", "keywords-not-subset", detail)
 
 
 def _same_people(ref: Doc, doc: Doc, *, names: bool = True) -> bool:

@@ -1,6 +1,6 @@
 {
   "open_questions": [
-    "Does a `manifests` config replace the default root-manifest list or add to it? The plan's config comment says 'default: every release manifest at the repo root', which reads as replace; its Evidence row 'the same in crates/jsonvet-cli/pyproject.toml when configured' could mean add. Fixture assumes REPLACE: root Cargo.toml is then not read, so no file holds a version and NOT_CHECKED version appears. Under ADD the second case would also report NOT_SUBSET Cargo.toml keywords and have no NOT_CHECKED.",
+    "Does a `manifests` config replace the default root-manifest list or add to it? The plan's config comment says 'default: every release manifest at the repo root', which reads as replace; its Evidence row 'the same in crates/jsonvet-cli/pyproject.toml when configured' could mean add. Fixture assumes REPLACE: root Cargo.toml is then not read, so no file holds a version and not-checked version appears. Under ADD the second case would also report keywords-not-subset Cargo.toml keywords and have no not-checked.",
     "The plan's default-discovery list excludes a pyproject.toml whose version is `dynamic` as a whole manifest. The task rule is field-level: a field listed in `dynamic` is skipped, the manifest is still compared. Fixture follows the field-level rule; the plan text should be changed to match.",
     "Cargo virtual workspace: assumes the finding file is the workspace root Cargo.toml (where `keywords` is written), not a member crate."
   ],
@@ -11,7 +11,7 @@
       "exit": 1,
       "findings": [
         {
-          "code": "NOT_SUBSET",
+          "rule": "keywords-not-subset",
           "file": "Cargo.toml",
           "term": "keywords",
           "why": "[workspace.package] keywords include 'lint' is not in the CFF keywords (CFF has 'linter')"
@@ -29,7 +29,7 @@
       "exit": 1,
       "findings": [
         {
-          "code": "NOT_SUBSET",
+          "rule": "keywords-not-subset",
           "file": "crates/jsonvet-cli/pyproject.toml",
           "term": "keywords",
           "why": "project.keywords include 'lint' is not in the CFF keywords (CFF has 'linter')"
@@ -37,8 +37,8 @@
       ],
       "info": [
         {
-          "code": "NOT_CHECKED",
-          "file": "",
+          "rule": "not-checked",
+          "file": null,
           "term": "version",
           "why": "CFF has no version, pyproject version is dynamic (skipped), and Cargo.toml is not read under this config"
         }

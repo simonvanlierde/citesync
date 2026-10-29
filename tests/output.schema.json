@@ -1,33 +1,90 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "citesync check --format json",
-  "description": "Output of `citesync check --format json`. Fields change only in a major release of schema_version.",
+  "description": "Output of `citesync check --format json`. Fields change only in a new `version`.",
   "type": "object",
-  "required": ["schema_version", "findings", "info"],
+  "required": ["version", "tool", "summary", "findings"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "1.0" },
-    "findings": {
-      "description": "Disagreements, sorted by file, term and code. Any finding makes the exit code 1.",
-      "type": "array",
-      "items": { "$ref": "#/$defs/finding" }
+    "version": { "const": 1 },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "citesync" },
+        "version": { "type": "string" }
+      }
     },
-    "info": {
-      "description": "NOT_CHECKED terms: no file holds a value. Never changes the exit code.",
+    "summary": {
+      "description": "Counts after `ignore`. `files` is the number of files checked.",
+      "type": "object",
+      "required": ["files", "errors", "warnings", "info"],
+      "additionalProperties": false,
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "description": "Sorted by file, rule and term. Any error makes the exit code 1; info never changes it.",
       "type": "array",
       "items": { "$ref": "#/$defs/finding" }
     }
   },
   "$defs": {
+    "position": { "type": ["integer", "null"], "minimum": 1 },
     "finding": {
       "type": "object",
-      "required": ["code", "file", "term", "detail"],
+      "required": [
+        "rule",
+        "severity",
+        "file",
+        "term",
+        "message",
+        "help",
+        "url",
+        "line",
+        "column",
+        "end_line",
+        "end_column"
+      ],
       "additionalProperties": false,
       "properties": {
-        "code": { "enum": ["MISMATCH", "NOT_SUBSET", "CONTEXT", "NOT_CHECKED"] },
-        "file": { "type": "string", "description": "Relative to the repo root; empty for NOT_CHECKED." },
-        "term": { "type": "string", "description": "A CodeMeta term, or @context." },
-        "detail": { "type": "string" }
+        "rule": {
+          "enum": [
+            "name-mismatch",
+            "version-mismatch",
+            "author-mismatch",
+            "license-mismatch",
+            "doi-mismatch",
+            "repository-mismatch",
+            "description-mismatch",
+            "keywords-mismatch",
+            "keywords-not-subset",
+            "context-mismatch",
+            "unreadable",
+            "not-checked"
+          ]
+        },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "file": {
+          "type": ["string", "null"],
+          "description": "Relative to the repo root; null for a not-checked field no file holds."
+        },
+        "term": {
+          "type": ["string", "null"],
+          "description": "A CodeMeta term, or @context; null for unreadable."
+        },
+        "message": { "type": "string" },
+        "help": { "type": "string", "description": "What to do about it." },
+        "url": { "type": "string", "format": "uri", "description": "The rule's section of docs/rules.md." },
+        "line": { "$ref": "#/$defs/position" },
+        "column": { "$ref": "#/$defs/position" },
+        "end_line": { "$ref": "#/$defs/position" },
+        "end_column": { "$ref": "#/$defs/position" }
       }
     }
   }
