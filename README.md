@@ -4,11 +4,11 @@
 [![PyPI](https://img.shields.io/pypi/v/citesync)](https://pypi.org/project/citesync/)
 [![Python versions](https://img.shields.io/pypi/pyversions/citesync)](https://pypi.org/project/citesync/)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/simonvanlierde/citesync/badge)](https://scorecard.dev/viewer/?uri=github.com/simonvanlierde/citesync)
-[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/simonvanlierde/citesync/blob/main/LICENSE)
 
 Status: experimental. It may change in ways that break your code, without notice.
 
-Questions and bugs: see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+Questions and bugs: see [CONTRIBUTING.md](https://github.com/simonvanlierde/citesync/blob/main/.github/CONTRIBUTING.md).
 
 Software citation metadata: citesync checks that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) say the same thing. Where each field sits in each file comes from a mapping of CodeMeta's crosswalks, exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
 
@@ -17,6 +17,7 @@ Software citation metadata: citesync checks that CITATION.cff, codemeta.json, .z
 `citesync check` compares eight fields with one file, the source (CITATION.cff by default): title/name, version, authors with ORCID, licence, DOI, repository URL, description and keywords.
 
 ```sh
+uv tool install citesync            # or run it once with uvx citesync check
 citesync check                      # exit 0: they agree; 1: an error finding; 2: citesync couldn't run
 citesync check --source pyproject.toml
 citesync check --root path/to/repo  # check another directory
@@ -41,7 +42,7 @@ codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0
 
 The severity is in colour on a terminal. `NO_COLOR` turns colour off, and `FORCE_COLOR` turns it on anywhere (`FORCE_COLOR=0` or `false` turns it off). `NO_COLOR` wins.
 
-The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch` and `keywords-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [docs/rules.md](docs/rules.md) explains each one. When the source has no place or no value for a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch` and `keywords-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [docs/rules.md](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md) explains each one. When the source has no place or no value for a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
 
 A file citesync can't read or parse is an `unreadable` finding, with the parser's message and its line and column when the parser gives them. The other files are still checked against each other, and when the unreadable file is the source, each field it holds is reported as `not-checked`.
 
@@ -74,7 +75,7 @@ A file citesync can't read or parse is an `unreadable` finding, with the parser'
 }
 ```
 
-Findings are sorted by file, rule and field, and positions count from 1. A value longer than 80 characters is cut to 77 and ends in `...` in the message. `file` is null for a field no file holds, and `term` (the CodeMeta term) is null for `unreadable`. JSON always lists every finding: `-q` and `-v` change only the text and GitHub output. [tests/output.schema.json](tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields; ignore what you don't know. Removing or retyping a field bumps `version`, in a major release. `--format github` writes one workflow annotation per finding, titled `citesync <rule>`, and ends with a notice that counts them all, since GitHub shows only the first ten of each level.
+Findings are sorted by file, rule and field, and positions count from 1. A value longer than 80 characters is cut to 77 and ends in `...` in the message. `file` is null for a field no file holds, and `term` (the CodeMeta term) is null for `unreadable`. JSON always lists every finding: `-q` and `-v` change only the text and GitHub output. [tests/output.schema.json](https://github.com/simonvanlierde/citesync/blob/main/tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields; ignore what you don't know. Removing or retyping a field bumps `version`, in a major release. `--format github` writes one workflow annotation per finding, titled `citesync <rule>`, and ends with a notice that counts them all, since GitHub shows only the first ten of each level.
 
 Spellings are normalised before comparing: SPDX ids, SPDX URLs and Zenodo's lowercase ids; ORCID URLs and bare iDs; Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`; DOIs with or without `https://doi.org/`, and a codemeta `identifier` given as a schema.org PropertyValue (`propertyID` `DOI`, or a DOI as its `value` or `url`; other PropertyValues, such as a SWHID, are skipped); repository URLs as npm's hosted-git-info reads them: `git+`, `.git`, `http://`, `www.`, the host's case, npm shorthands (`github:owner/repo`, `owner/repo`), SSH remotes, and a branch, tag or file page on GitHub, GitLab, Codeberg, Gitea or Bitbucket (`…/tree/v1.0`, as Zenodo's GitHub integration writes), with GitHub paths in any case; CFF `name-particle` and `name-suffix`, read as part of the family name; a licence list, read as `A OR B`; PEP 621 url labels as packaging normalises them (`Source Code`, `homepage`); versions as PEP 440 versions (`v1.2.3` = `1.2.3`, `1.0` = `1.0.0`, `0.3.1-rc.1` = `0.3.1rc1`, `1.0.0-dev.1` = `1.0.0.dev1`), while a version that isn't one (`unreleased`) must match exactly. Names and keywords compare case-insensitively, with whitespace collapsed and Unicode in NFC; set `keywords-case-sensitive = true` to compare keywords by case too. Findings show each file's own spelling. Manifests are compared on version, authors' names, licence, repository URL and keywords, not on name or description. npm's one `author` is compared with the first author.
 
@@ -119,7 +120,7 @@ The hook runs `citesync check` from the repo root when a commit changes CITATION
 
 ## Tested on real repositories
 
-The tests copy the metadata files of five public repositories byte for byte (commits in [tests/fixtures/SOURCES.txt](tests/fixtures/SOURCES.txt)) and check that citesync reports exactly these findings, with CITATION.cff as the source.
+The tests copy the metadata files of five public repositories byte for byte (commits in [tests/fixtures/SOURCES.txt](https://github.com/simonvanlierde/citesync/blob/main/tests/fixtures/SOURCES.txt)) and check that citesync reports exactly these findings, with CITATION.cff as the source.
 
 | Repository | Config | Findings | Exit | Why |
 | --- | --- | --- | ---: | --- |
@@ -143,7 +144,7 @@ uv tool install prek   # once per machine
 prek install     # git hooks
 ```
 
-`just` lists the tasks. They mirror what [.github/workflows/](.github/workflows/) runs.
+`just` lists the tasks. They mirror what [.github/workflows/](https://github.com/simonvanlierde/citesync/tree/main/.github/workflows) runs.
 
 ```sh
 just check       # lint, types and tests for every stack here
@@ -176,4 +177,4 @@ The release workflows explain the rest in their header comments.
 
 ## License
 
-See [LICENSE](LICENSE) for the license terms.
+See [LICENSE](https://github.com/simonvanlierde/citesync/blob/main/LICENSE) for the license terms.

@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-29
+
 ### Added
 
 - `citesync check`: compares title/name, version, authors with ORCID, licence, DOI, repository URL, description and keywords across CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml and package.json, with any of them as the source. Exit 0 when they agree, 1 on an error finding, 2 when citesync couldn't run (a bad config or option, a missing source file, an internal error).
@@ -28,4 +30,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `citesync write`: rewrites the citation files that disagree with the source, and the manifest fields listed in `write-manifests`, keeping comments, key order, formatting and CRLF line ends, and writing through symlinks. Fields a file leaves out stay out. A value a file can't hold without losing something is left for you, with the reason: a compound licence in .zenodo.json, an `AND` licence in CITATION.cff or codemeta.json, a version semver can't spell in Cargo.toml or package.json, or a renamed author whose old entry holds an email or affiliation. It reports the findings left as `check` does, each saying what to do, and never writes an ignored finding or an unreadable file. Exit 0 when the files agree afterwards, 1 when an error finding remains, 2 when it couldn't run and wrote nothing.
 - `citesync write --diff` prints the edits write would make as a unified diff and writes nothing. Exit 0 when there is nothing to change, 1 when there is, as `ruff format --diff` does.
 
-[Unreleased]: https://github.com/simonvanlierde/citesync/commits/HEAD
+[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/simonvanlierde/citesync/releases/tag/v0.1.0
