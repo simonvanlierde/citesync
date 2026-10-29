@@ -2,6 +2,8 @@
 
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -42,3 +44,9 @@ def test_explain(capsys: pytest.CaptureFixture[str]) -> None:
     assert out in markdown()
     assert main(["explain", "nope"]) == 2
     assert capsys.readouterr() == ("", "citesync: unknown rule 'nope'; `citesync rules` lists them\n")
+
+
+def test_runs_as_a_module() -> None:
+    run = subprocess.run([sys.executable, "-m", "citesync", "rules"], capture_output=True, text=True, check=False)
+    assert run.returncode == 0, run.stderr
+    assert "keywords-not-subset" in run.stdout
