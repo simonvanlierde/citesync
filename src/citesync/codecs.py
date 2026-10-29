@@ -7,6 +7,7 @@ Each codec has ``decode``, from what a file holds to the normalised value, and
 
 import re
 import unicodedata
+from urllib.parse import urlsplit
 
 from packaging.version import InvalidVersion, Version
 
@@ -17,6 +18,15 @@ _DOI = re.compile(r"^10\.\d+/\S+$")
 _NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
 _NPM_SHORTHAND = re.compile(r"^(?P<host>github|gitlab|bitbucket):(?P<path>[\w.-]+/[\w.-]+)$")
 _SSH = re.compile(r"^(?:ssh://)?git@(?P<host>[^:/]+)[:/](?P<path>.+)$")
+# What follows the repository on a forge's web pages: a branch, tag, file or GitLab's /-/ pages.
+_OWNER_REPO_TAIL = r"^(/[^/]+/[^/]+)/{}(?:/.*)?$"
+_REF_TAIL = {
+    "github.com": re.compile(_OWNER_REPO_TAIL.format("(?:tree|blob)")),
+    "gitlab.com": re.compile(r"^(/.+?)/-(?:/.*)?$"),  # groups nest, so the repository is everything before /-/
+    "codeberg.org": re.compile(_OWNER_REPO_TAIL.format("src")),
+    "gitea.com": re.compile(_OWNER_REPO_TAIL.format("src")),
+    "bitbucket.org": re.compile(_OWNER_REPO_TAIL.format("src")),
+}
 _CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
 _PRE = re.compile(
     r"^(?P<release>\d+(?:\.\d+)*)[-_.]?(?P<tag>alpha|a|beta|b|rc|c|preview|pre)[-_.]?(?P<n>\d*)(?P<local>\+.*)?$",
@@ -121,6 +131,30 @@ def repo_decode(raw: object) -> str | None:
     while url.endswith(("/", ".git")):
         url = url.rstrip("/").removesuffix(".git")
     return url or None
+
+
+def repo_key(url: str) -> str:
+    """The repository a URL names, as npm's hosted-git-info reads it: https, the host lowercased without ``www.``.
+
+    No credentials, query, fragment (npm's ``#ref``), ``.git`` or trailing slash. On a known forge, a
+    branch, tag or file page names its repository (``/tree/v1.0`` on GitHub, ``/-/...`` on GitLab,
+    ``/src/...`` on Codeberg, Gitea and Bitbucket), and on github.com, which ignores case, the path is casefolded.
+    """
+    try:
+        parts = urlsplit(url.strip())
+    except ValueError:  # an unbalanced [ in the host
+        return url.strip()
+    if not parts.netloc:
+        return url.strip()
+    host = re.sub(r"^(?:www\.)+", "", parts.netloc.rpartition("@")[2].lower())
+    path = parts.path.casefold() if host == "github.com" else parts.path
+    tail, old = _REF_TAIL.get(host), None
+    while path != old:  # until stable: stripping .git can expose a tail, and dropping a tail a .git
+        old = path
+        path = path.rstrip("/").removesuffix(".git")
+        if tail and (match := tail.match(path)):
+            path = match[1]
+    return f"https://{host}{path}"
 
 
 # Person name: given and family, Zenodo's "Family, Given", or one "Name <email> (url)" string.

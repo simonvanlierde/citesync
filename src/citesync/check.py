@@ -142,12 +142,8 @@ def compare(
         if not both_citation:
             return None  # a manifest name is a package id, a description a one-line summary
         equal = a == b
-    elif term == "version":
-        equal = codecs.version_key(a) == codecs.version_key(b)
-    elif term == "license":
-        equal = codecs.license_key(a) == codecs.license_key(b)
-    elif term == "identifier":
-        equal = codecs.doi_key(a) == codecs.doi_key(b)
+    elif term in _KEY:
+        equal = _KEY[term](a) == _KEY[term](b)
     elif term == "author":
         equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
@@ -161,6 +157,14 @@ def compare(
     if equal:
         return None
     return Finding(doc.path, term, "MISMATCH", f"{_show(b)}, {ref.path} has {_show(a)}")
+
+
+_KEY = {
+    "version": codecs.version_key,
+    "license": codecs.license_key,
+    "identifier": codecs.doi_key,
+    "codeRepository": codecs.repo_key,
+}
 
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:

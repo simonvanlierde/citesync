@@ -84,6 +84,53 @@ def test_repo_decode_expands_npm_shorthands() -> None:
     assert codecs.repo_decode("bitbucket:o/r") == "https://bitbucket.org/o/r"
 
 
+SEGMENT = st.from_regex(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,15}", fullmatch=True).filter(
+    lambda s: not s.casefold().endswith(".git")
+)
+REF_TAIL = {
+    "github.com": ["/tree/main", "/tree/v1.2.3", "/blob/main/README.md"],
+    "gitlab.com": ["/-/tree/main", "/-/blob/v1/src/x.py"],
+    "codeberg.org": ["/src/branch/main", "/src/tag/v1.2.3"],
+}
+
+
+@given(st.sampled_from(sorted(REF_TAIL)), SEGMENT, SEGMENT, st.data())
+def test_repo_key_spellings_agree(host: str, owner: str, repo: str, data: st.DataObject) -> None:
+    """Scheme, host case, www., git+, .git, a trailing slash, a fragment and a ref tail don't change the key."""
+    key = codecs.repo_key(f"https://{host}/{owner}/{repo}")
+    tail = data.draw(st.sampled_from(["", *REF_TAIL[host]]))
+    spelling = data.draw(
+        st.sampled_from(
+            [
+                f"http://www.{host.upper()}/{owner}/{repo}{tail}/",
+                f"git+https://{host}/{owner}/{repo}.git",
+                f"git://{host}/{owner}/{repo}.git#v1.0",
+                f"https://{host}/{owner}/{repo}{tail}?tab=readme",
+            ]
+        )
+    )
+    assert codecs.repo_key(spelling) == key
+    assert codecs.repo_key(key) == key
+
+
+@given(st.text())
+@example("https://[x/")
+@example("https://www.www.github.com/o/r")
+@example("https://gitlab.com/x/-.git/-")
+@example("https://github.com/o/R.GIT")
+def test_repo_key_idempotent(raw: str) -> None:
+    once = codecs.repo_key(raw)
+    assert codecs.repo_key(once) == once
+
+
+def test_repo_key_path_case() -> None:
+    assert codecs.repo_key("https://github.com/Example/Repo") == "https://github.com/example/repo"
+    assert codecs.repo_key("https://gitlab.com/Group/Repo") == "https://gitlab.com/Group/Repo"
+    assert codecs.repo_key("https://gitlab.com/g/sub/r/-/tree/main") == "https://gitlab.com/g/sub/r"
+    assert codecs.repo_key("https://github.com/tree/r") == "https://github.com/tree/r"  # an owner named tree
+    assert codecs.repo_key("https://example.org/o/r/tree/main") == "https://example.org/o/r/tree/main"
+
+
 def test_doi_decode_keeps_only_doi_shaped_values() -> None:
     assert codecs.doi_decode("https://github.com/o/r") is None
     assert codecs.doi_decode(["https://github.com/o/r", "https://doi.org/10.1/a", "10.1/b"]) == "10.1/a"

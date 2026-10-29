@@ -375,6 +375,28 @@ def test_keywords_compare_like_names(
     assert [(f["code"], f["file"], f["term"], f["detail"]) for f in report["findings"]] == expected
 
 
+@pytest.mark.parametrize(
+    ("tree", "expected"),
+    [
+        ("https://github.com/example/r/tree/v1.0", []),
+        (
+            "https://github.com/example/s/tree/v1.0",
+            ["'https://github.com/example/s/tree/v1.0', CITATION.cff has 'https://github.com/Example/R'"],
+        ),
+    ],
+)
+def test_repository_urls_compare_by_key(
+    tree: str, expected: list[str], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Zenodo's GitHub integration writes the release tree URL, and GitHub paths are case-insensitive."""
+    zenodo = {"title": "x", "related_identifiers": [{"relation": "isSupplementTo", "identifier": tree}]}
+    files = {
+        "CITATION.cff": CFF + "repository-code: https://github.com/Example/R\n",
+        ".zenodo.json": json.dumps(zenodo),
+    }
+    assert [f["detail"] for f in _check_json(tmp_path, capsys, files)["findings"]] == expected
+
+
 SYNTHETIC = FIXTURES / "synthetic-agree"
 # One planted disagreement per row, in synthetic-agree with CITATION.cff as the source.
 PLANTED = [
