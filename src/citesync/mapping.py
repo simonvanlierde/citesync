@@ -1,8 +1,8 @@
 """The vendored field mapping, and the path grammar its rows use.
 
 The mapping says where each CodeMeta term sits in each format. Its contract is
-docs/mapping-export.md in codemeta-drift, and MAPPING_SOURCE names the commit
-it was copied from.
+docs/mapping-export.md in codemeta-drift, and MAPPING_SOURCE names the
+codemeta-drift release and commit it was copied from.
 """
 
 import json
