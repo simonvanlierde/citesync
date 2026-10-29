@@ -25,62 +25,49 @@ from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from citesync import codecs
-from citesync.check import Finding, compare, has_slot, read_docs
+from citesync.check import Finding, findings, has_slot, keyword_key, read_docs
 from citesync.config import Config
 from citesync.formats import MANIFESTS, Doc, Person, cff_person, codemeta_version, format_of, person, url_label
 from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative, resolve
 
 
 def write(root: Path, config: Config, mapping: Mapping | None = None) -> list[str]:
-    """Write every disagreement write may fix, and return the paths it changed, sorted.
+    """Write every finding write may fix, and return the paths it changed, sorted.
 
-    A derived citation file gets every field that disagrees with the source; a
-    manifest only the fields in ``write_manifests``. A field the file leaves out
-    stays out, and so does a finding whose rule config ``ignore`` lists. An unreadable
-    file is never written. Every new text is made before any file is replaced, so an error
-    leaves the files as they were.
+    It fixes the findings check reports, less those config ``ignore`` lists: in a derived
+    citation file every term, in a manifest only the terms in ``write-manifests``, and only
+    where the source holds the term and is what the file was compared with. A field the file
+    leaves out stays out. An unreadable file is never written. Every new text is made before
+    any file is replaced, so an error leaves the files as they were.
 
     Raises:
         CheckError: as :func:`citesync.check.check` does.
     """
     mapping = mapping or load_mapping()
-    docs, _ = read_docs(root, config, mapping)
+    docs, unreadable = read_docs(root, config, mapping)
+    fix = {(f.file, f.term) for f in findings(docs, unreadable, config) if f.rule not in config.ignore}
     source, texts = docs[0], {}
-    # keywords compare as check compares them, so a word only spelled differently stays as written
-    keyword_key = (lambda k: " ".join(k.split())) if config.keywords_case_sensitive else codecs.name_key
-    for doc in docs:
-        terms = [t for t in TERMS if doc is not source and fixable(t, source, doc, config)]
-        context = (
-            doc.readable
-            and doc.format == "codemeta"
-            and doc.version != config.codemeta_version
-            and "context-mismatch" not in config.ignore
-        )
+    key = keyword_key(case_sensitive=config.keywords_case_sensitive)
+    for doc in docs:  # the source too, for its @context
+        terms = [
+            t
+            for t in TERMS
+            if (doc.path, t) in fix
+            and has_slot(source, t)  # else the others were compared with each other (D2): left alone
+            and t in source.record
+            and t in doc.record
+            and (doc.is_citation or t in config.write_manifests)
+        ]
+        context = config.codemeta_version if (doc.path, "@context") in fix else None
         if not terms and not context:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
-        context_version = config.codemeta_version if context else None
-        new = _rewrite(doc, source, terms, old, mapping, context_version, keyword_key)
+        new = _rewrite(doc, source, terms, old, mapping, context, key)
         if new != old:
             texts[doc.path] = new
     for rel, text in texts.items():
         _replace(root / rel, text)
     return sorted(texts)
-
-
-def fixable(term: str, source: Doc, doc: Doc, config: Config) -> bool:
-    """Whether write may set ``term`` in ``doc`` from ``source``: it disagrees, both hold it, and it isn't ignored.
-
-    A gap in the source (D2) is never written: the other files are left to agree with each other.
-    """
-    return (
-        has_slot(source, term)
-        and term in source.record
-        and term in doc.record
-        and (doc.is_citation or term in config.write_manifests)
-        and (finding := compare(term, source, doc, keywords_case_sensitive=config.keywords_case_sensitive)) is not None
-        and finding.rule not in config.ignore
-    )
 
 
 def advice(finding: Finding, config: Config) -> str:
@@ -163,38 +150,36 @@ def _apply(
         data = {"package": data["workspace"]["package"]}  # a virtual workspace, edited in place
     for term in terms:
         path = mapping[doc.format, term]
-        assert path is not None  # noqa: S101 - fixable() only lets through terms the file holds
-        for container, key in _slots(doc.format, term, data, path)[:1]:
-            old = container[key]
-            if isinstance(old, dict) and old.get("workspace") is True:
-                continue  # Cargo inherits it from [workspace.package]: edit it there by hand
-            if term == "author":
-                new = _people(doc.format, old, source, path, mapping)
-            else:
-                new = _encode(doc, source, term, source.record[term], old, keyword_key)
-            if new is not old:
-                _set(container, key, _styled(new, old), old)
+        assert path is not None  # noqa: S101 - write() only passes terms the file holds
+        slot = _slot(term, data, path)
+        if slot is None:
+            continue
+        container, key = slot
+        old = container[key]
+        if isinstance(old, dict) and old.get("workspace") is True:
+            continue  # Cargo inherits it from [workspace.package]: edit it there by hand
+        if term == "author":
+            new = _people(doc.format, old, source, path, mapping)
+        else:
+            new = _encode(doc, source, term, source.record[term], old, keyword_key)
+        if new is not old:
+            _set(container, key, _styled(new, old), old)
 
 
-def _slots(fmt: str, term: str, data: Any, path: str) -> list[tuple[Any, str]]:  # noqa: ANN401
-    """(container, key) for each place ``path`` holds a value, from the first alternative that has any."""
-    if fmt == "pep621" and term == "codeRepository":
-        urls = data.get("project", {}).get("urls", {})
-        for want in ("Source", "Repository", "Homepage"):  # the label packaging reads, as the reader does
-            for label in [want] if want in urls else urls:
-                if url_label(label) == want:
-                    return [(urls, label)]
-        return []
+def _slot(term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
+    """(container, key) of the value the reader reads at ``path``: the first alternative that has one."""
     for alternative in path.split(" | "):
         parent, _, key = alternative.rpartition(".")
         key = key.removesuffix("[]")
-        nodes = resolve(data, parent) if parent else [data]
-        found = [(n, key) for n in nodes if isinstance(n, dict) and key in n]
-        if term == "codeRepository":  # Zenodo's isSupplementTo also lists papers by DOI
-            found = [(n, k) for n, k in found if codecs.doi_decode(n[k]) is None]
-        if found:
-            return found
-    return []
+        for node in resolve(data, parent) if parent else [data]:
+            if not isinstance(node, dict):
+                continue
+            # a PEP 621 url label reads as packaging normalises it, the exact label first
+            label = key if key in node else next((k for k in node if url_label(k) == key), None)
+            if label is None or (term == "codeRepository" and codecs.doi_decode(node[label])):
+                continue  # Zenodo's isSupplementTo also lists papers by DOI
+            return node, label
+    return None
 
 
 def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key: Callable[[str], str]) -> Any:  # noqa: ANN401, PLR0911
@@ -285,7 +270,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping) -> Any
             _rename(fmt, items[i], p, path, mapping)
         if q.orcid and p.orcid and q.orcid != p.orcid:
             okey = relative(str(mapping[fmt, "author.@id"]), path)
-            items[i][okey] = _styled(codecs.orcid_encode(p.orcid, "bare" if fmt == "zenodo" else "url"), items[i][okey])
+            items[i][okey] = _styled(_fields(fmt, p, path, mapping)[okey], items[i][okey])
         out.append(items[i])
     out += [el for i, el in enumerate(items) if i not in used and (npm or decoded[i] is None)]
     if not isinstance(old, list):

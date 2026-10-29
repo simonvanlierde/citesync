@@ -172,19 +172,25 @@ def test_r9lab_context_is_rewritten(tmp_path: Path, capsys: pytest.CaptureFixtur
     assert (root / "codemeta.json").read_text(encoding="utf-8") == before.replace("codemeta/4.0", "codemeta/3.0")
 
 
-def test_d2_gap_is_left_alone(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+# pyproject.toml has no DOI (a gap, D2), and its name is a package id, never the reference.
+@pytest.mark.parametrize(
+    ("old", "new", "term"),
+    [("zenodo.1234567", "zenodo.7", "identifier"), ('"name": "synthagree"', '"name": "x"', "name")],
+)
+def test_d2_gap_is_left_alone(
+    old: str, new: str, term: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     root = _synthetic(tmp_path / "repo", 'source = "pyproject.toml"\nwrite-manifests = "all"\n')
     codemeta = root / "codemeta.json"
-    codemeta.write_text(codemeta.read_text(encoding="utf-8").replace("zenodo.1234567", "zenodo.7"), encoding="utf-8")
+    codemeta.write_text(codemeta.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
     before = _snapshot(root)
 
     code, out, _ = _run(capsys, "write", "--root", str(root))
     assert code == 1
     assert _snapshot(root) == before
-    [line, _] = out.splitlines()
-    assert "codemeta.json" in line
-    assert "identifier" in line
-    assert line.endswith(" (edit it by hand)")
+    *lines, _ = out.splitlines()
+    assert any(line.startswith("codemeta.json") for line in lines)
+    assert all(f"] {term}:" in line and line.endswith(" (edit it by hand)") for line in lines)
 
 
 @pytest.mark.parametrize("bad", [".zenodo.json", "codemeta.json", "pyproject.toml"])
