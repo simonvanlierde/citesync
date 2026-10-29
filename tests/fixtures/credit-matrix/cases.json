@@ -1,7 +1,9 @@
 {
   "open_questions": [
-    "Does a `manifests` config replace the default root-manifest list or add to it? Here the root package.json is private, so both readings give the same result.",
     "Is an explicitly listed manifest that is `private: true` still checked? Not exercised here: src/core/package.json is not private."
+  ],
+  "settled": [
+    "2026-10-29: a `manifests` config replaces the default root-manifest list."
   ],
   "cases": [
     {

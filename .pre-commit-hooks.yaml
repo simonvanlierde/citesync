@@ -5,5 +5,4 @@
   entry: citesync check
   language: python
   pass_filenames: false
-  always_run: false
   files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|\.?citesync\.toml)$
