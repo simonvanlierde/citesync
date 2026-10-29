@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "codemeta-drift mapping export",
-  "description": "Where each CodeMeta term sits in each metadata format, read from one CodeMeta release (mapping-<codemeta_tag>.json). A row says where a value is, never how it is spelled: SPDX URL or id, ORCID URL or bare iD, 'Family, Given' and DOI forms are the consumer's business. Fields this schema does not define are allowed, so a reader that knows an older minor accepts a newer file. Contract and compatibility rules: docs/mapping-export.md.",
+  "description": "Where each CodeMeta term sits in each metadata format, read from one CodeMeta release (mapping-<codemeta_tag>.json). A row says where a value is, never how it is spelled: SPDX URL or id, ORCID URL or bare iD, 'Family, Given' and DOI forms are the consumer's business. Fields this schema does not define are allowed, so a reader that knows an older minor accepts a newer file. Contract and compatibility rules: https://github.com/simonvanlierde/codemeta-drift/blob/main/docs/mapping-export.md.",
   "type": "object",
   "required": ["schema_version", "codemeta_tag", "generator", "rows"],
   "properties": {
