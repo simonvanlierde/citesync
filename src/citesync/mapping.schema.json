@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "codemeta-drift mapping export",
+  "description": "Where each CodeMeta term sits in each metadata format, read from one CodeMeta release (mapping-<codemeta_tag>.json). A row says where a value is, never how it is spelled: SPDX URL or id, ORCID URL or bare iD, 'Family, Given' and DOI forms are the consumer's business. Contract and compatibility rules: docs/mapping-export.md.",
+  "type": "object",
+  "required": ["schema_version", "codemeta_tag", "generator", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "'MAJOR.MINOR' of this schema. A consumer reads the major before anything else and stops on one it does not know. A minor adds optional fields, formats or terms and never changes what an existing field means.",
+      "type": "string",
+      "pattern": "^1\\.(0|[1-9][0-9]*)$"
+    },
+    "codemeta_tag": {
+      "description": "The codemeta/codemeta tag the crosswalk rows were read from, such as '3.1'.",
+      "type": "string",
+      "minLength": 1
+    },
+    "generator": {
+      "description": "The tool that wrote the file and its version. A hand-written file says so in a local version label, such as '0.1.0+hand'.",
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rows": {
+      "description": "One row per (format, term). A pair appears at most once; JSON Schema cannot say that, so consumers check it.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/row" }
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "required": ["format", "term", "path", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm. A versioned format puts its version in the id.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9.]+)*$"
+        },
+        "term": {
+          "description": "A CodeMeta term (name, version, author, license, identifier, codeRepository, description, keywords), or a person sub-term qualified by the term it sits under: author.givenName, author.familyName, author.@id (ORCID).",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.@?[A-Za-z][A-Za-z0-9]*)?$"
+        },
+        "path": {
+          "description": "Where the value sits in the format's file, or null when the format has no place for it. Grammar: steps joined by '.'; a step is a key, a key followed by '[]' (each element of a list), or a key followed by '[k=v]' (each element whose k equals v). A key may contain letters, digits, '_' and '-', and may start with '@'. ' | ' separates alternatives, read left to right: the first that exists wins. A sub-term path is absolute and starts with its parent term's path. Examples: package.keywords, authors[].given-names, identifiers[type=doi].value, project.urls.Source | project.urls.Repository.",
+          "type": ["string", "null"],
+          "pattern": "^@?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?(\\.@?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?)*( \\| @?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?(\\.@?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?)*)*$"
+        },
+        "source": {
+          "description": "Why the row says what it says. 'crosswalk:<file>@<tag>' when the path reads the cell of that CodeMeta crosswalk; 'curated:<reason>' when the row departs from the crosswalk or the crosswalk has no cell.",
+          "type": "string",
+          "pattern": "^(crosswalk:crosswalks/[^@]+\\.csv@[^@\\s]+|curated:\\S.*)$"
+        },
+        "see_also": {
+          "description": "Upstream issue or pull request that reports the crosswalk cell this row departs from.",
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "comment": {
+          "description": "Free text for a human reader. Never machine-read.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

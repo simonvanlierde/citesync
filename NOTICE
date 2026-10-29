@@ -1,0 +1,6 @@
+citesync
+Copyright 2026 Simon van Lierde
+
+src/citesync/mapping-local.json is derived from the CodeMeta crosswalks
+(https://github.com/codemeta/codemeta, Apache License 2.0) by way of
+codemeta-drift (https://github.com/simonvanlierde/codemeta-drift, Apache License 2.0).

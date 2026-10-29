@@ -6,8 +6,13 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Simon van Lierde", email = "code@duinlab.nl" }]
 license = "Apache-2.0"
-license-files = ["LICENSE"]
-dependencies = []
+license-files = ["LICENSE", "NOTICE"]
+dependencies = [
+    "ruamel-yaml>=0.19",
+]
+
+[project.scripts]
+citesync = "citesync.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/simonvanlierde/citesync"
@@ -15,6 +20,8 @@ Issues = "https://github.com/simonvanlierde/citesync/issues"
 
 [dependency-groups]
 dev = [
+  "hypothesis>=6.140",
+  "jsonschema>=4.25",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "ruff>=0.17.1",
@@ -60,12 +67,15 @@ ignore = [
 # annotations, or package __init__.py.
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "D1", "INP001", "PLR2004", "ANN201"]
+# The command line reports to the terminal.
+"src/citesync/cli.py" = ["T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.pylint]
-allow-magic-value-types = ["int"]
+# Format ids, terms and finding codes are the vocabulary, not magic values.
+allow-magic-value-types = ["int", "str"]
 max-args = 10
 
 # A rule set to "warn" reports without failing: ty otherwise exits 1 on warnings too.

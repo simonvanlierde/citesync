@@ -1,0 +1,4 @@
+# Vendored from simonvanlierde/codemeta-drift; tests/test_mapping.py checks the sha256 lines.
+commit dddfd0fcbb7c73348d23c55922acf068a83bd52f
+sha256 c19cee5f26f65548672847bd69a823fdcb243a3d33f702ae48a8a983a0e36846 mapping-local.json examples/mapping-3.1.json
+sha256 d1fd974ae8bacb0a4c202a7e742bf6b5f3d8f6268da1f8f1b1705965ef3284d6 mapping.schema.json src/codemeta_drift/mapping.schema.json
