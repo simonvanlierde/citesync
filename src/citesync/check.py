@@ -7,7 +7,7 @@ from pathlib import Path
 from citesync import codecs
 from citesync.config import Config
 from citesync.errors import CheckError
-from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, read_doc
+from citesync.formats import CITATION_FILES, FORMAT_OF, MANIFESTS, Doc, Person, read_doc
 from citesync.mapping import TERMS, Mapping, load_mapping
 
 
@@ -56,7 +56,11 @@ def discover(root: Path, config: Config) -> list[str]:
 
 
 def read_docs(root: Path, config: Config, mapping: Mapping) -> list[Doc]:
-    """Read the files to compare, source first, leaving out root manifests that aren't released."""
+    """Read the files to compare, leaving out root manifests that aren't released.
+
+    The source comes first, then the others in a fixed order (citation files, then
+    manifests, by format), so which file a finding names never depends on config order.
+    """
     docs = []
     for path in discover(root, config):
         try:
@@ -66,7 +70,8 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> list[Doc]:
             raise CheckError(msg) from err
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
         docs = [d for d in docs if d.release or d.is_citation or d.path == config.source]
-    return docs
+    order = list(FORMAT_OF.values())
+    return docs[:1] + sorted(docs[1:], key=lambda d: (order.index(d.format), d.path))
 
 
 def check(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[list[Finding], list[Finding]]:
@@ -97,24 +102,34 @@ def compare_term(term: str, docs: list[Doc]) -> Iterable[Finding]:
 
     When the source has no slot or no value for it (D2), the other files that hold
     it are compared with each other. A source with no ORCID slot (a manifest) also
-    gets its authors' ORCIDs compared that way.
+    gets its authors' ORCIDs compared that way, and a manifest source gets the
+    keywords of the rest compared that way, since a subset of one isn't a subset of all.
     """
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
     if has_slot(source, term) and term in source.record:
         found = [compare(term, source, doc) for doc in others]
         if term == "author" and "author.@id" not in source.slots:
+            found += _between(term, others, orcid_only=True)
+        elif term == "keywords" and not source.is_citation:
             found += _between(term, others)
     else:
         found = _between(term, others)
     return [f for f in found if f]
 
 
-def _between(term: str, holders: list[Doc]) -> list[Finding | None]:
-    return [compare(term, earlier, later) for i, later in enumerate(holders) for earlier in holders[:i]]
+def _between(term: str, holders: list[Doc], *, orcid_only: bool = False) -> list[Finding | None]:
+    return [
+        compare(term, earlier, later, orcid_only=orcid_only)
+        for i, later in enumerate(holders)
+        for earlier in holders[:i]
+    ]
 
 
-def compare(term: str, ref: Doc, doc: Doc) -> Finding | None:
-    """A finding on ``doc`` when its ``term`` disagrees with ``ref``'s, by the rule for that term and pair."""
+def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False) -> Finding | None:
+    """A finding on ``doc`` when its ``term`` disagrees with ``ref``'s, by the rule for that term and pair.
+
+    With ``orcid_only``, authors compare by ORCID alone, for people whose names match.
+    """
     a, b = ref.record[term], doc.record[term]
     both_citation = ref.is_citation and doc.is_citation
     if term in {"name", "description"}:
@@ -128,7 +143,7 @@ def compare(term: str, ref: Doc, doc: Doc) -> Finding | None:
     elif term == "identifier":
         equal = codecs.doi_key(a) == codecs.doi_key(b)
     elif term == "author":
-        equal = _same_people(ref, doc)
+        equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
         if not both_citation:
@@ -153,18 +168,22 @@ def _keywords_subset(ref: Doc, doc: Doc) -> Finding | None:
     return Finding(doc.path, "keywords", "NOT_SUBSET", detail)
 
 
-def _same_people(ref: Doc, doc: Doc) -> bool:
-    """Same names in the same order, ORCIDs equal where both have one. npm's one author is the first."""
+def _same_people(ref: Doc, doc: Doc, *, names: bool = True) -> bool:
+    """Same names in the same order, ORCIDs equal where both have one. npm's one author is the first.
+
+    Without ``names``, only the ORCIDs of people at the same place with the same name count.
+    """
     a: tuple[Person, ...] = ref.record["author"]
     b: tuple[Person, ...] = doc.record["author"]
     if "npm" in {ref.format, doc.format}:
         a, b = a[:1], b[:1]
-    if len(a) != len(b):
+    if names and len(a) != len(b):
         return False
-    for p, q in zip(a, b, strict=True):
-        if codecs.name_key(p.name or "") != codecs.name_key(q.name or ""):
+    for p, q in zip(a, b, strict=False):
+        same_name = codecs.name_key(p.name or "") == codecs.name_key(q.name or "")
+        if names and not same_name:
             return False
-        if p.orcid and q.orcid and p.orcid != q.orcid:
+        if same_name and p.orcid and q.orcid and p.orcid != q.orcid:
             return False
     return True
 

@@ -17,7 +17,7 @@ from ruamel.yaml.error import YAMLError
 
 from citesync import codecs
 from citesync.errors import CheckError
-from citesync.mapping import TERMS, Mapping, relative, resolve
+from citesync.mapping import PERSON_TERMS, TERMS, Mapping, relative, resolve
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {"pyproject.toml": "pep621", "Cargo.toml": "cargo", "package.json": "npm"}
@@ -49,7 +49,7 @@ class Doc:
         path: Relative to the repo root, with ``/``.
         format: The mapping's format id.
         record: Term to normalised value; a term with no value is left out.
-        slots: Terms the format has a place for (a non-null mapping path).
+        slots: Terms and person sub-terms the format has a place for (a non-null mapping path).
         version: The detected format version (CFF and codemeta only).
         release: False for a manifest that isn't released: a pyproject.toml with no
             ``[build-system]``, a private package.json.
@@ -96,7 +96,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
         value = _read_term(fmt, term, data, path, mapping)
         if value is not None:
             record[term] = value
-    slots = frozenset(term for term in TERMS if mapping[fmt, term] is not None)
+    slots = frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
     return Doc(rel, fmt, record, slots, version, release)
 
 

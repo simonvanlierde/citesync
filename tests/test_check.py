@@ -58,7 +58,7 @@ PYPROJECT = '[build-system]\nrequires = []\n\n[project]\nname = "x"\n'
 CFF = 'cff-version: 1.2.0\nmessage: "m"\ntitle: "x"\n'
 
 
-def _codemeta(**fields: str) -> str:
+def _codemeta(**fields: object) -> str:
     return json.dumps({"@context": "https://w3id.org/codemeta/3.0", "name": "x", **fields})
 
 
@@ -233,3 +233,113 @@ def test_unexpected_error_is_exit_2(
     code, out, err = _run(capsys, "check", "--root", str(tmp_path))
     assert (code, out) == (2, "")
     assert err == f"citesync: {tmp_path}: unexpected error: RuntimeError: boom\n"
+
+
+def _people(*names: str, orcid: str | None = None) -> list[dict[str, str]]:
+    people = [dict(zip(("givenName", "familyName"), n.split(), strict=True)) for n in names]
+    if orcid:
+        people[0]["@id"] = f"https://orcid.org/{orcid}"
+    return people
+
+
+def _pyproject(*lines: str) -> str:
+    return PYPROJECT + "\n".join(lines) + "\n"
+
+
+def _check_json(tmp_path: Path, capsys: pytest.CaptureFixture[str], files: dict[str, str], *args: str) -> dict:
+    for name, text in files.items():
+        (tmp_path / name).write_text(text, encoding="utf-8")
+    _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--json", *args)
+    return json.loads(out)
+
+
+ORCID_A, ORCID_B = "0000-0002-1825-0097", "0000-0001-5109-3700"
+CFF_AB = CFF + "authors:\n  - {given-names: A, family-names: B}\n"
+
+
+@pytest.mark.parametrize(
+    ("source", "files", "expected"),
+    [
+        pytest.param(
+            "CITATION.cff",
+            {
+                "CITATION.cff": CFF_AB,
+                "codemeta.json": _codemeta(author=_people("A B", "X Y")),
+                "pyproject.toml": _pyproject('authors = [{ name = "A B" }]'),
+            },
+            [("MISMATCH", "codemeta.json", "author")],
+            id="orcid-source-names-only-against-source",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": _pyproject('authors = [{ name = "A B" }]'),
+                "CITATION.cff": CFF + "authors:\n  - {given-names: A, family-names: C}\n",
+                "codemeta.json": _codemeta(author=_people("A B")),
+            },
+            [("MISMATCH", "CITATION.cff", "author")],
+            id="manifest-source-blames-only-the-disagreeing-file",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": _pyproject('authors = [{ name = "A B" }]'),
+                "CITATION.cff": CFF_AB.replace("B}", f"B, orcid: 'https://orcid.org/{ORCID_A}'}}"),
+                "codemeta.json": _codemeta(author=_people("A B", orcid=ORCID_B)),
+            },
+            [("MISMATCH", "codemeta.json", "author")],
+            id="manifest-source-orcids-compared-between-holders",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": _pyproject('keywords = ["a"]'),
+                "CITATION.cff": CFF + "keywords: [a, b]\n",
+                "codemeta.json": _codemeta(keywords=["a", "c"]),
+            },
+            [("MISMATCH", "codemeta.json", "keywords")],
+            id="manifest-source-citation-keywords-equal",
+        ),
+        pytest.param(
+            "pyproject.toml",
+            {
+                "pyproject.toml": _pyproject('keywords = ["a"]'),
+                "CITATION.cff": CFF + "keywords: [a]\n",
+                "Cargo.toml": '[package]\nname = "x"\nkeywords = ["z"]\n',
+            },
+            [("NOT_SUBSET", "Cargo.toml", "keywords")],
+            id="manifest-source-other-manifest-subset-of-citation",
+        ),
+    ],
+)
+def test_holders_beyond_the_source(
+    source: str,
+    files: dict[str, str],
+    expected: list[tuple[str, str, str]],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    report = _check_json(tmp_path, capsys, files, "--source", source)
+    assert _triples(report["findings"]) == expected
+
+
+def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = {
+        "pyproject.toml": PYPROJECT,
+        "CITATION.cff": CFF + 'doi: "10.1/a"\n',
+        "codemeta.json": _codemeta(identifier="10.1/b"),
+        ".zenodo.json": json.dumps({"title": "x", "doi": "10.1/c"}),
+    }
+    reports = [
+        _check_json(
+            tmp_path, capsys, {**files, "citesync.toml": f"files = {json.dumps(order)}\n"}, "--source", "pyproject.toml"
+        )
+        for order in (list(files)[1:], list(files)[:0:-1])
+    ]
+    for report in reports:
+        report["findings"] = [f for f in report["findings"] if f["term"] == "identifier"]
+    assert reports[0] == reports[1]
+    assert [(f["file"], f["detail"]) for f in reports[0]["findings"]] == [
+        (".zenodo.json", "'10.1/c', CITATION.cff has '10.1/a'"),
+        ("codemeta.json", "'10.1/b', CITATION.cff has '10.1/a'"),
+    ]
