@@ -348,6 +348,33 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
     ]
 
 
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ("", []),
+        (
+            "keywords_case_sensitive = true\n",
+            [
+                ("MISMATCH", "codemeta.json", "keywords", "Life Cycle, lca, CITATION.cff has life cycle, LCA"),
+                ("NOT_SUBSET", "pyproject.toml", "keywords", "Lca: in pyproject.toml, not in CITATION.cff"),
+            ],
+        ),
+    ],
+    ids=["default-casefolded", "case-sensitive"],
+)
+def test_keywords_compare_like_names(
+    config: str, expected: list[tuple[str, ...]], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    files = {
+        "citesync.toml": config,
+        "CITATION.cff": CFF + "keywords: [life  cycle, LCA]\n",
+        "codemeta.json": _codemeta(keywords=["Life Cycle", "lca"]),
+        "pyproject.toml": _pyproject('keywords = ["Lca"]'),
+    }
+    report = _check_json(tmp_path, capsys, files)
+    assert [(f["code"], f["file"], f["term"], f["detail"]) for f in report["findings"]] == expected
+
+
 SYNTHETIC = FIXTURES / "synthetic-agree"
 # One planted disagreement per row, in synthetic-agree with CITATION.cff as the source.
 PLANTED = [

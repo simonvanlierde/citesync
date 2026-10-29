@@ -10,7 +10,7 @@ from citesync.errors import CheckError
 from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS
 from citesync.mapping import TERMS
 
-KEYS = ("source", "codemeta_version", "files", "manifests", "write_manifests")
+KEYS = ("source", "codemeta_version", "files", "manifests", "write_manifests", "keywords_case_sensitive")
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,7 @@ class Config:
     files: tuple[str, ...] | None = None
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
+    keywords_case_sensitive: bool = False
     origin: str = "defaults"
 
 
@@ -93,17 +94,32 @@ def load_config(root: Path, source: str | None = None) -> Config:
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
     if "codemeta_version" in raw:
-        if raw["codemeta_version"] not in CODEMETA_VERSIONS:
-            msg = f"{origin}: codemeta_version must be one of {', '.join(CODEMETA_VERSIONS)}"
-            raise CheckError(msg)
-        config = replace(config, codemeta_version=raw["codemeta_version"])
+        config = replace(config, codemeta_version=_codemeta_version(raw["codemeta_version"], origin))
     if "files" in raw:
         config = replace(config, files=_paths(raw["files"], CITATION_FILES, origin, "files"))
     if "manifests" in raw:
         config = replace(config, manifests=_paths(raw["manifests"], MANIFESTS, origin, "manifests"))
     if "write_manifests" in raw:
         config = replace(config, write_manifests=_write_manifests(raw["write_manifests"], origin))
+    if "keywords_case_sensitive" in raw:
+        config = replace(
+            config, keywords_case_sensitive=_bool(raw["keywords_case_sensitive"], origin, "keywords_case_sensitive")
+        )
     return config
+
+
+def _codemeta_version(value: object, origin: str) -> str:
+    if value not in CODEMETA_VERSIONS:
+        msg = f"{origin}: codemeta_version must be one of {', '.join(CODEMETA_VERSIONS)}"
+        raise CheckError(msg)
+    return str(value)
+
+
+def _bool(value: object, origin: str, key: str) -> bool:
+    if not isinstance(value, bool):
+        msg = f"{origin}: {key} must be true or false"
+        raise CheckError(msg)
+    return value
 
 
 def _path(value: object, names: dict[str, str], origin: str, key: str) -> str:
@@ -145,5 +161,6 @@ def render(config: Config) -> str:
         if config.manifests is not None
         else "# manifests: not set, so every release manifest at the repo root",
         f"write_manifests = {json.dumps(list(config.write_manifests))}",
+        f"keywords_case_sensitive = {json.dumps(config.keywords_case_sensitive)}",
     ]
     return "\n".join(lines)

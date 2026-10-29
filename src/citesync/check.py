@@ -1,6 +1,6 @@
 """Compare the files' records term by term and report what disagrees."""
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -88,7 +88,7 @@ def check(root: Path, config: Config, mapping: Mapping | None = None) -> tuple[l
         if not any(term in d.record for d in docs):
             info.append(Finding("", term, "NOT_CHECKED", "no file holds a value"))
             continue
-        findings.update(compare_term(term, docs))
+        findings.update(compare_term(term, docs, keywords_case_sensitive=config.keywords_case_sensitive))
     return sorted(findings), sorted(info)
 
 
@@ -97,7 +97,7 @@ def has_slot(doc: Doc, term: str) -> bool:
     return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
 
 
-def compare_term(term: str, docs: list[Doc]) -> Iterable[Finding]:
+def compare_term(term: str, docs: list[Doc], *, keywords_case_sensitive: bool = False) -> Iterable[Finding]:
     """Compare ``term`` in ``docs[1:]`` with the source ``docs[0]``.
 
     When the source has no slot or no value for it (D2), the other files that hold
@@ -106,29 +106,35 @@ def compare_term(term: str, docs: list[Doc]) -> Iterable[Finding]:
     keywords of the rest compared that way, since a subset of one isn't a subset of all.
     """
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
+    case = keywords_case_sensitive
     if has_slot(source, term) and term in source.record:
-        found = [compare(term, source, doc) for doc in others]
+        found = [compare(term, source, doc, keywords_case_sensitive=case) for doc in others]
         if term == "author" and "author.@id" not in source.slots:
             found += _between(term, others, orcid_only=True)
         elif term == "keywords" and not source.is_citation:
-            found += _between(term, others)
+            found += _between(term, others, keywords_case_sensitive=case)
     else:
-        found = _between(term, others)
+        found = _between(term, others, keywords_case_sensitive=case)
     return [f for f in found if f]
 
 
-def _between(term: str, holders: list[Doc], *, orcid_only: bool = False) -> list[Finding | None]:
+def _between(
+    term: str, holders: list[Doc], *, orcid_only: bool = False, keywords_case_sensitive: bool = False
+) -> list[Finding | None]:
     return [
-        compare(term, earlier, later, orcid_only=orcid_only)
+        compare(term, earlier, later, orcid_only=orcid_only, keywords_case_sensitive=keywords_case_sensitive)
         for i, later in enumerate(holders)
         for earlier in holders[:i]
     ]
 
 
-def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False) -> Finding | None:
+def compare(
+    term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, keywords_case_sensitive: bool = False
+) -> Finding | None:
     """A finding on ``doc`` when its ``term`` disagrees with ``ref``'s, by the rule for that term and pair.
 
-    With ``orcid_only``, authors compare by ORCID alone, for people whose names match.
+    With ``orcid_only``, authors compare by ORCID alone, for people whose names match. Keywords
+    compare as names do, unless ``keywords_case_sensitive``.
     """
     a, b = ref.record[term], doc.record[term]
     both_citation = ref.is_citation and doc.is_citation
@@ -146,9 +152,10 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False) -> Findi
         equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
+        key = str if keywords_case_sensitive else codecs.name_key
         if not both_citation:
-            return _keywords_subset(ref, doc)
-        equal = set(a) == set(b)
+            return _keywords_subset(ref, doc, key)
+        equal = set(map(key, a)) == set(map(key, b))
     else:
         equal = a == b
     if equal:
@@ -156,12 +163,13 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False) -> Findi
     return Finding(doc.path, term, "MISMATCH", f"{_show(b)}, {ref.path} has {_show(a)}")
 
 
-def _keywords_subset(ref: Doc, doc: Doc) -> Finding | None:
+def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
     """A manifest's keywords must all be in the citation file's, whichever is the source."""
     if not ref.is_citation and not doc.is_citation:
         return None  # no rule between two manifests
     manifest, citation = (ref, doc) if doc.is_citation else (doc, ref)
-    extra = [k for k in manifest.record["keywords"] if k not in set(citation.record["keywords"])]
+    known = set(map(key, citation.record["keywords"]))
+    extra = [k for k in manifest.record["keywords"] if key(k) not in known]
     if not extra:
         return None
     detail = f"{', '.join(extra)}: in {manifest.path}, not in {citation.path}"
