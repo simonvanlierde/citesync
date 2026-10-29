@@ -7,11 +7,13 @@ Each codec has ``decode``, from what a file holds to the normalised value, and
 
 import re
 import unicodedata
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from packaging.version import InvalidVersion, Version
-
 from citesync.errors import CannotWrite
+
+if TYPE_CHECKING:
+    from packaging.version import Version
 
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
@@ -218,11 +220,13 @@ def version_decode(raw: object) -> str | None:
     return text or None
 
 
-def version_key(version: str) -> Version | str:
+def version_key(version: str) -> "Version | str":
     """The parsed PEP 440 version, or for one that isn't (``unreleased``) the string itself.
 
     A ``Version`` never equals a ``str``, so a PEP 440 version and anything else differ.
     """
+    from packaging.version import InvalidVersion, Version  # noqa: PLC0415 - 2.5 ms, needed only when versions differ
+
     try:
         return Version(version)
     except InvalidVersion:
@@ -236,6 +240,8 @@ def version_encode_semver(version: str) -> str:
         CannotWrite: for a version semver has no spelling for: not PEP 440, a post-release,
             an epoch, or more than three release numbers.
     """
+    from packaging.version import InvalidVersion, Version  # noqa: PLC0415
+
     try:
         v = Version(version)
     except InvalidVersion:

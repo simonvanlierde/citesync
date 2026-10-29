@@ -50,3 +50,20 @@ def test_runs_as_a_module() -> None:
     run = subprocess.run([sys.executable, "-m", "citesync", "rules"], capture_output=True, text=True, check=False)
     assert run.returncode == 0, run.stderr
     assert "keywords-not-subset" in run.stdout
+
+
+def test_check_leaves_slow_imports_alone(tmp_path: Path) -> None:
+    # Each costs 2 to 10 ms a run, and check needs none of them here: the writer's tomlkit,
+    # the package metadata behind --version, importlib.resources, shutil (argparse's help
+    # width), and packaging, since the versions match as written.
+    (tmp_path / "CITATION.cff").write_text('cff-version: 1.2.0\nmessage: m\ntitle: x\nversion: "1.0"\n', "utf-8")
+    (tmp_path / "codemeta.json").write_text(
+        '{"@context": "https://w3id.org/codemeta/3.0", "name": "x", "version": "1.0"}', "utf-8"
+    )
+    code = (
+        "import sys; from citesync.cli import main; code = main(['check', '-q']);"
+        " print(code, sorted(m for m in ('tomlkit', 'importlib.metadata', 'importlib.resources', 'shutil',"
+        " 'packaging.version', 'difflib') if m in sys.modules))"
+    )
+    run = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, cwd=tmp_path)  # noqa: S603
+    assert run.stdout.splitlines()[-1] == "0 []", run.stdout + run.stderr

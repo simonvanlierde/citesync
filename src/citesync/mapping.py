@@ -8,7 +8,7 @@ codemeta-drift release and commit it was copied from.
 import json
 import re
 from functools import cache
-from importlib.resources import files
+from pathlib import Path
 from typing import Any
 
 from citesync.errors import CheckError
@@ -33,7 +33,9 @@ def load_mapping() -> Mapping:
             for a term citesync reads.
     """
     name = "mapping-local.json"
-    data = json.loads(files("citesync").joinpath(name).read_text(encoding="utf-8"))
+    # NOTE: read beside this module, not through importlib.resources, whose imports cost 5 ms a run.
+    # That needs an install on disk; switch back if citesync ever runs from a zip.
+    data = json.loads(Path(__file__).with_name(name).read_text(encoding="utf-8"))
     return check_mapping(data, name)
 
 
