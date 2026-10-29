@@ -206,13 +206,6 @@ def test_exit_2(
     assert message in err
 
 
-def test_write_is_not_a_command(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit) as exit_:
-        main(["write"])
-    assert exit_.value.code == 2
-    assert "invalid choice: 'write'" in capsys.readouterr().err
-
-
 @pytest.mark.parametrize(
     ("name", "content", "message", "position"),
     [

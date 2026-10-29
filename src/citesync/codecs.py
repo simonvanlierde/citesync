@@ -1,7 +1,8 @@
 """How a value is spelled in each format, as opposed to where it sits (the mapping's job).
 
 Each codec has ``decode``, from what a file holds to the normalised value, and
-``key``, what two normalised values are compared by.
+``encode``, from the normalised value to one of the spellings a format uses.
+``key`` gives what two normalised values are compared by.
 """
 
 import re
@@ -9,6 +10,8 @@ import unicodedata
 from urllib.parse import urlsplit
 
 from packaging.version import InvalidVersion, Version
+
+from citesync.errors import CannotWrite
 
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
@@ -28,6 +31,7 @@ _REF_TAIL = {
     "bitbucket.org": re.compile(_OWNER_REPO_TAIL.format("src")),
 }
 _CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
+_SEMVER_TAG = {"a": "alpha", "b": "beta", "rc": "rc"}
 
 
 def clean(text: str) -> str:
@@ -55,9 +59,18 @@ def license_decode(raw: object) -> str | None:
     return match["id"] if match else raw
 
 
+def license_encode(spdx: str, form: str) -> str:
+    """``spdx`` as ``"spdx"`` (the id), ``"spdx-url"`` or ``"zenodo"`` (lowercase id: Zenodo's vocabulary)."""
+    return {"spdx": spdx, "spdx-url": f"https://spdx.org/licenses/{spdx}", "zenodo": spdx.lower()}[form]
+
+
 def license_key(spdx: str) -> str:
-    """Licences compare case-insensitively, since Zenodo lowercases them."""
-    return spdx.casefold()
+    """Licences compare case-insensitively, since Zenodo lowercases them.
+
+    Parentheses group nothing when ``OR`` is the only operator, so they are dropped then.
+    """
+    key = spdx.casefold()
+    return key if {"and", "with"} & set(key.split()) else key.replace("(", "").replace(")", "")
 
 
 # ORCID: a URL or a bare iD.
@@ -69,6 +82,11 @@ def orcid_decode(raw: object) -> str | None:
         return None
     bare = _SLASHES_AND_SPACE.sub("", _ORCID_URL.sub("", raw.strip()))
     return bare.upper() or None
+
+
+def orcid_encode(orcid: str, form: str) -> str:
+    """``orcid`` as ``"url"`` (CFF, codemeta ``@id``) or ``"bare"`` (Zenodo)."""
+    return {"url": f"https://orcid.org/{orcid}", "bare": orcid}[form]
 
 
 # DOI: bare, a doi.org URL or a doi: prefix.
@@ -89,6 +107,11 @@ def doi_decode(raw: object) -> str | None:
         return None
     doi = _DOI_PREFIX.sub("", raw.strip())
     return doi if _DOI.match(doi) else None
+
+
+def doi_encode(doi: str, form: str) -> str:
+    """``doi`` as ``"bare"`` (CFF, Zenodo) or ``"url"`` (codemeta ``identifier``)."""
+    return {"bare": doi, "url": f"https://doi.org/{doi}"}[form]
 
 
 def doi_key(doi: str) -> str:
@@ -154,6 +177,11 @@ def zenodo_name_decode(raw: object) -> tuple[str | None, str] | None:
     return (clean(given) or None), clean(family)
 
 
+def zenodo_name_encode(given: str | None, family: str) -> str:
+    """``"Family, Given"``, or the family name alone."""
+    return f"{family}, {given}" if given else family
+
+
 def contact_name_decode(raw: object) -> str | None:
     """The name in an npm or Cargo person string, ``"Name <email> (url)"``."""
     if not isinstance(raw, str):
@@ -194,3 +222,24 @@ def version_key(version: str) -> Version | str:
         return Version(version)
     except InvalidVersion:
         return version.strip()
+
+
+def version_encode_semver(version: str) -> str:
+    """``version`` in semver spelling: ``v1.2rc1`` is ``1.2.0-rc.1``, ``1.0.dev3`` is ``1.0.0-dev.3``.
+
+    Raises:
+        CannotWrite: for a version semver has no spelling for: not PEP 440, a post-release,
+            an epoch, or more than three release numbers.
+    """
+    try:
+        v = Version(version)
+    except InvalidVersion:
+        v = None
+    if v is None or v.post is not None or v.epoch or len(v.release) > 3:  # semver has major.minor.patch only
+        msg = f"semver has no spelling for {version}"
+        raise CannotWrite(msg)
+    pre = [_SEMVER_TAG[v.pre[0]], v.pre[1]] if v.pre else []
+    dev = ["dev", v.dev] if v.dev is not None else []
+    suffix = ".".join(map(str, pre + dev))
+    release = ".".join(map(str, (*v.release, 0, 0)[:3]))
+    return release + (f"-{suffix}" if suffix else "") + (f"+{v.local}" if v.local else "")

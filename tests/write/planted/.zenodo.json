@@ -1,0 +1,29 @@
+{
+  "upload_type": "software",
+  "access_right": "open",
+  "title": "synthagree",
+  "description": "A made-up package whose metadata files all agree.",
+  "creators": [
+    {
+      "name": "Turing, Alan"
+    },
+    {
+      "name": "Lovelace, Ada",
+      "orcid": "0000-0002-1825-0097"
+    }
+  ],
+  "license": "mit",
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.1234/synthagree-paper",
+      "scheme": "doi"
+    },
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/example/other",
+      "scheme": "url"
+    }
+  ],
+  "keywords": ["alpha", "beta", "gamma", "delta"]
+}

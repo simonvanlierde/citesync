@@ -101,20 +101,25 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
 def check(root: Path, config: Config) -> tuple[list[Finding], int]:
     """Every finding for the repo at ``root``, sorted, and the number of files checked."""
     docs, unreadable = read_docs(root, config, load_mapping())
-    findings: set[Finding] = set(unreadable)
+    return findings(docs, unreadable, config), len(docs)
+
+
+def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list[Finding]:
+    """Every finding for ``docs`` (the source first) as :func:`read_docs` gives them, sorted."""
+    found: set[Finding] = set(unreadable)
     source = docs[0]
     for doc in docs:
         if doc.readable and doc.format == "codemeta" and doc.version != config.codemeta_version:
             detail = f"{doc.version}, configured {config.codemeta_version}"
-            findings.add(Finding(doc.path, "@context", "context-mismatch", detail))
+            found.add(Finding(doc.path, "@context", "context-mismatch", detail))
     for term in TERMS:
         if not source.readable and has_slot(source, term):
-            findings.add(Finding(source.path, term, "not-checked", "not compared with the source: it can't be read"))
+            found.add(Finding(source.path, term, "not-checked", "not compared with the source: it can't be read"))
         elif not any(term in d.record for d in docs):
-            findings.add(Finding(None, term, "not-checked", "no file holds a value"))
+            found.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
-        findings.update(compare_term(term, docs, keywords_case_sensitive=config.keywords_case_sensitive))
-    return sorted(findings, key=Finding.sort_key), len(docs)
+        found.update(compare_term(term, docs, keywords_case_sensitive=config.keywords_case_sensitive))
+    return sorted(found, key=Finding.sort_key)
 
 
 def has_slot(doc: Doc, term: str) -> bool:
@@ -172,7 +177,7 @@ def compare(
         equal = _same_people(ref, doc, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
-        key = str if keywords_case_sensitive else codecs.name_key
+        key = keyword_key(case_sensitive=keywords_case_sensitive)
         if not both_citation:
             return _keywords_subset(ref, doc, key)
         equal = set(map(key, a)) == set(map(key, b))
@@ -189,6 +194,11 @@ _KEY = {
     "identifier": codecs.doi_key,
     "codeRepository": codecs.repo_key,
 }
+
+
+def keyword_key(*, case_sensitive: bool) -> Callable[[str], str]:
+    """What keywords compare by: as names do, or with only the spacing collapsed when ``case_sensitive``."""
+    return codecs.clean if case_sensitive else codecs.name_key
 
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:

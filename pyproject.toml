@@ -10,6 +10,7 @@ license-files = ["LICENSE", "NOTICE"]
 dependencies = [
     "packaging>=26.3",
     "ruamel-yaml>=0.19",
+    "tomlkit>=0.15.2",
 ]
 
 [project.scripts]
