@@ -269,6 +269,7 @@ CANNOT = [
     ),
     ("CITATION.cff", '"1.2.3"', '"1.2.3.post1"', "Cargo.toml", "", "", "semver has no spelling for 1.2.3.post1"),
     ("CITATION.cff", '"1.2.3"', '"2!1.0"', "package.json", "", "", "semver has no spelling for 2!1.0"),
+    ("CITATION.cff", '"1.2.3"', '"2024.10 beta"', "pyproject.toml", "", "", "2024.10 beta is not a PEP 440 version"),
     ("CITATION.cff", '"Apache-2.0"', '"MIT OR Apache-2.0"', ".zenodo.json", "", "", "Zenodo takes one licence id"),
     ("CITATION.cff", '"Apache-2.0"', '"MIT AND Apache-2.0"', ".zenodo.json", "", "", "Zenodo takes one licence id"),
     (
@@ -673,3 +674,42 @@ def test_diff_takes_no_format(capsys: pytest.CaptureFixture[str]) -> None:
         main(["write", "--diff", "--format", "json"])
     assert exc.value.code == 2
     assert "--diff" in capsys.readouterr().err
+
+
+def _with_organization(root: Path) -> None:
+    """Add The Synth Team as a third author to the three citation files, each in its own spelling."""
+    _edit(
+        root / "CITATION.cff",
+        '    family-names: "Turing"\n',
+        '    family-names: "Turing"\n  - name: "The Synth Team"\n',
+    )
+    data = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    data["author"].append({"@type": "Organization", "name": "The Synth Team"})
+    (root / "codemeta.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    _edit(
+        root / ".zenodo.json",
+        '"name": "Turing, Alan"\n    }',
+        '"name": "Turing, Alan"\n    },\n    {\n      "name": "The Synth Team"\n    }',
+    )
+
+
+@pytest.mark.parametrize("source", ["CITATION.cff", "codemeta.json", ".zenodo.json"])
+def test_an_organization_author_is_kept(source: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A codemeta.json author with only a `name`, such as an Organization, reads as CFF's entity `name` does."""
+    root = _synthetic(tmp_path / "repo", f'source = "{source}"\nmanifests = []\n')
+    _with_organization(root)
+    before = _snapshot(root)
+
+    assert _run(capsys, "check", "-q", "--root", str(root)) == (0, "", "")
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert _snapshot(root) == before
+
+
+def test_diff_reports_an_unreadable_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """--diff fails on a file it can't read, as `ruff format --diff` does, so a CI gate never passes a broken repo."""
+    root = _synthetic(tmp_path / "repo")
+    (root / ".zenodo.json").write_text('{"title": ', encoding="utf-8")
+
+    code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
+    assert (code, out) == (1, "")
+    assert "error[unreadable]" in err

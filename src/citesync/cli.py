@@ -2,7 +2,7 @@
 
 Exit codes: 0 when the files agree (after ``write``, once it has written), 1 on any error
 finding (that ``write`` may not fix), 2 when citesync couldn't run. ``write --diff`` exits 1
-when it would change a file, as ``ruff format --diff`` does. ``write`` then wrote nothing,
+when it would change a file or can't read one, as ``ruff format --diff`` does. ``write`` then wrote nothing,
 unless moving a written file into place failed: files moved before it stay written.
 """
 
@@ -16,7 +16,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 from citesync.check import Finding, check
-from citesync.config import load_config, render
+from citesync.config import Config, load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain
 from citesync.write import advice, write
@@ -63,9 +63,7 @@ def main(argv: list[str] | None = None) -> int:
             print(render(config))
             return 0
         if getattr(args, "diff", False):
-            texts, _ = write(args.root, config, dry_run=True)
-            sys.stdout.write(_diff(args.root, texts))
-            return 1 if texts else 0
+            return _write_diff(args.root, config)
         written, skipped = write(args.root, config) if args.command == "write" else ({}, {})
         findings, files = check(args.root, config)
     except CheckError as err:
@@ -85,6 +83,17 @@ def main(argv: list[str] | None = None) -> int:
         ]
     _report(findings, files, args)
     return 1 if any(f.severity == "error" for f in findings) else 0
+
+
+def _write_diff(root: Path, config: Config) -> int:
+    """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
+    texts, _ = write(root, config, dry_run=True)
+    sys.stdout.write(_diff(root, texts))
+    unreadable = [f for f in check(root, config)[0] if f.rule == "unreadable"]
+    for f in unreadable:  # the diff can't show a file write never touches, so say so
+        where = f"{f.file}:{f.line}:{f.column}" if f.line else f.file
+        print(f"{where}: error[unreadable] {f.message}", file=sys.stderr)
+    return 1 if texts or unreadable else 0
 
 
 def _ignore(findings: list[Finding], ignore: tuple[str, ...]) -> list[Finding]:
