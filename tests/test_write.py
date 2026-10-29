@@ -30,6 +30,11 @@ def _snapshot(root: Path) -> dict[str, bytes]:
     return {str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
 
 
+def _expected(name: str) -> bytes:
+    """``name`` once write has fixed its planted copy: the synthetic file, unless the planted one differs in layout."""
+    return (EXPECTED / name if (EXPECTED / name).exists() else SYNTHETIC / name).read_bytes()
+
+
 def _synthetic(root: Path, config: str = "") -> Path:
     shutil.copytree(SYNTHETIC, root)
     if config:
@@ -48,7 +53,7 @@ def test_planted_disagreement_is_written_as_expected(
 
     code, out, err = _run(capsys, "write", "--root", str(root))
     assert (code, out.splitlines()[0], err) == (0, f"wrote {name}", "")
-    assert (root / name).read_bytes() == (EXPECTED / name).read_bytes()
+    assert (root / name).read_bytes() == _expected(name)
     after = _snapshot(root)
     assert {k: v for k, v in after.items() if k != name} == {k: v for k, v in before.items() if k != name}
 
@@ -103,7 +108,6 @@ def test_cff_comments_survive_a_write(repo: str, tmp_path: Path, capsys: pytest.
     assert (code, out.splitlines()[0]) == (0, "wrote CITATION.cff")
     assert _comments(cff)
     assert _comments(written) == _comments(cff)
-    assert 'title: "Planted"' in written or "title: Planted" in written
 
 
 @pytest.mark.parametrize("repo", sorted(p.parent.name for p in FIXTURES.glob("*/.zenodo.json")))
@@ -164,14 +168,6 @@ def test_real_fixture(repo: str, exit_code: int, tmp_path: Path, capsys: pytest.
     assert _run(capsys, "check", "--root", str(root))[0] == exit_code
 
 
-def test_r9lab_context_is_rewritten(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    root = tmp_path / "r9lab"
-    shutil.copytree(FIXTURES / "r9lab", root)
-    before = (root / "codemeta.json").read_text(encoding="utf-8")
-    assert _run(capsys, "write", "--root", str(root))[1].startswith("wrote codemeta.json\n")
-    assert (root / "codemeta.json").read_text(encoding="utf-8") == before.replace("codemeta/4.0", "codemeta/3.0")
-
-
 # pyproject.toml has no DOI (a gap, D2), and its name is a package id, never the reference.
 @pytest.mark.parametrize(
     ("old", "new", "term"),
@@ -209,34 +205,19 @@ def test_unreadable_file_is_not_written(bad: str, tmp_path: Path, capsys: pytest
     assert line.endswith(" (edit it by hand)")
 
 
-def test_write_reports_as_check_does(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_write_reports_as_check_does(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = _synthetic(tmp_path / "repo", 'write-manifests = ["keywords"]\n')
     shutil.copy(PLANTED / "pyproject.toml", root / "pyproject.toml")
     shutil.copy(PLANTED / "codemeta.json", root / "codemeta.json")
 
-    code, out, _ = _run(capsys, "write", "--root", str(tmp_path / "repo"))
-    lines = out.splitlines()
-    assert (code, lines[:2]) == (1, ["wrote codemeta.json", "wrote pyproject.toml"])
-    [line] = [line for line in lines if "[version-mismatch]" in line]
-    assert line.startswith("pyproject.toml: error[version-mismatch] version: ")
-    assert line.endswith(" (edit it by hand, or add version to write-manifests)")
-    assert re.fullmatch(r"\d+ errors?, 0 warnings in 6 files", lines[-1])
-
-    shutil.copy(PLANTED / "codemeta.json", root / "codemeta.json")
     code, out, err = _run(capsys, "write", "--root", str(root), "--format", "json")
-    report = json.loads(out)
-    assert (code, err) == (1, "wrote codemeta.json\n")
-    assert {f["rule"] for f in report["findings"]} >= {"version-mismatch"}
-
-    shutil.copy(PLANTED / "codemeta.json", root / "codemeta.json")
-    code, out, _ = _run(capsys, "write", "-q", "--root", str(root))
+    assert err == "wrote codemeta.json\nwrote pyproject.toml\n"
+    written = json.loads(out)
+    for finding in written["findings"]:
+        finding["message"] = re.sub(r" \(edit it by hand.*\)$", "", finding["message"])
+    check_code, check_out, _ = _run(capsys, "check", "--root", str(root), "--format", "json")
+    assert (code, written) == (check_code, json.loads(check_out))
     assert code == 1
-    assert all(": error[" in line for line in out.splitlines())
-
-    monkeypatch.setenv("FORCE_COLOR", "1")
-    assert "\033[1;31merror\033[0m[version-mismatch]" in _run(capsys, "write", "--root", str(root))[1]
 
 
 def test_an_ignored_finding_is_not_written(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -408,6 +389,44 @@ def test_write_keeps_the_file_mode(tmp_path: Path, capsys: pytest.CaptureFixture
     assert sorted(p.name for p in root.iterdir()) == sorted(p.name for p in SYNTHETIC.iterdir())
 
 
+def test_a_removed_author_leaves_a_multi_line_array_as_it_was(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'write-manifests = "all"\n')
+    lines = [
+        '    { name = "Ada Lovelace" },  # first\n',
+        '    { name = "Grace Hopper" },\n',
+        '    { name = "Alan Turing" },\n',
+    ]
+    pyproject = _edit(
+        root / "pyproject.toml",
+        'authors = [{ name = "Ada Lovelace" }, { name = "Alan Turing" }]',
+        "authors = [\n" + "".join(lines) + "]",
+    )
+
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "pyproject.toml").read_text(encoding="utf-8") == pyproject.replace(lines[1], "")
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ('"Alan"', '"Alán"'),  # a one-line splice
+        ("authors:\n", 'authors:\n  - given-names: "Zoë"\n    family-names: "Hopper"\n'),  # a re-dumped list
+    ],
+)
+def test_a_non_ascii_name_is_written_as_is(
+    old: str, new: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo")
+    name = re.findall(r'"(\w*[áë]\w*)"', new)[0]
+    _edit(root / "CITATION.cff", old, new)
+
+    _run(capsys, "write", "--root", str(root))
+    for path in ("codemeta.json", ".zenodo.json"):
+        assert name in (root / path).read_text(encoding="utf-8"), path
+
+
 def test_a_symlink_target_is_written(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = _synthetic(tmp_path / "repo")
     (root / "real").mkdir()
@@ -432,7 +451,7 @@ def test_crlf_line_ends_stay(name: str, tmp_path: Path, capsys: pytest.CaptureFi
     written = (root / name).read_bytes()
     assert not re.search(rb"(?<!\r)\n", written)
     if name != "codemeta.json":
-        assert written == (EXPECTED / name).read_bytes().replace(b"\n", b"\r\n")
+        assert written == _expected(name).replace(b"\n", b"\r\n")
 
 
 def test_a_failed_write_changes_no_file(

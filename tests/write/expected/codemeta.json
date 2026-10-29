@@ -1,5 +1,5 @@
 {
-  "@context": "https://w3id.org/codemeta/3.0",
+  "@context": ["https://w3id.org/codemeta/3.0", "https://schema.org"],
   "@type": "SoftwareSourceCode",
   "name": "synthagree",
   "description": "A made-up package whose metadata files all agree.",
