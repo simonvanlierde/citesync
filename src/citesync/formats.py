@@ -229,8 +229,9 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
         if isinstance(data.get("repository"), str) and _NPM_BARE_REPO.match(data["repository"]):
             data["repository"] = f"github:{data['repository']}"  # npm reads a bare owner/repo as GitHub
         return data
-    if fmt == "codemeta" and isinstance(data.get("author"), dict):
-        return {**data, "author": [data["author"]]}  # JSON-LD allows one node for a list of one
+    if fmt == "codemeta" and isinstance(authors := data.get("author"), (dict, list)):
+        authors = authors if isinstance(authors, list) else [authors]  # JSON-LD allows one node for a list of one
+        return {**data, "author": [codemeta_person(a) for a in authors]}
     return data
 
 
@@ -258,6 +259,17 @@ def cff_person(author: dict[str, Any]) -> dict[str, Any]:
     parts = [author.get("name-particle"), family, author.get("name-suffix")]
     family = " ".join(p for p in parts if isinstance(p, str) and p.strip()) or None
     return {**author, "family-names": family} if family else author
+
+
+def codemeta_person(author: object) -> object:
+    """Read a codemeta author with only a ``name``, such as an Organization, as a family name, as CFF's entity is."""
+    if (
+        isinstance(author, dict)
+        and isinstance(author.get("name"), str)
+        and not {"givenName", "familyName"} & author.keys()
+    ):
+        return {**author, "familyName": author["name"]}
+    return author
 
 
 def _adapt_cargo(data: dict[str, Any], root: Path, rel: str) -> dict[str, Any]:
@@ -298,7 +310,9 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         values = [v for v in values if codecs.doi_decode(v) is None] or [None]
     raw = values[0]
     if term == "keywords":
-        items = raw if isinstance(raw, list) else [raw]
+        items = (
+            raw if isinstance(raw, list) else raw.split(",") if fmt == "codemeta" and isinstance(raw, str) else [raw]
+        )
         words = tuple(codecs.clean(w) for w in items if isinstance(w, str) and w.strip())
         return words or None
     if term in {"name", "description"}:

@@ -78,4 +78,4 @@ repo-settings:
 
 # Set the GitHub About box from your answers: description and a topic per stack. Adds topics, never removes yours. Safe to rerun.
 repo-about:
-    gh repo edit --description 'Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks' --add-topic python
+    gh repo edit --description 'Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks' --add-topic python --add-topic citation --add-topic codemeta --add-topic zenodo --add-topic software-metadata --add-topic pre-commit

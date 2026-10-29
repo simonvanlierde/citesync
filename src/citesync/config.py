@@ -55,6 +55,20 @@ def find_config(root: Path) -> tuple[dict[str, Any], str]:
     return {}, "defaults"
 
 
+def find_root(start: Path) -> Path:
+    """The nearest directory from ``start`` up that holds a citation file or a citesync config, else ``start``.
+
+    The walk stops at the directory holding ``.git``, so a submodule or nested repo never takes its parent's files.
+    """
+    for directory in (start, *start.parents):
+        names = (*CITATION_FILES, "citesync.toml", ".citesync.toml")
+        if any((directory / name).is_file() for name in names) or find_config(directory)[1] != "defaults":
+            return directory
+        if (directory / ".git").exists():
+            break
+    return start
+
+
 def load_config(root: Path, source: str | None = None) -> Config:
     """The config in use under ``root``, with ``source`` from the command line on top.
 

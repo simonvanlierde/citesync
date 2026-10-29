@@ -28,7 +28,17 @@ from citesync import codecs
 from citesync.check import Finding, findings, has_slot, keyword_key, read_docs
 from citesync.config import Config
 from citesync.errors import CannotWrite
-from citesync.formats import MANIFESTS, Doc, Person, cff_person, codemeta_version, format_of, person, url_label
+from citesync.formats import (
+    MANIFESTS,
+    Doc,
+    Person,
+    cff_person,
+    codemeta_person,
+    codemeta_version,
+    format_of,
+    person,
+    url_label,
+)
 from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative, resolve
 
 
@@ -218,7 +228,12 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     if term == "version":
         if fmt in {"cargo", "npm"}:
             return codecs.version_encode_semver(value)
-        return str(codecs.version_key(value)) if fmt == "pep621" else value
+        if fmt == "pep621":
+            if isinstance(key := codecs.version_key(value), str):
+                msg = f"{value} is not a PEP 440 version"
+                raise CannotWrite(msg)
+            return str(key)
+        return value
     if term == "license":
         return _license(fmt, value, old)
     if term == "identifier":
@@ -371,6 +386,8 @@ def _relist(old: list[Any], new: list[Any]) -> None:
 def _decode(fmt: str, element: Any, path: str, mapping: Mapping) -> Person | None:  # noqa: ANN401
     if fmt == "cff-1.2.0" and isinstance(element, dict):
         element = cff_person(element)
+    elif fmt == "codemeta":
+        element = codemeta_person(element)
     elif fmt == "npm" and isinstance(element, str):
         element = {"name": element}
     return person(fmt, element, path, mapping)
@@ -418,6 +435,9 @@ def _new_person(fmt: str, p: Person, path: str, mapping: Mapping, like: Any) -> 
 def _rename(fmt: str, element: Any, p: Person, path: str, mapping: Mapping) -> None:  # noqa: ANN401
     """Set the name of an entry matched by ORCID, in place; only the citation files have ORCIDs."""
     fields = _fields(fmt, p, path, mapping)
+    if fmt == "codemeta" and codemeta_person(element) is not element:  # a name-only entry keeps its one name
+        element["name"] = p.name
+        return
     if fmt == "cff-1.2.0":
         for key in ("name-particle", "name-suffix"):
             element.pop(key, None)  # folded into family-names by now

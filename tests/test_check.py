@@ -155,6 +155,15 @@ def test_versions_compare_as_pep440(
     assert (code, out.split(" ")[:2]) == (1, ["codemeta.json:", "error[version-mismatch]"])
 
 
+def test_codemeta_keywords_may_be_one_comma_separated_string(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """schema.org lets ``keywords`` be one Text with commas between the keywords."""
+    (tmp_path / "CITATION.cff").write_text(CFF + "keywords: [alpha, beta, gamma]\n", encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(keywords="alpha, beta,gamma"), encoding="utf-8")
+    assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "0 errors, 0 warnings in 2 files\n", "")
+
+
 def test_findings_are_sorted_and_text_matches_codemeta_drift(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

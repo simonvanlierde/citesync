@@ -143,3 +143,12 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+
+      # citesync checks its own citation files. It runs from the project's venv because
+      # a hook can't pin a release of the tool it releases.
+      - id: citesync
+        name: citesync check
+        entry: uv run --frozen citesync check
+        language: system
+        pass_filenames: false
+        files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|\.?citesync\.toml)$

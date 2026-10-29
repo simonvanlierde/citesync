@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
   "title": "citesync",
-  "description": "Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests in step, mapped through CodeMeta crosswalks",
+  "description": "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks",
   "creators": [
     {
       "name": "van Lierde, Simon",
@@ -9,5 +9,6 @@
     }
   ],
   "access_right": "open",
-  "license": "apache-2.0"
+  "license": "apache-2.0",
+  "keywords": ["citation", "CITATION.cff", "codemeta", "zenodo", "software-metadata", "pre-commit"]
 }

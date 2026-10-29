@@ -14,8 +14,7 @@ kind: library
 license: Apache-2.0
 module_name: citesync
 openssf_badge: none
-project_description: Keep CITATION.cff, codemeta.json, .zenodo.json and package manifests
-    in step, mapped through CodeMeta crosswalks
+project_description: 'Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks'
 project_name: citesync
 public: true
 publish_to_pypi: true
