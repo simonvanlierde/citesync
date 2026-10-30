@@ -236,9 +236,16 @@ PACKAGE = {
             {"Cargo.toml": CARGO},
             ", leaving out license: a list: with no .zenodo.json, Zenodo reads one licence and refuses the release",
         ),
+        (
+            {
+                "Cargo.toml": CARGO,
+                ".zenodo.json": json.dumps({"title": "radium", "creators": [{"name": "Curie, Marie"}]}),
+            },
+            "",
+        ),
         ({"package.json": json.dumps(PACKAGE)}, ""),
     ],
-    ids=["keywords-from-two-manifests", "cargo-dual-licence", "package-json"],
+    ids=["keywords-from-two-manifests", "cargo-dual-licence", "dual-licence-with-zenodo", "package-json"],
 )
 def test_init_then_check_passes(
     files: dict[str, str], left: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
