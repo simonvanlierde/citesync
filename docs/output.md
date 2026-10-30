@@ -33,11 +33,11 @@ Findings are sorted by file, rule and field. `line` and `column` count from 1. `
 
 ## GitHub
 
-`--format github` writes one workflow annotation per finding, titled `citesync <rule>`. A last notice counts them all, because GitHub shows only the first ten of each level.
+`--format github` writes one workflow annotation per finding, titled `citesync <rule>`, with a `help:` line under the message. A last notice counts them all, because GitHub shows only the first ten of each level.
 
 ## SARIF
 
-`--format sarif` writes one SARIF 2.1.0 log. Each finding is a result with its `ruleId`, `level` (`error`, `warning`, or `note` for info), message and file. Like the text format, it leaves out info findings unless you pass `-v`. It always leaves out a finding on no file, because SARIF has nowhere to point it.
+`--format sarif` writes one SARIF 2.1.0 log. Each finding is a result with its `ruleId`, `level` (`error`, `warning`, or `note` for info), message and file. Each rule carries its `help` text, which code scanning shows beside the alert. Like the text format, it leaves out info findings unless you pass `-v`. It always leaves out a finding on no file, because SARIF has nowhere to point it.
 
 Upload it to GitHub code scanning with `github/codeql-action/upload-sarif`:
 

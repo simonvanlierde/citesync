@@ -29,7 +29,9 @@ citesync config                     # the config in use, and the file it came fr
 
 ```text
 codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
+  help: Make the file agree with the source, or the other way round if the source is wrong.
 1 error, 0 warnings in 3 files
+1 fixable with `citesync write`
 ```
 
 `citesync --help` lists every command and option. The reference is in `docs/`:

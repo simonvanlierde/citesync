@@ -26,6 +26,12 @@
       ],
       "info": [
         {
+          "rule": "manifest-skipped",
+          "file": "package.json",
+          "term": null,
+          "why": "\"private\": true, so it is never published"
+        },
+        {
           "rule": "not-checked",
           "file": null,
           "term": "contributor",

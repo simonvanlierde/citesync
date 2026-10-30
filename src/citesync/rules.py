@@ -179,6 +179,13 @@ RULES = {
         " against each other. When the source is unreadable, each field it has a place for is `not-checked`."
         " This rule can't be ignored.",
     ),
+    "manifest-skipped": Rule(
+        "info",
+        "A manifest at the repo root was left out, because it isn't released.",
+        "List it under `manifests` to check it anyway.",
+        'A pyproject.toml without `[build-system]` and a package.json with `"private": true` aren\'t packages'
+        " anyone installs, so citesync doesn't compare them. Text and GitHub output show it only with `--verbose`.",
+    ),
     "not-checked": Rule(
         "info",
         "A field was not compared.",

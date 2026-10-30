@@ -8,16 +8,17 @@
 citesync check --source pyproject.toml  # pick another source file
 citesync check --root path/to/repo      # check another directory
 citesync check --format json            # or --json; also github and sarif, see output.md
-citesync check -v                       # also list the fields that weren't compared (not-checked)
+citesync check -v                       # also list the fields not compared and the manifests left out
 citesync check -q                       # only errors, no summary line
+citesync check --color never            # or always; the default, auto, colours on a terminal
 citesync rules                          # every rule and its severity; --format json too
 ```
 
 ## Which files it reads
 
-By default it reads every citation file present, and the package manifests at the repo root. It skips a pyproject.toml without `[build-system]`, a private package.json, and any field in pyproject's `dynamic` list. It reads a Cargo workspace through `[workspace.package]`. [Configuration](config.md) changes the lists.
+By default it reads every citation file present, and the package manifests at the repo root. It skips a pyproject.toml without `[build-system]`, a private package.json, and any field in pyproject's `dynamic` list. `-v` names each manifest it skipped and why ([`manifest-skipped`](rules.md#manifest-skipped)). It reads a Cargo workspace through `[workspace.package]`. [Configuration](config.md) changes the lists.
 
-Run from a subdirectory, citesync walks up to the nearest directory with a citation file or a citesync config. It stops at the git root, so a submodule keeps its own files. File paths in findings are relative to that root.
+Run from a subdirectory, citesync walks up to the nearest directory with a citation file or a citesync config. It stops at the git root, so a submodule keeps its own files, and uses the git root when it found neither. File paths in findings are relative to that root. `citesync config` prints the root in use. `--root` must be a directory.
 
 A file citesync can't read or parse is an [`unreadable`](rules.md#unreadable) finding. The other files are still checked against each other.
 
@@ -42,15 +43,22 @@ Manifests are compared on version, authors' names (and npm contributors' names),
 
 ## Findings and exit codes
 
-Each finding is one line, `file: severity[rule] field: message`. A last line counts them:
+Each finding is a line, `file: severity[rule] field: message`, with a `help:` line under it that says what to do. A line after them counts them. When check fails, a last line counts the errors `citesync write` would fix:
 
 ```text
 .zenodo.json:2:1: error[unreadable] Expecting property name enclosed in double quotes
+  help: Fix the file so its parser accepts it.
 codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
+  help: Make the file agree with the source, or the other way round if the source is wrong.
 2 errors, 0 warnings in 3 files
+1 fixable with `citesync write`
 ```
 
-On a terminal the severity is in colour. `NO_COLOR` turns colour off. `FORCE_COLOR` turns it on anywhere, and `FORCE_COLOR=0` or `false` turns it off. `NO_COLOR` wins.
+A keyword finding between citation files names the words that are missing and extra, not both lists.
+
+On a terminal the severity is in colour. `NO_COLOR` turns colour off. `FORCE_COLOR` turns it on anywhere, and `FORCE_COLOR=0` or `false` turns it off. `NO_COLOR` wins. `--color always` or `never` wins over both.
+
+A config error names the bad entry first and suggests the closest valid one. An `ignore` entry that matched no finding prints a warning to stderr, unless you pass `-q`.
 
 [rules.md](rules.md) lists every rule id, its severity and how to fix it.
 
@@ -58,6 +66,6 @@ On a terminal the severity is in colour. `NO_COLOR` turns colour off. `FORCE_COL
 | ---: | --- |
 | 0 | no error finding: warnings and info don't fail a run |
 | 1 | an error finding, an unreadable file included |
-| 2 | citesync couldn't run: a bad config or option, a missing source file, or an internal error. stdout is empty and stderr says why (a bad option prints the usage first) |
+| 2 | citesync couldn't run: a bad config or option, a missing source file, or an internal error. stdout is empty and stderr says why (a bad option prints the usage first). A missing source names the root it looked in |
 
 The JSON, GitHub and SARIF formats are in [output.md](output.md).

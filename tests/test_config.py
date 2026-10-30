@@ -40,7 +40,7 @@ def test_first_location_wins_down_the_chain(tmp_path: Path, capsys: pytest.Captu
         assert (config.origin, config.source) == (origin, source)
         assert main(["config", "--root", str(tmp_path)]) == 0
         out = capsys.readouterr().out
-        assert out.startswith(f"# from {origin}\nsource = {json.dumps(source)}\n")
+        assert out.startswith(f"# root: {tmp_path}\n# from {origin}\nsource = {json.dumps(source)}\n")
         # Remove the winner: the whole file, or for Cargo.toml the workspace table first.
         if origin == "Cargo.toml [workspace.metadata.citesync]":
             (tmp_path / name).write_text(LOCATIONS[4][2], encoding="utf-8")
@@ -57,6 +57,7 @@ def test_flag_overrides_config(tmp_path: Path) -> None:
 def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["config", "--root", str(tmp_path)]) == 0
     assert capsys.readouterr().out == (
+        f"# root: {tmp_path}\n"
         "# from defaults\n"
         'source = "CITATION.cff"\n'
         "# codemeta-version: not set, so any supported @context passes\n"
@@ -88,15 +89,16 @@ def test_keywords_case_sensitive(tmp_path: Path, capsys: pytest.CaptureFixture[s
 
 def test_write_manifests_all_expands(tmp_path: Path) -> None:
     (tmp_path / "citesync.toml").write_text('write-manifests = "all"\n', encoding="utf-8")
-    assert len(load_config(tmp_path).write_manifests) == 10
+    assert len(load_config(tmp_path).write_manifests) == 6
 
 
 @pytest.mark.parametrize(
     ("text", "message"),
     [
         ('sources = "CITATION.cff"\n', "citesync.toml: unknown key sources"),
-        ('write-manifests = ["keyword"]\n', "write-manifests must be 'all' or a list of"),
-        ('write-manifests = "some"\n', "write-manifests must be 'all' or a list of"),
+        ('write-manifests = ["keyword"]\n', "write-manifests: 'keyword' is not a term"),
+        ('write-manifests = "some"\n', "write-manifests: 'some' is not a term"),
+        ("write-manifests = [1]\n", "write-manifests must be 'all' or a list of"),
         ('write_manifests = "all"\n', "citesync.toml: unknown key write_manifests"),
         ('codemeta-version = "3.2"\n', "codemeta-version must be one of"),
         ('codemeta_version = "3.0"\n', "citesync.toml: unknown key codemeta_version"),
@@ -106,8 +108,9 @@ def test_write_manifests_all_expands(tmp_path: Path) -> None:
         ('files = "codemeta.json"\n', "files must be a list of paths"),
         ('keywords-case-sensitive = "yes"\n', "keywords-case-sensitive must be true or false"),
         ("source = \n", "citesync.toml:1:10: Invalid value"),
-        ('ignore = ["version"]\n', "ignore must be a list of rule ids from name-mismatch,"),
-        ('ignore = ["unreadable"]\n', "ignore must be a list of rule ids"),
+        ('ignore = ["version"]\n', "ignore entry 'version' is not a rule id"),
+        ('ignore = ["unreadable"]\n', "ignore entry 'unreadable' can't be ignored"),
+        ('ignore = "version-mismatch"\n', "ignore must be a list of rule ids"),
     ],
 )
 def test_bad_config_exits_2(text: str, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -142,7 +145,7 @@ def test_root_is_found_by_its_config(
     (tmp_path / "sub").mkdir()
     monkeypatch.chdir(tmp_path / "sub")
     assert main(["config"]) == 0
-    assert capsys.readouterr().out.startswith(f"# from {marker}")
+    assert capsys.readouterr().out.startswith(f"# root: {tmp_path}\n# from {marker}")
 
 
 def test_the_walk_stops_at_the_git_root(

@@ -51,8 +51,8 @@ NEW_CODEMETA_VERSION = "3.0"
 
 def write(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
-) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding]]:
-    """Write every finding write may fix; return what it wrote, why it skipped a field, and what it couldn't read.
+) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding], list[Finding]]:
+    """Write every finding write may fix; return what it wrote and skipped, what it couldn't read, and what it fixed.
 
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
@@ -63,20 +63,17 @@ def write(
     With ``dry_run``, nothing is replaced.
 
     Returns:
-        The new text of each path it changed, the reason for each (path, term) it left as it was, and the
-        ``unreadable`` findings.
+        The new text of each path it changed, the reason for each (path, term) it left as it was, the
+        ``unreadable`` findings, and the error findings it fixed.
 
     Raises:
         CheckError: as :func:`citesync.check.check` does, and when a file to write resolves outside ``root``.
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
-    fix = {
-        (f.file, f.term)
-        for f in findings(docs, unreadable, config)
-        if f.severity == "error" and f.rule not in config.ignore
-    }
-    source, texts, skipped = docs[0], {}, {}
+    errors = [f for f in findings(docs, unreadable, config)[0] if f.severity == "error"]
+    fix = {(f.file, f.term) for f in errors}
+    source, texts, skipped, done = docs[0], {}, {}, set()
     key = keyword_key(config)
     for doc in docs:  # the source too, for its @context
         terms = [
@@ -98,11 +95,14 @@ def write(
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
+            changed = [*terms, "@context"] if context else terms
+            done |= {(doc.path, t) for t in changed if t not in reasons}
     version = config.codemeta_version or NEW_CODEMETA_VERSION
-    for rel in missing(root, config) if source.readable and "file-missing" not in config.ignore else ():
-        if format_of(rel) == "codemeta":
+    for rel in missing(root, config) if source.readable else ():
+        if format_of(rel) == "codemeta" and (rel, None) in fix:
             texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
             skipped |= {(rel, term): reason for term, reason in reasons.items()}
+            done.add((rel, None))
     if not dry_run:
         for rel in texts:  # read_doc refuses an existing file outside; this catches a dangling link to one
             if not inside(root, rel):
@@ -110,7 +110,8 @@ def write(
                 raise CheckError(msg)
             (root / rel).parent.mkdir(parents=True, exist_ok=True)  # a listed docs/codemeta.json may be the first there
         _replace({root / rel: text for rel, text in texts.items()})
-    return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"]
+    fixed = [f for f in errors if (f.file, f.term) in done]
+    return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"], fixed
 
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
@@ -250,7 +251,8 @@ def _apply(
         container, key = slot
         old = container[key]
         if isinstance(old, dict) and old.get("workspace") is True:
-            continue  # Cargo inherits it from [workspace.package]: edit it there by hand
+            skipped[term] = "inherited from [workspace.package] in the workspace's Cargo.toml"
+            continue
         try:
             if term in PEOPLE:
                 new = _people(doc.format, old, source, path, mapping, term)

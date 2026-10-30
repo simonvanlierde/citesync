@@ -1,7 +1,7 @@
 """Find and validate the config: the first location found wins, flags override it."""
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -9,7 +9,7 @@ from typing import Any
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS, load
 from citesync.mapping import TERMS, resolve
-from citesync.rules import RULES
+from citesync.rules import MISMATCH, RULES
 
 
 @dataclass(frozen=True)
@@ -60,16 +60,17 @@ def find_config(root: Path) -> tuple[dict[str, Any], str]:
 
 
 def find_root(start: Path) -> Path:
-    """The nearest directory from ``start`` up that holds a citation file or a citesync config, else ``start``.
+    """The nearest directory from ``start`` up that holds a citation file or a citesync config.
 
-    The walk stops at the directory holding ``.git``, so a submodule or nested repo never takes its parent's files.
+    The walk stops at the directory holding ``.git``, so a submodule or nested repo never takes its parent's files,
+    and returns that directory when it found nothing; outside a git repo, ``start``.
     """
     for directory in (start, *start.parents):
         names = (*CITATION_FILES, "citesync.toml", ".citesync.toml")
         if any((directory / name).is_file() for name in names) or find_config(directory)[1] != "defaults":
             return directory
         if (directory / ".git").exists():
-            break
+            return directory
     return start
 
 
@@ -100,6 +101,9 @@ def load_config(root: Path, source: str | None = None) -> Config:
 
 
 def _codemeta_version(value: object, origin: str) -> str:
+    if isinstance(value, float):  # TOML reads an unquoted 3.0 as a number
+        msg = f'{origin}: codemeta-version must be a string, such as "{value}"'
+        raise CheckError(msg)
     if value not in CODEMETA_VERSIONS:
         msg = f"{origin}: codemeta-version must be one of {', '.join(CODEMETA_VERSIONS)}"
         raise CheckError(msg)
@@ -131,19 +135,52 @@ def _paths(value: object, names: dict[str, str], origin: str, key: str) -> tuple
     return tuple(_path(item, names, origin, key) for item in value)
 
 
+# The terms a manifest holds and write may change there: what "all" means in write-manifests.
+MANIFEST_TERMS = ("version", "author", "contributor", "license", "codeRepository", "keywords")
+# Rule ids name a few terms more plainly; write-manifests takes only the term.
+_RULE_NAMES = {rule.removesuffix("-mismatch"): term for term, rule in MISMATCH.items()}
+
+
+def did_you_mean(word: str, choices: Iterable[str]) -> str:
+    """``; did you mean 'x'?`` for the closest of ``choices``, or nothing when none is close."""
+    import difflib  # noqa: PLC0415 - only on an error
+
+    close = difflib.get_close_matches(word, list(choices), n=1)
+    return f"; did you mean {close[0]!r}?" if close else ""
+
+
 def _write_manifests(value: object, origin: str) -> tuple[str, ...]:
     items = [value] if isinstance(value, str) else value
-    if not isinstance(items, list) or not all(isinstance(i, str) and (i in TERMS or i == "all") for i in items):
-        msg = f"{origin}: write-manifests must be 'all' or a list of {', '.join(TERMS)}, got {value!r}"
+    if not isinstance(items, list) or not all(isinstance(i, str) for i in items):
+        msg = f"{origin}: write-manifests must be 'all' or a list of {', '.join(MANIFEST_TERMS)}, got {value!r}"
         raise CheckError(msg)
-    return tuple(TERMS) if "all" in items else tuple(items)
+    for item in items:
+        if item == "all" or item in MANIFEST_TERMS:
+            continue
+        term, hint = _RULE_NAMES.get(item, item), ""
+        if term in MANIFEST_TERMS:
+            why = f"{item!r} is {term} here"
+        elif term in TERMS:
+            why = f"{item!r} is never written to a manifest"
+        else:
+            why, hint = f"{item!r} is not a term", did_you_mean(item, MANIFEST_TERMS)
+        msg = f"{origin}: write-manifests: {why}; it takes 'all' or {', '.join(MANIFEST_TERMS)}{hint}"
+        raise CheckError(msg)
+    return MANIFEST_TERMS if "all" in items else tuple(items)
 
 
 def _ignore(value: object, origin: str) -> tuple[str, ...]:
-    ignorable = [rule for rule in RULES if rule != "unreadable"]  # a file citesync can't read always fails
-    if not isinstance(value, list) or not all(isinstance(i, str) and i in ignorable for i in value):
-        msg = f"{origin}: ignore must be a list of rule ids from {', '.join(ignorable)}, got {value!r}"
+    if not isinstance(value, list) or not all(isinstance(i, str) for i in value):
+        msg = f"{origin}: ignore must be a list of rule ids, got {value!r}"
         raise CheckError(msg)
+    for rule in value:
+        if rule == "unreadable":
+            msg = f"{origin}: ignore entry 'unreadable' can't be ignored: a file citesync can't read always fails"
+            raise CheckError(msg)
+        if rule not in RULES:
+            hint = did_you_mean(rule, RULES)
+            msg = f"{origin}: ignore entry {rule!r} is not a rule id; `citesync rules` lists them{hint}"
+            raise CheckError(msg)
     return tuple(value)
 
 

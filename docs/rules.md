@@ -150,6 +150,14 @@ The file could not be opened or parsed, is not UTF-8, or points outside the repo
 
 To fix: Fix the file so its parser accepts it.
 
+## manifest-skipped
+
+A manifest at the repo root was left out, because it isn't released. Severity: info.
+
+A pyproject.toml without `[build-system]` and a package.json with `"private": true` aren't packages anyone installs, so citesync doesn't compare them. Text and GitHub output show it only with `--verbose`.
+
+To fix: List it under `manifests` to check it anyway.
+
 ## not-checked
 
 A field was not compared. Severity: info.
