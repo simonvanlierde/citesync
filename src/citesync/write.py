@@ -16,6 +16,7 @@ import re
 import shutil
 import tempfile
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,7 @@ from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keywo
 from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
+    CITATION_FILES,
     MANIFESTS,
     Doc,
     Person,
@@ -113,6 +115,89 @@ def write(
         _replace({root / rel: text for rel, text in texts.items()})
     fixed = [f for f in errors if (f.file, f.term) in done]
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"], fixed
+
+
+def init(
+    root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
+) -> tuple[str, dict[str, str]]:
+    """Write a new CITATION.cff from the files the repo has; return its text and the reason for each term left out.
+
+    Each term comes from the first file that holds it: the configured source, then codemeta.json,
+    .zenodo.json and the manifests in that order, so a citation file's ORCIDs and name parts win.
+    With ``dry_run``, nothing is written.
+
+    Raises:
+        CheckError: when CITATION.cff exists, a file can't be read, or no file gives a title or authors.
+    """
+    if (root / "CITATION.cff").exists() or (root / "CITATION.cff").is_symlink():
+        msg = "CITATION.cff already exists; `citesync write` makes it agree with another file"
+        raise CheckError(msg)
+    mapping = mapping or load_mapping()
+    source = _merged(root, config, mapping)
+    record = source.record
+    cff = Doc("CITATION.cff", "cff-1.2.0", {}, frozenset(), "1.2.0", release=True)
+    data = CommentedMap(
+        [
+            ("cff-version", "1.2.0"),
+            ("message", "If you use this software, please cite it as below."),
+            ("type", "software"),
+        ]
+    )
+    blank = {  # the CFF key, and a blank whose shape picks the form, as in _new_codemeta
+        "name": ("title", ""),
+        "description": ("abstract", ""),
+        "version": ("version", ""),
+        "datePublished": ("date-released", dt.date.min),  # a date, so YAML writes it unquoted
+        "author": ("authors", []),
+        "identifier": ("doi", ""),
+        "codeRepository": ("repository-code", ""),
+        "license": ("license", ""),
+        "keywords": ("keywords", []),
+    }
+    skipped = {}
+    for term, (cff_key, old) in blank.items():
+        if term not in record:
+            continue
+        try:
+            if term in PEOPLE:
+                data[cff_key] = _people(cff.format, old, source, str(mapping[cff.format, term]), mapping, term)
+            else:
+                data[cff_key] = _encode(cff, source, term, record[term], old, keyword_key(config))
+        except CannotWrite as err:
+            skipped[term] = str(err)
+    yaml = YAML()
+    yaml.width = 1 << 16
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    out = io.StringIO()
+    yaml.dump(data, out)
+    if not dry_run:
+        _replace({root / "CITATION.cff": out.getvalue()})
+    return out.getvalue(), skipped
+
+
+def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
+    """The first file :func:`init` reads, holding each term from the first file that has it.
+
+    Raises:
+        CheckError: when there is no file to read, one can't be read, or none gives a title or authors.
+    """
+    first = next((p for p in (config.source, *CITATION_FILES, *MANIFESTS) if (root / p).is_file()), None)
+    if first is None:
+        msg = f"no codemeta.json, .zenodo.json or package manifest in {root} to make a CITATION.cff from"
+        raise CheckError(msg)
+    docs, read = read_docs(root, replace(config, source=first), mapping)
+    if bad := next((f for f in read if f.rule == "unreadable"), None):
+        msg = f"{bad.where}: {bad.message}"
+        raise CheckError(msg)
+    record: dict[str, Any] = {}
+    for doc in docs:
+        for term, value in doc.record.items():
+            record.setdefault(term, value)
+    for term, cff_key in (("name", "title"), ("author", "authors")):
+        if term not in record:
+            msg = f"no {cff_key} in {', '.join(d.path for d in docs)}, and CITATION.cff needs one"
+            raise CheckError(msg)
+    return replace(docs[0], record=record)
 
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
