@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from citesync.cli import main
+
 Edit = Callable[[dict], None]
+Run = Callable[..., tuple[int, str, str]]
 _UPDATES: dict[Path, list[Edit]] = {}
 
 
@@ -15,6 +18,18 @@ def _no_colour_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Text output is compared as plain text, whatever the shell running the tests sets."""
     monkeypatch.delenv("FORCE_COLOR", raising=False)
     monkeypatch.delenv("NO_COLOR", raising=False)
+
+
+@pytest.fixture
+def run(capsys: pytest.CaptureFixture[str]) -> Run:
+    """``citesync`` with these arguments, returning its exit code, stdout and stderr."""
+
+    def call(*args: str) -> tuple[int, str, str]:
+        code = main(list(args))
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    return call
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

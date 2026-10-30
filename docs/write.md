@@ -27,6 +27,7 @@ Contributors are written as authors are.
 
 - An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation. Anyone else gets a new entry.
 - If that would drop an old entry with more than a name and ORCID, for example after a rename, write leaves that file's authors for you to edit.
+- The same goes for an old entry with an ORCID when a new author without one comes in: that may be the same person renamed, and write won't guess.
 - An author with only a name, such as an organization, keeps it as a family name. A new one goes into codemeta.json as an `Organization`.
 - Write doesn't add a new .zenodo.json contributor, because Zenodo needs a contributor `type`. Add it by hand.
 - A Cargo field inherited with `.workspace = true` stays as it is, and the finding says so. Change it in `[workspace.package]`.

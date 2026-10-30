@@ -133,14 +133,18 @@ def write(
 
 def init(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
-) -> tuple[str, dict[str, str]]:
-    """Write a new CITATION.cff from the files the repo has; return its text and the reason for each term left out.
+) -> tuple[str, dict[str, str], list[tuple[str, str, str]]]:
+    """Write a new CITATION.cff from the files the repo has.
 
     Each term comes from the first file that holds it: the configured source, then codemeta.json,
     .zenodo.json and the manifests in that order, so a citation file's ORCIDs and name parts win.
     Keywords come from every file, so each manifest's are in it. A licence list is left out when
     there is no .zenodo.json, as Zenodo would refuse it.
     With ``dry_run``, nothing is written.
+
+    Returns:
+        Its text, the reason for each term left out, and each one-string author name split on its
+        last space, with the given and family names it became.
 
     Raises:
         CheckError: when CITATION.cff exists, a file can't be read, or no file gives a title or authors.
@@ -170,17 +174,10 @@ def init(
         "license": ("license", ""),
         "keywords": ("keywords", []),
     }
-    skipped = {}
-    for term, (cff_key, old) in blank.items():
-        if term not in record:
-            continue
-        try:
-            if term in PEOPLE:
-                data[cff_key] = _people(cff.format, old, source, str(mapping[cff.format, term]), mapping, term)
-            else:
-                data[cff_key] = _encode(cff, source, term, record[term], old, keyword_key(config))
-        except CannotWrite as err:
-            skipped[term] = str(err)
+    values, skipped = _encode_terms(
+        cff, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key(config)
+    )
+    data.update((blank[term][0], value) for term, value in values.items())
     if not (root / ".zenodo.json").is_file() and ("license", "zenodo-license-list") in zenodo_gaps(data):
         del data["license"]
         skipped["license"] = ZENODO_GAPS["zenodo-license-list"]
@@ -191,7 +188,12 @@ def init(
     yaml.dump(data, out)
     if not dry_run:
         _replace({root / "CITATION.cff": out.getvalue()})
-    return out.getvalue(), skipped
+    splits = []  # as _fields splits a one-string name
+    for p in record["author"]:  # _merged makes sure there is one
+        given, _, family = (p.name or "").rpartition(" ")
+        if p.family is None and not p.organization and given:
+            splits.append((str(p.name), given, family))
+    return out.getvalue(), skipped, splits
 
 
 def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
@@ -315,16 +317,24 @@ def _new_codemeta(
     }
     data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
-    skipped = {}
+    values, skipped = _encode_terms(doc, source, blank, mapping, keyword_key)
+    return json.dumps(data | values, indent=2, ensure_ascii=False) + "\n", skipped
+
+
+def _encode_terms(
+    doc: Doc, source: Doc, blank: dict[str, Any], mapping: Mapping, keyword_key: Callable[[str], str]
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Each term of ``blank`` the source holds, spelled for ``doc`` in its blank's shape, and why any is left out."""
+    values, skipped = {}, {}
     for term in (t for t in blank if t in source.record):
         try:
             if term in PEOPLE:
-                data[term] = _people("codemeta", blank[term], source, str(mapping["codemeta", term]), mapping, term)
+                values[term] = _people(doc.format, blank[term], source, str(mapping[doc.format, term]), mapping, term)
             else:
-                data[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
+                values[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
         except CannotWrite as err:
             skipped[term] = str(err)
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", skipped
+    return values, skipped
 
 
 def _yaml(text: str) -> YAML:
@@ -494,8 +504,9 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
     end. npm keeps one author, so only the first is set and the rest stay.
 
     Raises:
-        CannotWrite: when an entry it would drop holds more than a name and ORCID, or when a
-            Zenodo contributor would be added, since Zenodo needs a contributor type.
+        CannotWrite: when an entry it would drop holds more than a name and ORCID, or an ORCID
+            while someone with no ORCID is added, or when a Zenodo contributor would be added,
+            since Zenodo needs a contributor type.
     """
     items = list(old) if isinstance(old, list) else [old]
     decoded = [person(fmt, el, path, mapping, term) for el in items]
@@ -512,8 +523,11 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
         msg = f"{nameless.orcid} has no name, and this file has no place for an ORCID"
         raise CannotWrite(msg)
     kept = {matches[0]} if npm and fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
+    # a new name with no ORCID may be a dropped entry renamed: its ORCID can't be moved over safely, nor lost
+    renamed = any(i is None and not p.orcid for p, i in zip(people, matches, strict=True))
     for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was
-        if i not in kept and (extra := _extra(fmt, el, path, mapping, term)):
+        orcid = "ORCID" if renamed and (q := decoded[i]) and q.orcid else None
+        if i not in kept and (extra := _extra(fmt, el, path, mapping, term) or orcid):
             q = decoded[i]
             msg = f"renaming would drop the {extra} of {(q.name if q and q.name else el)!r}"
             raise CannotWrite(msg)

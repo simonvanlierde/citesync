@@ -3,11 +3,13 @@
 import json
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from ruamel.yaml import YAML
 
-from citesync.cli import main
+if TYPE_CHECKING:
+    from tests.conftest import Run
 
 SYNTHETIC = Path(__file__).parent / "fixtures" / "synthetic-agree"
 PYPROJECT = """\
@@ -28,12 +30,6 @@ Source = "https://example.org/radium"
 """
 
 
-def _run(capsys: pytest.CaptureFixture[str], *args: str) -> tuple[int, str, str]:
-    code = main(list(args))
-    out, err = capsys.readouterr()
-    return code, out, err
-
-
 def _cff(root: Path) -> dict:
     """The CITATION.cff, checked for the keys CFF 1.2.0 requires."""
     data = YAML(typ="safe").load((root / "CITATION.cff").read_text(encoding="utf-8"))
@@ -44,11 +40,11 @@ def _cff(root: Path) -> dict:
     return data
 
 
-def test_init_from_every_file_passes_check(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_from_every_file_passes_check(tmp_path: Path, run: "Run") -> None:
     root = tmp_path / "repo"
     shutil.copytree(SYNTHETIC, root)
     (root / "CITATION.cff").unlink()
-    assert _run(capsys, "init", "--root", str(root)) == (0, "wrote CITATION.cff\n", "")
+    assert run("init", "--root", str(root)) == (0, "wrote CITATION.cff\n", "")
     data = _cff(root)
     assert data["title"] == "synthagree"
     assert data["doi"] == "10.5281/zenodo.1234567"
@@ -57,14 +53,25 @@ def test_init_from_every_file_passes_check(tmp_path: Path, capsys: pytest.Captur
         "family-names": "Lovelace",
         "orcid": "https://orcid.org/0000-0002-1825-0097",
     }
-    code, out, _ = _run(capsys, "check", "--root", str(root))
+    code, out, _ = run("check", "--root", str(root))
     assert code == 0, out
 
 
-def test_init_from_pyproject_alone_passes_check(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_says_to_check_a_split_name(tmp_path: Path, run: "Run") -> None:
+    pyproject = PYPROJECT.replace('{ name = "Tu Youyou" }', '{ name = "Antonie van Leeuwenhoek" }')
+    (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
+    code, out, _ = run("init", "--root", str(tmp_path))
+    assert code == 0
+    assert out.splitlines()[1:] == [
+        "check the name split: 'Marie Curie' became given 'Marie', family 'Curie'",
+        "check the name split: 'Antonie van Leeuwenhoek' became given 'Antonie van', family 'Leeuwenhoek'",
+    ]
+
+
+def test_init_from_pyproject_alone_passes_check(tmp_path: Path, run: "Run") -> None:
     root = tmp_path
     (root / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
-    assert _run(capsys, "init", "--root", str(root))[0] == 0
+    assert run("init", "--root", str(root))[0] == 0
     data = _cff(root)
     assert data["title"] == "radium"
     assert data["abstract"] == "Measures what glows."
@@ -76,23 +83,23 @@ def test_init_from_pyproject_alone_passes_check(tmp_path: Path, capsys: pytest.C
         {"given-names": "Marie", "family-names": "Curie"},
         {"given-names": "Tu", "family-names": "Youyou"},
     ]
-    code, out, _ = _run(capsys, "check", "--root", str(root))
+    code, out, _ = run("check", "--root", str(root))
     assert code == 0, out
 
 
-def test_init_refuses_an_existing_citation_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_refuses_an_existing_citation_file(tmp_path: Path, run: "Run") -> None:
     root = tmp_path / "repo"
     shutil.copytree(SYNTHETIC, root)
     before = (root / "CITATION.cff").read_bytes()
-    code, out, err = _run(capsys, "init", "--root", str(root))
+    code, out, err = run("init", "--root", str(root))
     assert (code, out) == (2, "")
     assert "CITATION.cff already exists" in err
     assert (root / "CITATION.cff").read_bytes() == before
 
 
-def test_init_diff_writes_nothing(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_diff_writes_nothing(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
-    code, out, _ = _run(capsys, "init", "--diff", "--root", str(tmp_path))
+    code, out, _ = run("init", "--diff", "--root", str(tmp_path))
     assert code == 0
     assert out.startswith("--- /dev/null\n+++ b/CITATION.cff\n")
     assert "+title: radium\n" in out
@@ -108,23 +115,23 @@ def test_init_diff_writes_nothing(tmp_path: Path, capsys: pytest.CaptureFixture[
     ],
 )
 def test_init_refuses_without_a_title_or_authors(
-    pyproject: str | None, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    pyproject: str | None, message: str, tmp_path: Path, run: "Run"
 ) -> None:
     if pyproject:
         (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
-    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    code, _, err = run("init", "--root", str(tmp_path))
     assert code == 2
     assert message in err
     assert not (tmp_path / "CITATION.cff").exists()
 
 
-def test_init_names_a_field_it_left_out(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_names_a_field_it_left_out(tmp_path: Path, run: "Run") -> None:
     pyproject = PYPROJECT.replace('"MIT"', '"MIT AND Apache-2.0"')
     (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
-    code, out, _ = _run(capsys, "init", "--root", str(tmp_path))
-    assert (code, out) == (
+    code, out, _ = run("init", "--root", str(tmp_path))
+    assert (code, out.splitlines()[0]) == (
         0,
-        "wrote CITATION.cff, leaving out license: a licence list can only say OR, not AND or WITH\n",
+        "wrote CITATION.cff, leaving out license: a licence list can only say OR, not AND or WITH",
     )
     assert "license" not in _cff(tmp_path)
 
@@ -150,16 +157,14 @@ keywords:
 """
 
 
-def test_init_writes_this_text(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_writes_this_text(tmp_path: Path, run: "Run") -> None:
     """The keys in CFF's order, sequences indented under their key, and no line wrapped."""
     (tmp_path / "pyproject.toml").write_text(PYPROJECT.replace("Measures what glows.", LONG), encoding="utf-8")
-    assert _run(capsys, "init", "--root", str(tmp_path))[0] == 0
+    assert run("init", "--root", str(tmp_path))[0] == 0
     assert (tmp_path / "CITATION.cff").read_text(encoding="utf-8") == WRITTEN
 
 
-def test_init_takes_each_field_from_the_first_file_that_has_it(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_init_takes_each_field_from_the_first_file_that_has_it(tmp_path: Path, run: "Run") -> None:
     codemeta = {
         "@context": "https://w3id.org/codemeta/3.0",
         "name": "radium",
@@ -168,16 +173,16 @@ def test_init_takes_each_field_from_the_first_file_that_has_it(
     }
     (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
     (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
-    assert _run(capsys, "init", "--root", str(tmp_path))[0] == 0
+    assert run("init", "--root", str(tmp_path))[0] == 0
     text = (tmp_path / "CITATION.cff").read_text(encoding="utf-8")
     assert "title: radium\nabstract: Measures what glows.\nversion: 0.4.0\ndate-released: 1898-12-26\n" in text
     assert "authors:\n  - given-names: Marie\n    family-names: Curie\nrepository-code:" in text
 
 
-def test_init_refuses_a_dangling_citation_file_link(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_refuses_a_dangling_citation_file_link(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
     (tmp_path / "CITATION.cff").symlink_to(tmp_path / "elsewhere.cff")
-    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    code, _, err = run("init", "--root", str(tmp_path))
     assert (code, err) == (
         2,
         "citesync: CITATION.cff already exists; `citesync write` makes it agree with another file\n",
@@ -185,20 +190,20 @@ def test_init_refuses_a_dangling_citation_file_link(tmp_path: Path, capsys: pyte
     assert not (tmp_path / "elsewhere.cff").exists()
 
 
-def test_init_refuses_when_a_file_cannot_be_read(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_refuses_when_a_file_cannot_be_read(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
     (tmp_path / "codemeta.json").write_text("{", encoding="utf-8")
-    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    code, _, err = run("init", "--root", str(tmp_path))
     assert code == 2
     assert err.startswith("citesync: codemeta.json:1:2: ")
     assert not (tmp_path / "CITATION.cff").exists()
 
 
-def test_init_names_every_file_it_read_for_a_missing_title(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_init_names_every_file_it_read_for_a_missing_title(tmp_path: Path, run: "Run") -> None:
     pyproject = '[build-system]\nbuild-backend = "uv_build"\n\n[project]\nauthors = [{ name = "Tu Youyou" }]\n'
     (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
     (tmp_path / "package.json").write_text('{"author": "Tu Youyou"}\n', encoding="utf-8")
-    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    code, _, err = run("init", "--root", str(tmp_path))
     assert (code, err) == (2, "citesync: no title in pyproject.toml, package.json, and CITATION.cff needs one\n")
 
 
@@ -247,11 +252,10 @@ PACKAGE = {
     ],
     ids=["keywords-from-two-manifests", "cargo-dual-licence", "dual-licence-with-zenodo", "package-json"],
 )
-def test_init_then_check_passes(
-    files: dict[str, str], left: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_init_then_check_passes(files: dict[str, str], left: str, tmp_path: Path, run: "Run") -> None:
     for name, text in files.items():
         (tmp_path / name).write_text(text, encoding="utf-8")
-    assert _run(capsys, "init", "--root", str(tmp_path)) == (0, f"wrote CITATION.cff{left}\n", "")
-    code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
+    code, out, _ = run("init", "--root", str(tmp_path))
+    assert (code, out.startswith(f"wrote CITATION.cff{left}\n")) == (0, True), out
+    code, out, _ = run("check", "--root", str(tmp_path))
     assert code == 0, out
