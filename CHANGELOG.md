@@ -65,6 +65,7 @@ To upgrade from 0.1.0:
 - A repository URL with whitespace before a trailing slash, such as `https://example.org/r /`, kept that whitespace when read.
 - `citesync write` dropped the comments above a `---` line at the top of CITATION.cff.
 - An author with an ORCID and no name was written to pyproject.toml, Cargo.toml or package.json as an empty entry, one more on each run. `citesync write` now leaves that list for a hand edit and says why.
+- `citesync write` turned every line end of a file with both LF and CRLF line ends into CRLF, even when it changed nothing else. A file it edits now keeps the more common line end, and a file it leaves alone keeps its own ([docs/write.md](docs/write.md#safety)).
 
 ## [0.1.0] - 2026-10-29
 
