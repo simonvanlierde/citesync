@@ -23,6 +23,7 @@ citesync check                      # exit 0: no error finding; 1: an error find
 citesync check --source pyproject.toml
 citesync write --diff               # print what write would change, and change nothing
 citesync write                      # rewrite the other files to agree with the source
+citesync init                       # write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
 citesync explain version-mismatch   # what a rule checks and how to fix it
 citesync config                     # the config in use, and the file it came from
 ```
@@ -40,6 +41,7 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 
 - [How check works](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md): the fields, files, options and exit codes.
 - [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it changes and what it leaves alone.
+- [How init works](https://github.com/simonvanlierde/citesync/blob/main/docs/init.md): where a new CITATION.cff takes each field from.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
 - [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes, and every key.
 - [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): JSON, GitHub annotations and SARIF.
