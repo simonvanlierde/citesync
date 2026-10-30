@@ -368,6 +368,20 @@ def test_a_given_name_rename_keeps_the_family_name_parts(
     assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"Ada"', '"Ada K."')
 
 
+def test_a_family_first_name_is_not_renamed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    codemeta = root / "codemeta.json"
+    _edit(codemeta, '"givenName": "Ada",\n      "familyName": "Lovelace"', '"name": "Lovelace Ada"')
+    _edit(
+        codemeta,
+        ',\n    {\n      "@type": "Person",\n      "givenName": "Alan",\n      "familyName": "Turing"\n    }',
+        "",
+    )
+    _run(capsys, "write", "--root", str(root))
+    authors = json.loads(codemeta.read_text(encoding="utf-8"))["author"]
+    assert [a.get("name") or a["familyName"] for a in authors] == ["Lovelace Ada", "Turing"]
+
+
 def _doi(n: int) -> dict[str, str]:
     return {
         "@type": "PropertyValue",

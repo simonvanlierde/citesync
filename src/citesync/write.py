@@ -40,6 +40,7 @@ from citesync.formats import (
     inside,
     locate,
     person,
+    same_name,
 )
 from citesync.jsonsplice import splice
 from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
@@ -406,7 +407,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
             continue
         q = decoded[i]
         assert q is not None  # noqa: S101 - _match skips entries that read as no one
-        if codecs.name_key(q.name or "") != codecs.name_key(p.name or ""):
+        if not same_name(q, p):
             _rename(fmt, items[i], p, path, mapping, term)
         if q.orcid and p.orcid and q.orcid != p.orcid:
             okey = relative(str(mapping[fmt, f"{term}.@id"]), path)
@@ -459,7 +460,7 @@ def _matches(decoded: list[Person | None], people: tuple[Person, ...]) -> list[i
 def _match(decoded: list[Person | None], used: set[int], p: Person) -> int | None:
     """The first unused entry with ``p``'s name, else the first with ``p``'s ORCID."""
     free = [(i, q) for i, q in enumerate(decoded) if q is not None and i not in used]
-    by_name = (i for i, q in free if p.name and codecs.name_key(q.name or "") == codecs.name_key(p.name))
+    by_name = (i for i, q in free if p.name and same_name(q, p))
     by_orcid = (i for i, q in free if p.orcid and q.orcid == p.orcid)
     return next(by_name, next(by_orcid, None))
 

@@ -38,6 +38,7 @@ To upgrade from 0.1.0:
 - `python -m citesync` failed with "No module named `citesync.__main__`".
 - With `doi: ""` in CITATION.cff, the DOI under `identifiers` was ignored.
 - codemeta.json entries written with `type` and `id` instead of `@type` and `@id` were ignored.
+- A name in one string, such as codemeta.json `name`, written family name first (`Mao Zedong`, `毛泽东`) was an `author-mismatch` against CITATION.cff's given and family names, and `citesync write` rewrote it.
 - A title with an accent typed two different ways didn't match itself.
 - `citesync write` folded an author's `name-particle` and `name-suffix` into `family-names` when it changed the given name.
 - GitHub annotations didn't attach to their files when the root was a subdirectory of the git repo.
