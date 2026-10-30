@@ -931,20 +931,19 @@ def test_a_listed_codemeta_json_that_is_missing_is_created(
     assert _run(capsys, "check", "--root", str(root))[0] == 0
 
 
-def test_an_ignored_missing_codemeta_json_is_not_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\nignore = ["file-missing"]\n')
-    (root / "codemeta.json").unlink()
-    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
-    assert not (root / "codemeta.json").exists()
-
-
-def test_no_codemeta_json_is_created_from_an_unreadable_source(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize(
+    ("config", "cff", "code"),
+    [('ignore = ["file-missing"]\n', None, 0), ("", "title: [\n", 1)],
+    ids=["ignored", "unreadable-source"],
+)
+def test_a_missing_codemeta_json_is_not_created(
+    config: str, cff: str | None, code: int, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\n')
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\n' + config)
     (root / "codemeta.json").unlink()
-    (root / "CITATION.cff").write_text("title: [\n", encoding="utf-8")
-    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 1
+    if cff:
+        (root / "CITATION.cff").write_text(cff, encoding="utf-8")
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == code
     assert not (root / "codemeta.json").exists()
 
 
@@ -966,15 +965,13 @@ def test_a_created_codemeta_json_leaves_out_what_it_cannot_spell(
     assert {"license", "datePublished"} & created.keys() == set()
 
 
-@pytest.mark.parametrize(("config", "context"), [("", "3.0"), ('codemeta-version = "4.0"\n', "4.0")])
-def test_a_created_codemeta_json_takes_the_configured_version_else_3_0(
-    config: str, context: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    root = _synthetic(tmp_path / "repo", f'files = ["codemeta.json"]\n{config}')
+def test_codemeta_version_sets_a_created_codemeta_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Unset, it is 3.0, as CREATED shows."""
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\ncodemeta-version = "4.0"\n')
     (root / "codemeta.json").unlink()
     _run(capsys, "write", "--root", str(root))
     created = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
-    assert created["@context"] == f"https://w3id.org/codemeta/{context}"
+    assert created["@context"] == "https://w3id.org/codemeta/4.0"
 
 
 def test_any_codemeta_version_passes_and_stays_when_unset(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
