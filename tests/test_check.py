@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -891,6 +892,17 @@ def test_colour(
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
     assert _run(capsys, "check", "--root", str(tmp_path))[1].startswith(start)
+
+
+@pytest.mark.parametrize("fmt", ["text", "github"])
+def test_control_characters_are_escaped(fmt: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A keyword holding ESC could retitle the terminal or hide lines."""
+    (tmp_path / "CITATION.cff").write_text(CFF + "keywords: [a]\n", encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(keywords=["\x1b]0;x\x07\x9b"]), encoding="utf-8")
+    code, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", fmt)
+    assert code == 1
+    assert not re.search("[\x00-\x09\x0b-\x1f\x7f-\x9f]", out)
+    assert "\\x1b]0;x\\x07\\x9b" in out
 
 
 def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

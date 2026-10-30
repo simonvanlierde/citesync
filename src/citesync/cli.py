@@ -9,6 +9,7 @@ unless moving a written file into place failed: files moved before it stay writt
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -23,6 +24,7 @@ JSON_VERSION = 1
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
 _SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
+_CONTROL = re.compile("[\x00-\x1f\x7f-\x9f]")  # C0 and C1: a file's ESC could retitle the terminal or hide lines
 
 
 # Imports that only `write`, `--version` or the JSON report need wait until they're used:
@@ -204,16 +206,17 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         for f in findings:
             where = f"file={_escape(prefix + f.file, property_=True)}," if f.file else ""
             where += f"line={f.line},col={f.column}," if f.line else ""
-            message = _escape(f"{f.term}: {f.message}" if f.term else f.message)
+            message = _escape(_printable(f"{f.term}: {f.message}" if f.term else f.message))
             print(f"::{_GITHUB_LEVEL[f.severity]} {where}title=citesync {f.rule}::{message}")
         if not args.quiet:  # GitHub shows only the first 10 annotations of a level, so give the totals
             print(f"::notice::citesync: {total}")
         return
     colour = _colour()
     for f in findings:
-        where = f"{f.file}{f':{f.line}:{f.column}' if f.line else ''}: " if f.file else ""
+        where = _printable(f"{f.file}{f':{f.line}:{f.column}' if f.line else ''}: ") if f.file else ""
         severity = f"\033[{_ANSI[f.severity]}m{f.severity}\033[0m" if colour else f.severity
-        print(f"{where}{severity}[{f.rule}] " + (f"{f.term}: {f.message}" if f.term else f.message))
+        message = _printable(f"{f.term}: {f.message}" if f.term else f.message)
+        print(f"{where}{severity}[{f.rule}] {message}")
     if not args.quiet:
         print(total)
 
@@ -308,6 +311,11 @@ def _rules(args: argparse.Namespace) -> int:
     for rule, r in RULES.items():
         print(f"{rule:<{width}}  {r.severity:<7}  {r.summary}")
     return 0
+
+
+def _printable(text: str) -> str:
+    r"""``text`` with each control character written as ``\xNN``."""
+    return _CONTROL.sub(lambda m: f"\\x{ord(m[0]):02x}", text)
 
 
 def _escape(text: str, *, property_: bool = False) -> str:
