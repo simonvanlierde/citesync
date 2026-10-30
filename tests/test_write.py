@@ -349,6 +349,25 @@ def test_an_orcid_match_is_renamed_in_place(tmp_path: Path, capsys: pytest.Captu
     assert (root / ".zenodo.json").read_text(encoding="utf-8") == zenodo.replace("Lovelace, Ada", "Byron, Ada")
 
 
+@pytest.mark.parametrize(
+    ("key", "part", "family"), [("name-particle", "van", "van Lovelace"), ("name-suffix", "Jr.", "Lovelace Jr.")]
+)
+def test_a_given_name_rename_keeps_the_family_name_parts(
+    key: str, part: str, family: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    _edit(
+        root / "codemeta.json",
+        '"givenName": "Ada",\n      "familyName": "Lovelace"',
+        f'"givenName": "Ada K.",\n      "familyName": "{family}"',
+    )
+    cff = _edit(
+        root / "CITATION.cff", '    family-names: "Lovelace"\n', f'    {key}: "{part}"\n    family-names: "Lovelace"\n'
+    )
+    _run(capsys, "write", "--root", str(root))
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"Ada"', '"Ada K."')
+
+
 def _doi(n: int) -> dict[str, str]:
     return {
         "@type": "PropertyValue",

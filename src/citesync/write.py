@@ -506,10 +506,13 @@ def _rename(fmt: str, element: Any, p: Person, path: str, mapping: Mapping, term
     if fmt == "codemeta" and codemeta_person(element) is not element:  # a name-only entry keeps its one name
         element["name"] = p.name
         return
-    if fmt == "cff-1.2.0":
+    keys = {relative(str(mapping[fmt, t]), path) for t in person_terms(term)[:2]}
+    if fmt == "cff-1.2.0" and cff_person(element).get("family-names") == fields.get("family-names"):
+        keys.discard("family-names")  # only the given name changed: the particle and suffix stay as they are
+    elif fmt == "cff-1.2.0":
         for key in ("name-particle", "name-suffix"):
             element.pop(key, None)  # folded into family-names by now
-    for key in {relative(str(mapping[fmt, t]), path) for t in person_terms(term)[:2]}:
+    for key in keys:
         if key in fields:
             element[key] = _styled(fields[key], element.get(key))
         else:
