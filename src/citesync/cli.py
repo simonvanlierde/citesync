@@ -275,12 +275,14 @@ def _init(root: Path, config: Config, *, diff: bool) -> int:
     """Write a new CITATION.cff, or with ``diff`` print it as a diff from nothing."""
     from citesync.write import init  # noqa: PLC0415
 
-    text, skipped = init(root, config, dry_run=diff)
+    text, skipped, splits = init(root, config, dry_run=diff)
     if diff:
         sys.stdout.write(_diff(root, {"CITATION.cff": text}))
         return 0
     left = "; ".join(f"{term}: {why}" for term, why in skipped.items())
     print("wrote CITATION.cff" + (f", leaving out {left}" if left else ""))
+    for name, given, family in splits:
+        print(f"check the name split: {name!r} became given {given!r}, family {family!r}")
     return 0
 
 

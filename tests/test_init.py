@@ -61,6 +61,17 @@ def test_init_from_every_file_passes_check(tmp_path: Path, capsys: pytest.Captur
     assert code == 0, out
 
 
+def test_init_says_to_check_a_split_name(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    pyproject = PYPROJECT.replace('{ name = "Tu Youyou" }', '{ name = "Antonie van Leeuwenhoek" }')
+    (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
+    code, out, _ = _run(capsys, "init", "--root", str(tmp_path))
+    assert code == 0
+    assert out.splitlines()[1:] == [
+        "check the name split: 'Marie Curie' became given 'Marie', family 'Curie'",
+        "check the name split: 'Antonie van Leeuwenhoek' became given 'Antonie van', family 'Leeuwenhoek'",
+    ]
+
+
 def test_init_from_pyproject_alone_passes_check(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = tmp_path
     (root / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
@@ -122,9 +133,9 @@ def test_init_names_a_field_it_left_out(tmp_path: Path, capsys: pytest.CaptureFi
     pyproject = PYPROJECT.replace('"MIT"', '"MIT AND Apache-2.0"')
     (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
     code, out, _ = _run(capsys, "init", "--root", str(tmp_path))
-    assert (code, out) == (
+    assert (code, out.splitlines()[0]) == (
         0,
-        "wrote CITATION.cff, leaving out license: a licence list can only say OR, not AND or WITH\n",
+        "wrote CITATION.cff, leaving out license: a licence list can only say OR, not AND or WITH",
     )
     assert "license" not in _cff(tmp_path)
 

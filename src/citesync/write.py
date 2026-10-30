@@ -133,14 +133,18 @@ def write(
 
 def init(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
-) -> tuple[str, dict[str, str]]:
-    """Write a new CITATION.cff from the files the repo has; return its text and the reason for each term left out.
+) -> tuple[str, dict[str, str], list[tuple[str, str, str]]]:
+    """Write a new CITATION.cff from the files the repo has.
 
     Each term comes from the first file that holds it: the configured source, then codemeta.json,
     .zenodo.json and the manifests in that order, so a citation file's ORCIDs and name parts win.
     Keywords come from every file, so each manifest's are in it. A licence list is left out when
     there is no .zenodo.json, as Zenodo would refuse it.
     With ``dry_run``, nothing is written.
+
+    Returns:
+        Its text, the reason for each term left out, and each one-string author name split on its
+        last space, with the given and family names it became.
 
     Raises:
         CheckError: when CITATION.cff exists, a file can't be read, or no file gives a title or authors.
@@ -191,7 +195,12 @@ def init(
     yaml.dump(data, out)
     if not dry_run:
         _replace({root / "CITATION.cff": out.getvalue()})
-    return out.getvalue(), skipped
+    splits = []  # as _fields splits a one-string name
+    for p in record["author"]:  # _merged makes sure there is one
+        given, _, family = (p.name or "").rpartition(" ")
+        if p.family is None and not p.organization and given:
+            splits.append((str(p.name), given, family))
+    return out.getvalue(), skipped, splits
 
 
 def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:

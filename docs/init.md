@@ -4,7 +4,7 @@
 
 ## Where each field comes from
 
-Each field but the keywords comes from the first file that holds it, in this order: the file named by `--source` or the `source` setting, then codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml and package.json. So an author's ORCID and the split into given and family names come from a citation file when there is one. From a manifest's one-string name, the last word becomes the family name. The keywords come from every file, each once, so each manifest's keywords are in CITATION.cff as check requires.
+Each field but the keywords comes from the first file that holds it, in this order: the file named by `--source` or the `source` setting, then codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml and package.json. So an author's ORCID and the split into given and family names come from a citation file when there is one. From a manifest's one-string name, the last word becomes the family name, and `init` prints each name it split this way for you to check: `Tu Youyou` is family name first, and `Antonie van Leeuwenhoek` has a particle. The keywords come from every file, each once, so each manifest's keywords are in CITATION.cff as check requires.
 
 The new file holds `cff-version: 1.2.0`, the standard `message`, `type: software`, and each of these the files give: title, abstract (from the description), version, release date, authors, DOI, repository URL, licence and keywords. It passes `citesync check` against the files it came from.
 
