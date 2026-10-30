@@ -250,7 +250,8 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
         return None
     detail = f"{_show(b)}, {ref.path} has {_show(a)}"
     if term == "keywords":
-        misses = [f"{k!r} differs from {near!r}" for k in b if (near := near_miss(k, a, kw_key))]
+        near_miss = near_misses(a, kw_key)
+        misses = [f"{k!r} differs from {near!r}" for k in b if (near := near_miss(k))]
         detail += f" ({', '.join(misses)} only in separators)" if misses else ""
     return Finding(doc.path, term, MISMATCH[term], detail)
 
@@ -281,11 +282,16 @@ def _ignore_separators(key: Callable[[str], str]) -> Callable[[str], str]:
     return lambda k: key(codecs.spaced(k))
 
 
-def near_miss(keyword: str, others: Iterable[str], key: Callable[[str], str]) -> str | None:
-    """The one of ``others`` that ``keyword`` misses only by separators, when it isn't among them as it is."""
-    if key(keyword) in map(key, others):
-        return None
-    return next((o for o in others if key(codecs.spaced(o)) == key(codecs.spaced(keyword))), None)
+def near_misses(others: Iterable[str], key: Callable[[str], str]) -> Callable[[str], str | None]:
+    """For a keyword, the first of ``others`` it misses only by separators, when it isn't among them as it is.
+
+    The keys of ``others`` are made once here, not once per keyword: a long list would take quadratic time.
+    """
+    exact, spaced = set(), {}
+    for other in others:
+        exact.add(key(other))
+        spaced.setdefault(key(codecs.spaced(other)), other)
+    return lambda keyword: None if key(keyword) in exact else spaced.get(key(codecs.spaced(keyword)))
 
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
@@ -297,10 +303,9 @@ def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
     extra = [k for k in manifest.record["keywords"] if key(k) not in known]
     if not extra:
         return None
+    near_miss = near_misses(citation.record["keywords"], key)
     words = [
-        f"{k} ({citation.path} has {near!r}: differs only in separators)"
-        if (near := near_miss(k, citation.record["keywords"], key))
-        else k
+        f"{k} ({citation.path} has {near!r}: differs only in separators)" if (near := near_miss(k)) else k
         for k in extra
     ]
     detail = f"{', '.join(words)}: in {manifest.path}, not in {citation.path}"

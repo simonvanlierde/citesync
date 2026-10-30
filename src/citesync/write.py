@@ -26,7 +26,7 @@ from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from citesync import codecs
-from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_miss, read_docs
+from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_misses, read_docs
 from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
@@ -355,9 +355,9 @@ def _keywords(old: Any, value: tuple[str, ...], key: Callable[[str], str], *, ad
     subset of a citation file's, so only the manifest loses words, or only the citation file gains them.
     """
     items = old if isinstance(old, list) else [old]
-    want = set(map(key, value))
+    want, near_miss = set(map(key, value)), near_misses(value, key)
     for i, word in enumerate(items):  # a near miss takes the source's spelling where it stands
-        if (near := near_miss(str(word), value, key)) and key(near) not in {key(str(k)) for k in items}:
+        if (near := near_miss(str(word))) and key(near) not in {key(str(k)) for k in items}:
             items[i] = _styled(near, word)
     if remove:
         for i in reversed(range(len(items))):

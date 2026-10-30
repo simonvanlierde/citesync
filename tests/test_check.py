@@ -11,8 +11,10 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-from citesync.check import Finding
+from citesync import codecs
+from citesync.check import Finding, compare
 from citesync.cli import _sarif, main
+from citesync.formats import Doc
 from citesync.mapping import TERMS
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -640,6 +642,17 @@ def test_keywords_that_differ_only_in_separators(
     }
     report = _check_json(tmp_path, capsys, files)
     assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
+
+
+def test_many_keywords_compare_in_linear_time() -> None:
+    words = [f"w{i}" for i in range(20_000)]
+    ref = Doc("CITATION.cff", "cff-1.2.0", {"keywords": (*words, "big data")}, frozenset(), "1.2.0", release=True)
+    doc = Doc("codemeta.json", "codemeta", {"keywords": (*words, "big-data", "x")}, frozenset(), "3.0", release=True)
+    start = time.perf_counter()
+    finding = compare("keywords", ref, doc, kw_key=codecs.name_key)
+    assert time.perf_counter() - start < 1
+    assert finding is not None
+    assert finding.message.endswith("('big-data' differs from 'big data' only in separators)")
 
 
 def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
