@@ -1,34 +1,48 @@
 # How `citesync check` works
 
-`citesync check` compares ten fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, repository URL, description, keywords and release date. When the source has no place or no value for a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+`citesync check` compares ten fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, repository URL, description, keywords and release date. When the source doesn't hold a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+
+## Options
+
+```sh
+citesync check --source pyproject.toml  # pick another source file
+citesync check --root path/to/repo      # check another directory
+citesync check --format json            # or --json; also github and sarif, see output.md
+citesync check -v                       # also list the fields that weren't compared (not-checked)
+citesync check -q                       # only errors, no summary line
+citesync rules                          # every rule and its severity; --format json too
+```
 
 ## Which files it reads
 
-By default it reads every citation file present and the release manifests at the repo root: a pyproject.toml without `[build-system]` and a private package.json are skipped, a field in pyproject's `dynamic` is skipped on its own, and a Cargo workspace is read through `[workspace.package]`. [Configuration](config.md) changes the lists.
+By default it reads every citation file present, and the package manifests at the repo root. It skips a pyproject.toml without `[build-system]`, a private package.json, and any field in pyproject's `dynamic` list. It reads a Cargo workspace through `[workspace.package]`. [Configuration](config.md) changes the lists.
 
-Run from a subdirectory, citesync finds the repo root as ruff does: it walks up to the nearest directory with a citation file or a citesync config, and stops at the git root, so a submodule keeps its own files. File paths in findings are relative to that root.
+Run from a subdirectory, citesync walks up to the nearest directory with a citation file or a citesync config. It stops at the git root, so a submodule keeps its own files. File paths in findings are relative to that root.
 
-A file citesync can't read or parse is an `unreadable` finding, with the parser's message and its line and column when the parser gives them. The other files are still checked against each other, and when the unreadable file is the source, each field it holds is reported as `not-checked`.
+A file citesync can't read or parse is an [`unreadable`](rules.md#unreadable) finding. The other files are still checked against each other.
 
 ## How values compare
 
-Spellings are normalised before comparing:
+citesync treats these spellings as equal:
 
 - SPDX ids, SPDX URLs and Zenodo's lowercase ids. A licence list reads as `A OR B`.
 - ORCID URLs and bare iDs.
-- Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`. CFF `name-particle` and `name-suffix` read as part of the family name.
-- DOIs with or without `https://doi.org/`, and a codemeta `identifier` given as a schema.org PropertyValue (`propertyID` `DOI`, or a DOI as its `value` or `url`; other PropertyValues, such as a SWHID, are skipped).
-- Repository URLs as npm's hosted-git-info reads them: `git+`, `.git`, `http://`, `www.`, the host's case, npm shorthands (`github:owner/repo`, `owner/repo`), SSH remotes, and a branch, tag or file page on GitHub, GitLab, Codeberg, Gitea or Bitbucket (`…/tree/v1.0`, as Zenodo's GitHub integration writes), with GitHub paths in any case.
-- PEP 621 url labels as packaging normalises them (`Source Code`, `homepage`).
-- Versions as PEP 440 versions (`v1.2.3` = `1.2.3`, `1.0` = `1.0.0`, `0.3.1-rc.1` = `0.3.1rc1`, `1.0.0-dev.1` = `1.0.0.dev1`). A version that isn't one (`unreleased`) must match exactly.
+- Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`. CFF `name-particle` and `name-suffix` count as part of the family name.
+- DOIs with or without `https://doi.org/`, and a DOI in a codemeta.json PropertyValue.
+- Repository URLs, read as npm's hosted-git-info reads them: with or without `git+`, `.git`, `http://` or `www.`, as npm shorthands (`github:owner/repo`) or SSH remotes. A branch, tag or file page on GitHub, GitLab, Codeberg, Gitea or Bitbucket names its repository, as in `…/tree/v1.0`. Host names, and GitHub paths, compare in any case.
+- PEP 621 url labels, normalised as packaging does (`Source Code`, `homepage`).
+- PEP 440 versions: `v1.2.3` = `1.2.3`, `1.0` = `1.0.0`, `0.3.1-rc.1` = `0.3.1rc1`, `1.0.0-dev.1` = `1.0.0.dev1`. A version that isn't PEP 440 (`unreleased`) must match exactly.
 
-People's names and keywords compare case-insensitively, with whitespace collapsed and Unicode in NFC; titles and descriptions compare as written, with whitespace collapsed and Unicode in NFC. Set `keywords-case-sensitive = true` to compare keywords by case too. A keyword that differs from another file's only in separators (`big-data`, `big_data`, `big data`) is named as a near miss in the finding, and write gives it the source's spelling where it stands; set `keywords-ignore-separators = true` to treat such keywords as equal. Findings show each file's own spelling.
+Names and keywords compare case-insensitively. Titles and descriptions compare as written. All of them compare with whitespace collapsed and Unicode in NFC. Findings show each file's own spelling. Two config keys change how keywords compare:
 
-Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords, not on name or description. npm's one `author` is compared with the first author.
+- `keywords-case-sensitive = true` compares keywords by case too.
+- `keywords-ignore-separators = true` treats `big-data`, `big_data` and `big data` as equal. Without it, the finding names such a keyword as a near miss, and write gives it the source's spelling.
+
+Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords. They aren't compared on name or description. npm's one `author` is compared with the first author.
 
 ## Findings and exit codes
 
-Each finding is one line, `file: severity[rule] field: message`, and a last line counts them:
+Each finding is one line, `file: severity[rule] field: message`. A last line counts them:
 
 ```text
 .zenodo.json:2:1: error[unreadable] Expecting property name enclosed in double quotes
@@ -36,9 +50,9 @@ codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0
 2 errors, 0 warnings in 3 files
 ```
 
-The severity is in colour on a terminal. `NO_COLOR` turns colour off, and `FORCE_COLOR` turns it on anywhere (`FORCE_COLOR=0` or `false` turns it off). `NO_COLOR` wins.
+On a terminal the severity is in colour. `NO_COLOR` turns colour off. `FORCE_COLOR` turns it on anywhere, and `FORCE_COLOR=0` or `false` turns it off. `NO_COLOR` wins.
 
-The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `contributor-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch`, `keywords-mismatch` and `date-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `version-behind-tag` (warning) when the source's version is older than the newest git tag; `zenodo-license-list` (error) and `zenodo-drops-field` (warning) for what Zenodo can't take from a CITATION.cff alone; `file-missing` for a file `files` lists that doesn't exist; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [rules.md](rules.md) explains each one.
+[rules.md](rules.md) lists every rule id, its severity and how to fix it.
 
 | Exit | When |
 | ---: | --- |
