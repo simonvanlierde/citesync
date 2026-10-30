@@ -200,3 +200,58 @@ def test_init_names_every_file_it_read_for_a_missing_title(tmp_path: Path, capsy
     (tmp_path / "package.json").write_text('{"author": "Tu Youyou"}\n', encoding="utf-8")
     code, _, err = _run(capsys, "init", "--root", str(tmp_path))
     assert (code, err) == (2, "citesync: no title in pyproject.toml, package.json, and CITATION.cff needs one\n")
+
+
+CARGO = """\
+[package]
+name = "radium"
+version = "0.4.0"
+description = "Measures what glows."
+authors = ["Marie Curie <marie@example.org>"]
+license = "MIT OR Apache-2.0"
+repository = "https://example.org/radium"
+keywords = ["chemistry"]
+"""
+PACKAGE = {
+    "name": "radium",
+    "version": "0.4.0",
+    "description": "Measures what glows.",
+    "author": "Marie Curie <marie@example.org> (https://example.org)",
+    "license": "MIT",
+    "keywords": ["chemistry"],
+}
+
+
+@pytest.mark.parametrize(
+    ("files", "left"),
+    [
+        (
+            {
+                "pyproject.toml": PYPROJECT.replace('["chemistry", "physics"]', '["lca"]'),
+                "package.json": json.dumps({**PACKAGE, "keywords": ["cli"]}),
+            },
+            "",
+        ),
+        (
+            {"Cargo.toml": CARGO},
+            ", leaving out license: a list: with no .zenodo.json, Zenodo reads one licence and refuses the release",
+        ),
+        (
+            {
+                "Cargo.toml": CARGO,
+                ".zenodo.json": json.dumps({"title": "radium", "creators": [{"name": "Curie, Marie"}]}),
+            },
+            "",
+        ),
+        ({"package.json": json.dumps(PACKAGE)}, ""),
+    ],
+    ids=["keywords-from-two-manifests", "cargo-dual-licence", "dual-licence-with-zenodo", "package-json"],
+)
+def test_init_then_check_passes(
+    files: dict[str, str], left: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    for name, text in files.items():
+        (tmp_path / name).write_text(text, encoding="utf-8")
+    assert _run(capsys, "init", "--root", str(tmp_path)) == (0, f"wrote CITATION.cff{left}\n", "")
+    code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
+    assert code == 0, out

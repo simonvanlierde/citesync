@@ -242,6 +242,7 @@ def test_sarif_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> Non
     (run,) = log["runs"]
     driver = run["tool"]["driver"]
     assert (code, log["version"], driver["name"]) == (1, "2.1.0", "citesync")
+    assert run["columnKind"] == "unicodeCodePoints"
     assert driver["informationUri"] == "https://github.com/simonvanlierde/citesync"
     assert [(r["id"], r["defaultConfiguration"]["level"]) for r in driver["rules"]] == [("name-mismatch", "error")]
     assert driver["rules"][0]["helpUri"].endswith("/docs/rules.md#name-mismatch")

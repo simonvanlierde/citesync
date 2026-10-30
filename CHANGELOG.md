@@ -9,11 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 To upgrade from 0.1.0:
 
-- `citesync check` has four new error rules: `contributor-mismatch`, `date-mismatch`, `zenodo-license-list` and `file-missing`. To turn any of them off for now, list it under `ignore`. [docs/rules.md](docs/rules.md) describes each rule.
+- `citesync check` has four new error rules: `contributor-mismatch`, `date-mismatch`, `zenodo-license-list` and `file-missing`. To turn any of them off for now, list it under `ignore` ([docs/rules.md](docs/rules.md)).
 - `codemeta-version` no longer defaults to 3.0. To keep checking codemeta.json's `@context` as before, set `codemeta-version = "3.0"`.
 - Use citesync through its command line or the pre-commit hook. Its Python modules are internal and may change in any release.
 - `write-manifests` takes only `version`, `author`, `contributor`, `license`, `codeRepository` and `keywords`, the fields a manifest holds. Take any other field off the list.
-- A script that reads the text output should expect a `help:` line under each finding, and read `--format json` if it can.
+- The text output changed: each finding starts with `file:line:col` and has a `help:` line under it, a failing check ends with an `N fixable` line, and `citesync write` ends with `N fixed, M left in K files`. In GitHub output, each annotation ends with its `help:` line and the `::notice::` line gives write's new count, so scripts should read `--format json` instead ([docs/output.md](docs/output.md)).
 
 ### Added
 
@@ -26,11 +26,10 @@ To upgrade from 0.1.0:
 - `citesync --help` lists the exit codes and where config is read from. `citesync` with no command prints the help.
 - Two rules for repos where Zenodo reads CITATION.cff: `zenodo-license-list` and `zenodo-drops-field`.
 - A keyword that differs from another file's only in hyphens, underscores or spaces is named as such, and `citesync write` gives it the source's spelling. `keywords-ignore-separators = true` treats such keywords as equal.
-- Each finding in the text, GitHub and SARIF output says what to do about it, on a `help:` line ([docs/check.md](docs/check.md#findings-and-exit-codes)).
-- A failing `citesync check` says how many findings `citesync write` would fix. `citesync write` ends with how many it fixed and how many are left, and `write --diff` prints its count on stderr.
+- A failing `citesync check` says how many findings `citesync write` would fix, and `citesync write` how many it fixed and left ([docs/check.md](docs/check.md#findings-and-exit-codes)).
 - `-v` names each manifest check left out, and why (`manifest-skipped`). `citesync config` prints the repo root in use.
 - `--color auto|always|never` sets colour whatever `NO_COLOR` and `FORCE_COLOR` say, and `-V` is short for `--version`.
-- Each finding on a key gives the key's line and column: `file:line:col` in the text output, and a line and column or region in the JSON, GitHub and SARIF output, so an editor or code scanning can jump to it ([docs/output.md](docs/output.md)).
+- Each finding on a key gives the key's line and column, so an editor or code scanning can jump to it ([docs/output.md](docs/output.md)).
 - A mistyped rule id, `--format` value or `write-manifests` field gets a "did you mean" suggestion. On Python before 3.14, option values get none.
 
 ### Changed
@@ -40,10 +39,10 @@ To upgrade from 0.1.0:
 - The field mapping comes from codemeta-drift 0.2.0, which adds contributors and release dates.
 - `citesync check` starts about a third faster.
 - **Breaking:** `write-manifests = "all"` means the six manifest fields, and naming any other field is a config error.
-- **Breaking:** the text output has a `help:` line under each finding, and a GitHub annotation's message ends with one.
 - A keyword finding between citation files lists the missing and extra words, not both files' lists.
 - A missing source file names the directory citesync looked in. Run outside any citation files, citesync uses the git root, and `--root` must be a directory.
-- A bad `ignore` entry is named in the error, and an unquoted `codemeta-version = 3.0` says to write it as a string. The warning about an unused `ignore` entry is quiet under `-q`.
+- A bad `ignore` entry is named in the error, and an unquoted `codemeta-version = 3.0` says to write it as a string ([docs/config.md](docs/config.md)).
+- The warning about an unused `ignore` entry is quiet under `-q`.
 
 ### Fixed
 
@@ -65,7 +64,7 @@ To upgrade from 0.1.0:
 - A repository URL with whitespace before a trailing slash, such as `https://example.org/r /`, kept that whitespace when read.
 - `citesync write` dropped the comments above a `---` line at the top of CITATION.cff.
 - An author with an ORCID and no name was written to pyproject.toml, Cargo.toml or package.json as an empty entry, one more on each run. `citesync write` now leaves that list for a hand edit and says why.
-- `citesync write` turned every line end of a file with both LF and CRLF line ends into CRLF, even when it changed nothing else. A file it edits now keeps the more common line end, and a file it leaves alone keeps its own ([docs/write.md](docs/write.md#safety)).
+- `citesync write` turned every line end of a file with both LF and CRLF line ends into CRLF, even when it changed nothing else. It now keeps the more common one ([docs/write.md](docs/write.md#safety)).
 
 ## [0.1.0] - 2026-10-29
 

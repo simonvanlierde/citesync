@@ -49,7 +49,7 @@
         },
         "term": {
           "type": ["string", "null"],
-          "description": "A CodeMeta term, or @context; null for unreadable."
+          "description": "A CodeMeta term, or @context; null for unreadable, file-missing and manifest-skipped."
         },
         "message": { "type": "string" },
         "help": { "type": "string", "description": "What to do about it." },

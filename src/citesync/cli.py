@@ -373,7 +373,8 @@ def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
     return {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{"tool": {"driver": driver}, "results": results}],
+        # positions counts code points; SARIF would read columns as UTF-16 units
+        "runs": [{"tool": {"driver": driver}, "columnKind": "unicodeCodePoints", "results": results}],
     }
 
 

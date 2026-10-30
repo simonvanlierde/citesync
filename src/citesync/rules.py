@@ -184,7 +184,8 @@ RULES = {
         "A manifest at the repo root was left out, because it isn't released.",
         "List it under `manifests` to check it anyway.",
         'A pyproject.toml without `[build-system]` and a package.json with `"private": true` aren\'t packages'
-        " anyone installs, so citesync doesn't compare them. Text and GitHub output show it only with `--verbose`.",
+        " anyone installs, so citesync doesn't compare them. Text, GitHub and SARIF output show it"
+        " only with `--verbose`.",
     ),
     "not-checked": Rule(
         "info",

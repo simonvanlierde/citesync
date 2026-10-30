@@ -29,7 +29,7 @@ citesync config                     # the config in use, and the file it came fr
 ```
 
 ```text
-codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
+codemeta.json:3:3: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
   help: Make the file agree with the source, or the other way round if the source is wrong.
 1 error, 0 warnings in 3 files
 1 fixable with `citesync write`
@@ -80,7 +80,7 @@ just fmt         # apply each stack's fixes and formatting
 just hooks       # the git hooks, as the checks workflow runs them
 ```
 
-`just mutation` mutation-tests `check.py` and `codecs.py`. CI doesn't run it. It fails when the tests miss a change that `tests/mutation-baseline.txt` doesn't list. A change that can't alter behaviour goes in that file, with the reason. It also fails when the tests now catch a listed change, so drop that line.
+`just mutation` mutation-tests the modules `only_mutate` lists under `[tool.mutmut]` in `pyproject.toml`. CI doesn't run it. It fails when the tests miss a change that `tests/mutation-baseline.txt` doesn't list. A change that can't alter behaviour goes in that file, with the reason. It also fails when the tests now catch a listed change, so drop that line.
 
 uv locks only releases at least a week old. If `just check` fails on a newer security fix, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`, and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 
