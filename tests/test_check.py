@@ -887,6 +887,16 @@ def test_what_zenodo_reads_from_cff_alone(
     assert all(f["file"] == "CITATION.cff" for f in report["findings"] if f["rule"].startswith("zenodo-"))
 
 
+def test_a_blank_doi_does_not_hide_the_identifiers_doi(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = {
+        "CITATION.cff": CFF + 'doi: ""\nidentifiers:\n  - {type: doi, value: 10.5281/zenodo.1}\n',
+        "codemeta.json": _codemeta(identifier="https://doi.org/10.5281/zenodo.2"),
+    }
+    assert _triples(_split(_check_json(tmp_path, capsys, files))[0]) == [
+        ("doi-mismatch", "codemeta.json", "identifier")
+    ]
+
+
 def test_release_dates_compare_by_day(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     files = {
         "CITATION.cff": CFF + "date-released: 2026-01-15\n",

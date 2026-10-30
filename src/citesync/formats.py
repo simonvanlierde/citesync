@@ -258,6 +258,7 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
 def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
     """(container, key) of the value ``term`` reads at ``path``: the first alternative that has one.
 
+    A blank value (null, ``""``, ``[]``) counts as none, so CFF's ``doi: ""`` gives way to ``identifiers``.
     Shared by the reader and the writer, so both pick the same value. A Cargo virtual workspace
     holds its fields in ``[workspace.package]``; a PEP 621 url label matches as packaging normalises
     it, the exact label first; Zenodo's isSupplementTo also lists papers by DOI, which are skipped.
@@ -271,7 +272,9 @@ def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:
             if not isinstance(node, dict):
                 continue
             label = key if key in node else next((k for k in node if url_label(k) == key), None)
-            if label is None or (term == "codeRepository" and codecs.doi_decode(node[label])):
+            if label is None or node[label] in (None, "", []):
+                continue
+            if term == "codeRepository" and codecs.doi_decode(node[label]):
                 continue
             return node, label
     return None

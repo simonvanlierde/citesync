@@ -187,20 +187,24 @@ def _new_codemeta(
         "description": "",
         "version": "",
         "datePublished": "",
-        "identifier": "https://doi.org/",  # the placeholders' shapes pick the forms: DOI and SPDX URLs
+        "identifier": "https://doi.org/",  # the blanks' shapes pick the forms: DOI and SPDX URLs
         "codeRepository": "",
         "license": "https://spdx.org/licenses/",
         "author": [],
         "contributor": [],
         "keywords": [],
     }
-    terms = [t for t in blank if t in source.record]
     data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
-    data |= {t: blank[t] for t in terms}
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
-    skipped = _apply(doc, source, terms, data, mapping, None, keyword_key)
-    for term in skipped:
-        del data[term]
+    skipped = {}
+    for term in (t for t in blank if t in source.record):
+        try:
+            if term in PEOPLE:
+                data[term] = _people("codemeta", blank[term], source, str(mapping["codemeta", term]), mapping, term)
+            else:
+                data[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
+        except CannotWrite as err:
+            skipped[term] = str(err)
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n", skipped
 
 
