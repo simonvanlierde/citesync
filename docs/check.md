@@ -1,6 +1,6 @@
 # How `citesync check` works
 
-`citesync check` compares nine fields with one file, the source (CITATION.cff by default): title/name, version, authors with ORCID, licence, DOI, repository URL, description, keywords and release date. When the source has no place or no value for a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+`citesync check` compares ten fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, repository URL, description, keywords and release date. When the source has no place or no value for a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
 
 ## Which files it reads
 
@@ -38,7 +38,7 @@ codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0
 
 The severity is in colour on a terminal. `NO_COLOR` turns colour off, and `FORCE_COLOR` turns it on anywhere (`FORCE_COLOR=0` or `false` turns it off). `NO_COLOR` wins.
 
-The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch`, `keywords-mismatch` and `date-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `version-behind-tag` (warning) when the source's version is older than the newest git tag; `zenodo-license-list` and `zenodo-drops-field` (warning) for what Zenodo can't take from a CITATION.cff alone; `file-missing` for a file `files` lists that doesn't exist; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [rules.md](rules.md) explains each one.
+The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `contributor-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch`, `keywords-mismatch` and `date-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `version-behind-tag` (warning) when the source's version is older than the newest git tag; `zenodo-license-list` and `zenodo-drops-field` (warning) for what Zenodo can't take from a CITATION.cff alone; `file-missing` for a file `files` lists that doesn't exist; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [rules.md](rules.md) explains each one.
 
 | Exit | When |
 | ---: | --- |

@@ -311,9 +311,11 @@ def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytes
         ("version-mismatch", ".zenodo.json", "version"),
         ("unreadable", "CITATION.cff", None),
     ]
-    assert [(f["file"], f["term"]) for f in info] == [("CITATION.cff", term) for term in sorted(TERMS)]
-    assert {f["message"] for f in info} == {"not compared with the source: it can't be read"}
-    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 9}
+    # CITATION.cff has no contributor list, and no other file holds one
+    cff_terms = sorted(t for t in TERMS if t != "contributor")
+    assert [(f["file"], f["term"]) for f in info] == [*(("CITATION.cff", t) for t in cff_terms), (None, "contributor")]
+    assert {f["message"] for f in info[:-1]} == {"not compared with the source: it can't be read"}
+    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 10}
 
 
 def test_unexpected_error_is_exit_2(
@@ -785,7 +787,7 @@ def test_not_checked_detail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
 
 def test_json_keeps_info_under_quiet(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     report = _check_json(tmp_path, capsys, {"CITATION.cff": CFF}, "-q")
-    assert report["summary"]["info"] == len(_split(report)[1]) == 8
+    assert report["summary"]["info"] == len(_split(report)[1]) == 9
 
 
 def test_schema_lets_a_minor_release_add_rules_and_fields(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -850,7 +852,7 @@ def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pyt
     (tmp_path / "citesync.toml").write_text('ignore = ["name-mismatch", "doi-mismatch"]\n', encoding="utf-8")
     code, out, err = _run(capsys, "check", "--root", str(tmp_path), "--json")
     assert (code, err) == (0, "citesync: warning: ignore entry 'doi-mismatch' matched no finding\n")
-    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 8
+    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 9
 
 
 @pytest.mark.parametrize("zenodo", [False, True])
@@ -943,4 +945,45 @@ def test_a_linked_worktree_reads_the_clone_tags(tmp_path: Path, capsys: pytest.C
     report = _check_json(tmp_path / "wt", capsys, {})
     assert [f["message"] for f in report["findings"] if f["rule"] == "version-behind-tag"] == [
         "0.1.0, the newest tag is v1.0.0"
+    ]
+
+
+ROLE = {"@type": "Role", "schema:author": {"@id": f"https://orcid.org/{ORCID_A}"}, "roleName": "Software"}
+
+
+@pytest.mark.parametrize(
+    ("zenodo", "expected"),
+    [
+        ([{"name": "B, A", "orcid": ORCID_A, "type": "Other"}], []),
+        ([{"name": "D, C", "type": "Other"}], [("contributor-mismatch", ".zenodo.json", "contributor")]),
+        (
+            [{"name": "B, A", "orcid": ORCID_B, "type": "Other"}],
+            [("contributor-mismatch", ".zenodo.json", "contributor")],
+        ),
+    ],
+)
+def test_contributors_compare_between_files_when_cff_has_none(
+    zenodo: list[dict[str, str]],
+    expected: list[tuple[str, str, str]],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """CITATION.cff, the source, can't list contributors, so codemeta.json and .zenodo.json agree with each other."""
+    files = {
+        "CITATION.cff": CFF,
+        "codemeta.json": _codemeta(contributor=[*_people("A B", orcid=ORCID_A), ROLE]),  # the Role isn't a person
+        ".zenodo.json": json.dumps({"title": "x", "contributors": zenodo}),
+    }
+    assert _triples(_split(_check_json(tmp_path, capsys, files))[0]) == expected
+
+
+def test_npm_contributor_strings_are_names(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = {
+        "CITATION.cff": CFF,
+        "codemeta.json": _codemeta(contributor=_people("A B")),
+        "package.json": json.dumps({"name": "x", "version": "1.0.0", "contributors": ["C D <c@d.example>"]}),
+    }
+    report = _check_json(tmp_path, capsys, files)
+    assert [(f["rule"], f["message"]) for f in _split(report)[0]] == [
+        ("contributor-mismatch", "'C D', codemeta.json has 'A B'")
     ]

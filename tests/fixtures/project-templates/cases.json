@@ -12,6 +12,12 @@
         {
           "rule": "not-checked",
           "file": null,
+          "term": "contributor",
+          "why": "no file holds a contributor"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
           "term": "datePublished",
           "why": "no file holds a release date"
         },

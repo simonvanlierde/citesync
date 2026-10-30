@@ -16,7 +16,14 @@
           "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version defaults to 3.0"
         }
       ],
-      "info": []
+      "info": [
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "contributor",
+          "why": "no file holds a contributor"
+        }
+      ]
     }
   ]
 }

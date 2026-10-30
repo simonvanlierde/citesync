@@ -7,7 +7,7 @@ import pytest
 
 from citesync.errors import UnreadableError
 from citesync.formats import Doc, Person, read_doc
-from citesync.mapping import load_mapping
+from citesync.mapping import PEOPLE, load_mapping
 
 FIXTURES = Path(__file__).parent / "fixtures"
 CASES = [
@@ -24,7 +24,7 @@ def _person(person: Person) -> dict[str, str]:
 
 def _plain(doc: Doc) -> dict[str, object]:
     record = {
-        term: [_person(p) for p in value] if term == "author" else list(value) if isinstance(value, tuple) else value
+        term: [_person(p) for p in value] if term in PEOPLE else list(value) if isinstance(value, tuple) else value
         for term, value in doc.record.items()
     }
     return {"format": doc.format, "version": doc.version, "release": doc.release, "record": record}

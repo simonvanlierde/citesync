@@ -8,7 +8,7 @@ from citesync import codecs
 from citesync.config import Config
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, slots
-from citesync.mapping import FORMATS, TERMS, Mapping, load_mapping
+from citesync.mapping import FORMATS, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import DOCS_URL, MISMATCH, RULES
 
 
@@ -201,7 +201,7 @@ def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) ->
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
     if has_slot(source, term) and term in source.record:
         found = [compare(term, source, doc, kw_key=kw_key) for doc in others]
-        if term == "author" and "author.@id" not in source.slots:
+        if term in PEOPLE and f"{term}.@id" not in source.slots:
             found += _between(term, others, orcid_only=True, kw_key=kw_key)
         elif term == "keywords" and not source.is_citation:
             found += _between(term, others, kw_key=kw_key)
@@ -230,8 +230,8 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
     both_citation = ref.is_citation and doc.is_citation
     if term in _KEY:
         equal = a == b or _KEY[term](a) == _KEY[term](b)  # equal text needs no parsing (packaging costs 2.5 ms)
-    elif term == "author":
-        equal = _same_people(ref, doc, names=not orcid_only)
+    elif term in PEOPLE:
+        equal = _same_people(ref, doc, term, names=not orcid_only)
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
         kw_key = cargo_keyword_key(kw_key, ref, doc)
@@ -303,14 +303,14 @@ def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
     return Finding(doc.path, "keywords", "keywords-not-subset", detail)
 
 
-def _same_people(ref: Doc, doc: Doc, *, names: bool) -> bool:
+def _same_people(ref: Doc, doc: Doc, term: str, *, names: bool) -> bool:
     """Same names in the same order, ORCIDs equal where both have one. npm's one author is the first.
 
     Without ``names``, only the ORCIDs of people at the same place with the same name count.
     """
-    a: tuple[Person, ...] = ref.record["author"]
-    b: tuple[Person, ...] = doc.record["author"]
-    if "npm" in {ref.format, doc.format}:
+    a: tuple[Person, ...] = ref.record[term]
+    b: tuple[Person, ...] = doc.record[term]
+    if term == "author" and "npm" in {ref.format, doc.format}:
         a, b = a[:1], b[:1]
     if names and len(a) != len(b):
         return False

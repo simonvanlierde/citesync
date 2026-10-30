@@ -798,7 +798,9 @@ def test_a_listed_codemeta_json_that_is_missing_is_created(tmp_path: Path, capsy
     assert "codemeta.json: error[file-missing]" in out
     _run(capsys, "write", "--root", str(root))
     created = (root / "codemeta.json").read_text(encoding="utf-8")
-    assert json.loads(created) == json.loads((SYNTHETIC / "codemeta.json").read_text(encoding="utf-8"))
+    expected = json.loads((SYNTHETIC / "codemeta.json").read_text(encoding="utf-8"))
+    del expected["contributor"]  # CITATION.cff, the source, has no contributor list to copy
+    assert json.loads(created) == expected
     assert (root / "codemeta.json").stat().st_mode & 0o044, "readable by others, as a new file normally is"
     assert _run(capsys, "check", "--root", str(root))[0] == 0
 
@@ -822,3 +824,36 @@ def test_a_date_cff_cannot_hold_is_left_for_a_hand_edit(tmp_path: Path, capsys: 
     assert code == 1
     assert "January 2026 is not a YYYY-MM-DD date" in out
     assert _snapshot(root) == before
+
+
+def _contributors(root: Path, codemeta: list[dict], zenodo: list[dict]) -> None:
+    for name, key, people in (("codemeta.json", "contributor", codemeta), (".zenodo.json", "contributors", zenodo)):
+        data = json.loads((root / name).read_text(encoding="utf-8"))
+        data[key] = people
+        (root / name).write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+ORCID = "0000-0002-1825-0097"
+
+
+def test_a_zenodo_contributor_is_renamed_by_orcid_and_keeps_its_type(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    person = {"@type": "Person", "@id": f"https://orcid.org/{ORCID}", "givenName": "Grace", "familyName": "Hopper"}
+    _contributors(root, [person], [{"name": "Hopper, G.", "orcid": ORCID, "type": "Editor"}])
+    assert _run(capsys, "write", "--root", str(root))[0] == 0
+    zenodo = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))
+    assert zenodo["contributors"] == [{"name": "Hopper, Grace", "orcid": ORCID, "type": "Editor"}]
+
+
+def test_a_new_zenodo_contributor_is_left_for_a_hand_edit(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    grace = {"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}
+    ada = {"@type": "Person", "givenName": "Ada", "familyName": "Byron"}
+    _contributors(root, [grace, ada], [{"name": "Hopper, Grace", "type": "Other"}])
+    before = (root / ".zenodo.json").read_bytes()
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert "Zenodo needs a type for each contributor" in out
+    assert (root / ".zenodo.json").read_bytes() == before

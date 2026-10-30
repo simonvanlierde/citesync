@@ -62,7 +62,14 @@
         "gamma",
         "delta"
       ],
-      "datePublished": "2026-01-15"
+      "datePublished": "2026-01-15",
+      "contributor": [
+        {
+          "name": "Grace Hopper",
+          "givenName": "Grace",
+          "familyName": "Hopper"
+        }
+      ]
     }
   },
   ".zenodo.json": {
@@ -93,7 +100,14 @@
         "gamma",
         "delta"
       ],
-      "datePublished": "2026-01-15"
+      "datePublished": "2026-01-15",
+      "contributor": [
+        {
+          "name": "Grace Hopper",
+          "givenName": "Grace",
+          "familyName": "Hopper"
+        }
+      ]
     }
   },
   "pyproject.toml": {
@@ -168,6 +182,11 @@
         "beta",
         "gamma",
         "delta"
+      ],
+      "contributor": [
+        {
+          "name": "Grace Hopper"
+        }
       ]
     }
   }

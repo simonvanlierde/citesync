@@ -13,6 +13,6 @@ keywords-ignore-separators = true           # default false: big-data and big da
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 
-`write-manifests` names fields by their CodeMeta term, as the JSON `term` does: `name`, `version`, `author`, `license`, `identifier` (the DOI), `codeRepository`, `description`, `keywords` and `datePublished`. Rule ids use the plainer `doi`, `repository` and `date`. Manifests have no release date, so `datePublished` there changes nothing.
+`write-manifests` names fields by their CodeMeta term, as the JSON `term` does: `name`, `version`, `author`, `contributor`, `license`, `identifier` (the DOI), `codeRepository`, `description`, `keywords` and `datePublished`. Rule ids use the plainer `doi`, `repository` and `date`. Manifests have no release date, so `datePublished` there changes nothing.
 
 An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
