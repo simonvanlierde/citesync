@@ -8,6 +8,7 @@ PEP 621 ``dynamic``), and the codecs in :mod:`citesync.codecs` read the spelling
 import json
 import re
 import tomllib
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -367,8 +368,8 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         )
         words = tuple(codecs.clean(w) for w in items if isinstance(w, str) and w.strip())
         return words or None
-    if term in {"name", "description"}:
-        return (codecs.clean(raw) or None) if isinstance(raw, str) else None
+    if term in {"name", "description"}:  # in NFC, as names are, so equal text never differs by its encoding
+        return (codecs.clean(unicodedata.normalize("NFC", raw)) or None) if isinstance(raw, str) else None
     return _DECODE[term](raw)
 
 

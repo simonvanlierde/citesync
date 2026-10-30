@@ -897,6 +897,16 @@ def test_a_blank_doi_does_not_hide_the_identifiers_doi(tmp_path: Path, capsys: p
     ]
 
 
+@pytest.mark.parametrize("term", ["name", "description"])
+def test_titles_compare_in_nfc(term: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    nfc, nfd = "\u00c9conomie", "E\u0301conomie"
+    cff = {"name": "title", "description": "abstract"}[term]
+    files = {"CITATION.cff": CFF + f'{cff}: "{nfc}"\n', "codemeta.json": _codemeta(**{term: nfd})}
+    if term == "name":
+        files["CITATION.cff"] = files["CITATION.cff"].replace('title: "x"\n', "")
+    assert _split(_check_json(tmp_path, capsys, files))[0] == []
+
+
 def test_release_dates_compare_by_day(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     files = {
         "CITATION.cff": CFF + "date-released: 2026-01-15\n",
