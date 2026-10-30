@@ -1062,3 +1062,26 @@ def test_comments_above_a_document_start_survive(tmp_path: Path, capsys: pytest.
     _edit(root / "codemeta.json", '"1.2.3"', '"1.2.4"')
     assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
     assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"1.2.3"', '"1.2.4"')
+
+
+def test_a_person_with_only_an_orcid_is_left_out_of_a_manifest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nwrite-manifests = "all"\n')
+    _edit(
+        root / "codemeta.json",
+        '"givenName": "Alan",\n      "familyName": "Turing"',
+        '"@id": "https://orcid.org/0000-0001-5109-3700"',
+    )
+    before = {name: (root / name).read_bytes() for name in ("Cargo.toml", "pyproject.toml")}
+
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert {name: (root / name).read_bytes() for name in before} == before
+    reason = "(edit it by hand: 0000-0001-5109-3700 has no name, and this file has no place for an ORCID)"
+    assert sorted(line.split(":")[0] for line in out.splitlines() if line.endswith(reason)) == list(before)
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+    assert (
+        '    orcid: "https://orcid.org/0000-0002-1825-0097"\n  - orcid: "https://orcid.org/0000-0001-5109-3700"\n'
+        in cff
+    )

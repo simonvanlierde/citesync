@@ -63,6 +63,7 @@ To upgrade from 0.1.0:
 - Printing non-ASCII text to a stdout that isn't UTF-8, such as a Windows pipe, crashed.
 - Some inputs made `citesync check` run for minutes, such as an author string with a long run of spaces or a keyword list thousands long.
 - `citesync write` dropped the comments above a `---` line at the top of CITATION.cff.
+- An author with an ORCID and no name was written to pyproject.toml, Cargo.toml or package.json as an empty entry, one more on each run. `citesync write` now leaves that list for a hand edit and says why.
 
 ## [0.1.0] - 2026-10-29
 
