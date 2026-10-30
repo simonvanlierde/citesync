@@ -54,7 +54,7 @@ For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.
 ```yaml
 repos:
   - repo: https://github.com/simonvanlierde/citesync
-    rev: v0.1.0
+    rev: v0.2.0
     hooks:
       - id: citesync
       - id: citesync-write
