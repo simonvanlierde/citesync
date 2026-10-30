@@ -303,15 +303,15 @@ def _ignore_separators(key: Callable[[str], str]) -> Callable[[str], str]:
 
 
 def near_misses(others: Iterable[str], key: Callable[[str], str]) -> Callable[[str], str | None]:
-    """For a keyword, the first of ``others`` it misses only by separators, when it isn't among them as it is.
+    """For a keyword, the first of ``others`` it matches with separators read as spaces.
 
+    That is the keyword itself when it is among ``others``, so callers skip a near miss already present.
     The keys of ``others`` are made once here, not once per keyword: a long list would take quadratic time.
     """
-    exact, spaced = set(), {}
+    spaced: dict[str, str] = {}
     for other in others:
-        exact.add(key(other))
         spaced.setdefault(key(codecs.spaced(other)), other)
-    return lambda keyword: None if key(keyword) in exact else spaced.get(key(codecs.spaced(keyword)))
+    return lambda keyword: spaced.get(key(codecs.spaced(keyword)))
 
 
 def _keywords_differ(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
@@ -373,7 +373,5 @@ def _show_people(people: tuple[Person, ...]) -> str:
 
 
 def _show(value: object) -> str:
-    if isinstance(value, tuple):
-        return ", ".join(map(str, value))
     text = str(value)
     return repr(text if len(text) <= 80 else text[:77] + "...")
