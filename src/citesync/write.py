@@ -174,17 +174,10 @@ def init(
         "license": ("license", ""),
         "keywords": ("keywords", []),
     }
-    skipped = {}
-    for term, (cff_key, old) in blank.items():
-        if term not in record:
-            continue
-        try:
-            if term in PEOPLE:
-                data[cff_key] = _people(cff.format, old, source, str(mapping[cff.format, term]), mapping, term)
-            else:
-                data[cff_key] = _encode(cff, source, term, record[term], old, keyword_key(config))
-        except CannotWrite as err:
-            skipped[term] = str(err)
+    values, skipped = _encode_terms(
+        cff, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key(config)
+    )
+    data.update((blank[term][0], value) for term, value in values.items())
     if not (root / ".zenodo.json").is_file() and ("license", "zenodo-license-list") in zenodo_gaps(data):
         del data["license"]
         skipped["license"] = ZENODO_GAPS["zenodo-license-list"]
@@ -324,16 +317,24 @@ def _new_codemeta(
     }
     data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
-    skipped = {}
+    values, skipped = _encode_terms(doc, source, blank, mapping, keyword_key)
+    return json.dumps(data | values, indent=2, ensure_ascii=False) + "\n", skipped
+
+
+def _encode_terms(
+    doc: Doc, source: Doc, blank: dict[str, Any], mapping: Mapping, keyword_key: Callable[[str], str]
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Each term of ``blank`` the source holds, spelled for ``doc`` in its blank's shape, and why any is left out."""
+    values, skipped = {}, {}
     for term in (t for t in blank if t in source.record):
         try:
             if term in PEOPLE:
-                data[term] = _people("codemeta", blank[term], source, str(mapping["codemeta", term]), mapping, term)
+                values[term] = _people(doc.format, blank[term], source, str(mapping[doc.format, term]), mapping, term)
             else:
-                data[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
+                values[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
         except CannotWrite as err:
             skipped[term] = str(err)
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", skipped
+    return values, skipped
 
 
 def _yaml(text: str) -> YAML:
