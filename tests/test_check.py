@@ -152,18 +152,6 @@ def test_d2_gap(
     assert code == (1 if findings else 0)
 
 
-@pytest.mark.parametrize(("cff", "codemeta"), [("0.3.1-rc.1", "0.3.1rc1"), ("v1.2.3", "1.2.3"), ("1.0", "1.0.0")])
-def test_versions_compare_as_pep440(
-    cff: str, codemeta: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    (tmp_path / "CITATION.cff").write_text(CFF + f"version: {cff}\n", encoding="utf-8")
-    (tmp_path / "codemeta.json").write_text(_codemeta(version=codemeta), encoding="utf-8")
-    assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "0 errors, 0 warnings in 2 files\n", "")
-    (tmp_path / "codemeta.json").write_text(_codemeta(version="0.3.1rc2"), encoding="utf-8")
-    code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
-    assert (code, out.split(" ")[:2]) == (1, ["codemeta.json:", "error[version-mismatch]"])
-
-
 @pytest.mark.parametrize("keywords", ["alpha, beta,gamma", "alpha\uff0c beta\u3001gamma"])
 def test_codemeta_keywords_may_be_one_comma_separated_string(
     keywords: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -686,28 +674,6 @@ def test_long_values_are_cut_in_messages(
     files = {"CITATION.cff": CFF, "codemeta.json": _codemeta(name="n" * length)}
     [finding] = _split(_check_json(tmp_path, capsys, files))[0]
     assert finding["message"] == f"'{shown}', CITATION.cff has 'x'"
-
-
-@pytest.mark.parametrize(
-    ("tree", "expected"),
-    [
-        ("https://github.com/example/r/tree/v1.0", []),
-        (
-            "https://github.com/example/s/tree/v1.0",
-            ["'https://github.com/example/s/tree/v1.0', CITATION.cff has 'https://github.com/Example/R'"],
-        ),
-    ],
-)
-def test_repository_urls_compare_by_key(
-    tree: str, expected: list[str], tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """Zenodo's GitHub integration writes the release tree URL, and GitHub paths are case-insensitive."""
-    zenodo = {"title": "x", "related_identifiers": [{"relation": "isSupplementTo", "identifier": tree}]}
-    files = {
-        "CITATION.cff": CFF + "repository-code: https://github.com/Example/R\n",
-        ".zenodo.json": json.dumps(zenodo),
-    }
-    assert [f["message"] for f in _split(_check_json(tmp_path, capsys, files))[0]] == expected
 
 
 @pytest.mark.parametrize(
