@@ -24,6 +24,12 @@
         {
           "rule": "not-checked",
           "file": null,
+          "term": "swhid",
+          "why": "no file holds a value"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
           "term": "version",
           "why": "CFF has no version and no other file exists"
         }

@@ -39,6 +39,7 @@ def test_loads() -> None:
     mapping = load_mapping()
     assert mapping["cff-1.2.0", "identifier"] == "doi | identifiers[type=doi].value"
     assert mapping["cargo", "identifier"] is None
+    assert mapping["codemeta", "swhid"] == mapping["codemeta", "identifier"] == "identifier"
 
 
 def test_formats_are_in_file_order() -> None:

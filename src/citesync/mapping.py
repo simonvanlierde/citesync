@@ -22,6 +22,7 @@ TERMS = (
     "contributor",
     "license",
     "identifier",
+    "swhid",
     "codeRepository",
     "description",
     "keywords",

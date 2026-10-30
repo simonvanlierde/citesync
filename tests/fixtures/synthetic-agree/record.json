@@ -21,6 +21,7 @@
       ],
       "license": "Apache-2.0",
       "identifier": "10.5281/zenodo.1234567",
+      "swhid": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
       "codeRepository": "https://github.com/example/synthagree",
       "description": "A made-up package whose metadata files all agree.",
       "keywords": [
@@ -92,6 +93,7 @@
         }
       ],
       "license": "apache-2.0",
+      "swhid": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
       "codeRepository": "https://github.com/example/synthagree",
       "description": "A made-up package whose metadata files all agree.",
       "keywords": [

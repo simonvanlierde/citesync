@@ -15,6 +15,12 @@
           "file": null,
           "term": "contributor",
           "why": "no file holds a contributor"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "swhid",
+          "why": "no file holds a value"
         }
       ]
     },
@@ -40,6 +46,12 @@
           "file": null,
           "term": "contributor",
           "why": "no file holds a contributor"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "swhid",
+          "why": "no file holds a value"
         }
       ]
     }
