@@ -34,3 +34,17 @@ Findings are sorted by file, rule and field, and positions count from 1. A value
 ## GitHub
 
 `--format github` writes one workflow annotation per finding, titled `citesync <rule>`, and ends with a notice that counts them all, since GitHub shows only the first ten of each level.
+
+## SARIF
+
+`--format sarif` writes one SARIF 2.1.0 log: a `citesync` driver with its version and a `rules` entry (with `helpUri`) for each rule that appears, and a result per finding with `ruleId`, `level` (`error`, `warning`, or `note` for info), the text format's message, and the repo-relative file as `uri`, plus a `region` when the finding has a position. A finding on no file has no location. Like the text format, it leaves out info findings unless you pass `-v`. Exit codes are the same as for the other formats.
+
+GitHub code scanning takes it through `github/codeql-action/upload-sarif`:
+
+```yaml
+- run: uvx citesync check --format sarif > citesync.sarif
+  continue-on-error: true
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: citesync.sarif
+```

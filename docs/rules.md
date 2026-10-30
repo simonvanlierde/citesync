@@ -108,6 +108,14 @@ Without a .zenodo.json, Zenodo reads CITATION.cff but leaves out `identifiers` a
 
 To fix: Add a .zenodo.json with the field's Zenodo form (`related_identifiers`, `references`) if the record needs it.
 
+## file-missing
+
+A file listed under `files` doesn't exist. Severity: error.
+
+Only for a citation file named in the `files` setting: without that setting, citesync checks the citation files that are there. `citesync write` creates codemeta.json from the source, with the configured `codemeta-version`. It doesn't create a .zenodo.json, which a repo needs only for what CITATION.cff can't hold, or a CITATION.cff.
+
+To fix: Run `citesync write`, which creates a missing codemeta.json; create any other file by hand, or take it off `files`.
+
 ## unreadable
 
 citesync could not read the file. Severity: error.

@@ -25,7 +25,7 @@ from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from citesync import codecs
-from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, near_miss, read_docs
+from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_miss, read_docs
 from citesync.config import Config
 from citesync.errors import CannotWrite
 from citesync.formats import (
@@ -87,6 +87,8 @@ def write(
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
+    if "file-missing" not in config.ignore and "codemeta.json" in missing(root, config):
+        texts["codemeta.json"] = _new_codemeta(source, config.codemeta_version, mapping, key)
     if not dry_run:
         _replace({root / rel: text for rel, text in texts.items()})
     return dict(sorted(texts.items())), skipped
@@ -120,7 +122,12 @@ def _replace(texts: dict[Path, str]) -> None:
             temps[Path(name)] = path
             with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
                 file.write(text)
-            shutil.copymode(path, name)
+            if path.exists():
+                shutil.copymode(path, name)
+            else:  # mkstemp's file is owner-only; a new file gets what open() would give it
+                umask = os.umask(0)
+                os.umask(umask)
+                Path(name).chmod(0o666 & ~umask)
         for tmp, path in temps.items():
             tmp.replace(path)
     finally:
@@ -153,6 +160,26 @@ def _rewrite(
     data = copy.deepcopy(old)
     skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
     return _splice(text, old, data), skipped
+
+
+def _new_codemeta(source: Doc, version: str, mapping: Mapping, keyword_key: Callable[[str], str]) -> str:
+    """A codemeta.json holding each term the source has, spelled as codemeta spells it."""
+    blank = {
+        "name": "",
+        "description": "",
+        "version": "",
+        "identifier": "https://doi.org/",  # the placeholders' shapes pick the forms: DOI and SPDX URLs
+        "codeRepository": "",
+        "license": "https://spdx.org/licenses/",
+        "author": [],
+        "keywords": [],
+    }
+    terms = [t for t in blank if t in source.record]
+    data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
+    data |= {t: blank[t] for t in terms}
+    doc = Doc("codemeta.json", "codemeta", {}, frozenset(), version, release=True)
+    _apply(doc, source, terms, data, mapping, None, keyword_key)
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
 def _yaml(text: str) -> YAML:

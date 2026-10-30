@@ -4,7 +4,7 @@
 
 ## What it writes
 
-It writes every citation file that isn't the source, and a manifest only for the fields listed in `write-manifests` (or all of them with `"all"`, see [config.md](config.md)). A field a file leaves out stays out: a .zenodo.json without a version never gains one. When the source has no value for a field (no DOI in pyproject.toml), write leaves that field alone in the other files. It can't yet create a citation file listed under `files` that doesn't exist.
+It writes every citation file that isn't the source, and a manifest only for the fields listed in `write-manifests` (or all of them with `"all"`, see [config.md](config.md)). A field a file leaves out stays out: a .zenodo.json without a version never gains one. When the source has no value for a field (no DOI in pyproject.toml), write leaves that field alone in the other files. When `files` lists a codemeta.json that doesn't exist, write creates it from the source, with the configured `codemeta-version`; it doesn't create a missing .zenodo.json or CITATION.cff (see [`file-missing`](rules.md#file-missing)).
 
 Values that compare equal stay as written: write leaves `v1.2.3` against `1.2.3`, and `LCA` against `lca` unless `keywords-case-sensitive` is set. A finding whose rule `ignore` lists is not written, and an `unreadable` file is never written.
 

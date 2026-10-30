@@ -57,7 +57,7 @@ def discover(root: Path, config: Config) -> list[str]:
 
     Default: every citation file present, and every manifest at the root. A
     ``manifests`` list replaces the default list. A listed citation file that
-    doesn't exist yet is skipped: there is nothing to compare.
+    doesn't exist yet is skipped here; :func:`read_docs` reports it.
 
     Raises:
         CheckError: when the source or a listed manifest is missing.
@@ -78,6 +78,11 @@ def discover(root: Path, config: Config) -> list[str]:
     return list(dict.fromkeys(paths))
 
 
+def missing(root: Path, config: Config) -> list[str]:
+    """The citation files the ``files`` setting lists that don't exist."""
+    return [p for p in config.files or () if not (root / p).is_file()]
+
+
 def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], list[Finding]]:
     """Read the files to compare, leaving out root manifests that aren't released.
 
@@ -85,7 +90,7 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
     manifests, by format), so which file a finding names never depends on config order.
     A file that can't be read gives an ``unreadable`` finding and an empty doc in its place.
     """
-    docs, unreadable = [], []
+    docs, unreadable = [], [Finding(p, None, "file-missing", "listed under files") for p in missing(root, config)]
     for path in discover(root, config):
         try:
             docs.append(read_doc(root, path, mapping))
