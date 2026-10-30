@@ -37,7 +37,7 @@ To upgrade from 0.1.0:
 
 - **Breaking:** `codemeta-version` has no default. When it's unset, any CodeMeta version passes and `citesync write` leaves `@context` alone.
 - **Breaking:** a file listed in the `files` setting that doesn't exist is a `file-missing` error. 0.1.0 skipped it.
-- The field mapping comes from codemeta-drift 0.2.0, which adds contributors and release dates.
+- The field mapping comes from codemeta-drift 0.3.0, which adds contributors, release dates and SWHIDs.
 - `citesync check` starts about a third faster.
 - **Breaking:** `write-manifests = "all"` means the six manifest fields, and naming any other field is a config error.
 - A keyword finding between citation files lists the missing and extra words, not both files' lists.
