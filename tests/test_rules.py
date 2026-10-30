@@ -53,7 +53,7 @@ def test_runs_as_a_module() -> None:
 
 
 def test_check_leaves_slow_imports_alone(tmp_path: Path) -> None:
-    # Each costs 2 to 10 ms a run, and check needs none of them here: the writer's tomlkit,
+    # Each costs 2 to 10 ms a run, and check needs none of them here: the writer and its tomlkit,
     # the package metadata behind --version, importlib.resources, shutil (argparse's help
     # width), and packaging, since the versions match as written.
     (tmp_path / "CITATION.cff").write_text('cff-version: 1.2.0\nmessage: m\ntitle: x\nversion: "1.0"\n', "utf-8")
@@ -62,8 +62,8 @@ def test_check_leaves_slow_imports_alone(tmp_path: Path) -> None:
     )
     code = (
         "import sys; from citesync.cli import main; code = main(['check', '-q']);"
-        " print(code, sorted(m for m in ('tomlkit', 'importlib.metadata', 'importlib.resources', 'shutil',"
-        " 'packaging.version', 'difflib') if m in sys.modules))"
+        " print(code, sorted(m for m in ('citesync.write', 'tomlkit', 'importlib.metadata', 'importlib.resources',"
+        " 'shutil', 'packaging.version', 'difflib') if m in sys.modules))"
     )
     run = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, cwd=tmp_path)  # noqa: S603
     assert run.stdout.splitlines()[-1] == "0 []", run.stdout + run.stderr

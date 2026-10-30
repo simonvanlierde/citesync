@@ -59,7 +59,7 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
     assert capsys.readouterr().out == (
         "# from defaults\n"
         'source = "CITATION.cff"\n'
-        'codemeta-version = "3.0"\n'
+        "# codemeta-version: not set, so any supported @context passes\n"
         "# files: not set, so every citation file present\n"
         "# manifests: not set, so every release manifest at the repo root\n"
         "write-manifests = []\n"

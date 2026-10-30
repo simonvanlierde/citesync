@@ -5,11 +5,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from citesync import codecs
-from citesync.config import Config
+from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, slots
 from citesync.mapping import FORMATS, PEOPLE, TERMS, Mapping, load_mapping
-from citesync.rules import DOCS_URL, MISMATCH, RULES
+from citesync.rules import MISMATCH, RULES, url
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,16 @@ class Finding:
         """``error``, ``warning`` or ``info``, from the rule."""
         return RULES[self.rule].severity
 
+    @property
+    def text(self) -> str:
+        """The message, after the term it is about."""
+        return f"{self.term}: {self.message}" if self.term else self.message
+
+    @property
+    def where(self) -> str | None:
+        """``file:line:column``, or the file alone when the line isn't known."""
+        return f"{self.file}:{self.line}:{self.column}" if self.line else self.file
+
     def sort_key(self) -> tuple[bool, str, str, str]:
         """Findings sort by file, rule and term; those on no file come last."""
         return (self.file is None, self.file or "", self.rule, self.term or "")
@@ -46,7 +56,7 @@ class Finding:
             "term": self.term,
             "message": self.message,
             "help": rule.help,
-            "url": f"{DOCS_URL}#{self.rule}",
+            "url": url(self.rule),
             "line": self.line,
             "column": self.column,
         }
@@ -111,14 +121,17 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int]:
 
 
 def git_tags(root: Path) -> list[str]:
-    """The tag names of the git repository at ``root``, read from its files; none when it isn't one.
+    """The tag names of the git repository holding ``root``, read from its files; none outside one.
 
     Reads loose refs and ``packed-refs`` in the common git dir, so a linked worktree sees the
     clone's tags. Running ``git`` would cost a process per check.
     """
-    git = root / ".git"
+    top = git_top(root)
+    if top is None:
+        return []
+    git = top / ".git"
     if git.is_file():  # a linked worktree: "gitdir: <path>", whose commondir file points at the clone's .git
-        git = (root / git.read_text(encoding="utf-8").removeprefix("gitdir:").strip()).resolve()
+        git = (top / git.read_text(encoding="utf-8").removeprefix("gitdir:").strip()).resolve()
         if (git / "commondir").is_file():
             git = (git / (git / "commondir").read_text(encoding="utf-8").strip()).resolve()
     tags = [p.relative_to(git / "refs/tags").as_posix() for p in (git / "refs/tags").rglob("*") if p.is_file()]
@@ -155,13 +168,17 @@ def version_behind_tag(source: Doc, tags: list[str]) -> list[Finding]:
     return [Finding(source.path, "version", "version-behind-tag", f"{version}, the newest tag is {newest}")]
 
 
-def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list[Finding]:
-    """Every finding for ``docs`` (the source first) as :func:`read_docs` gives them, sorted."""
+def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> set[Finding]:
+    """The findings for ``docs`` (the source first) as :func:`read_docs` gives them.
+
+    All but ``version-behind-tag``, which needs the repo's tags and which write never fixes: :func:`check` adds it.
+    """
     found: set[Finding] = set(unreadable)
     source = docs[0]
     for doc in docs:
-        if doc.readable and doc.format == "codemeta" and doc.version != config.codemeta_version:
-            detail = f"{doc.version}, configured {config.codemeta_version}"
+        configured = config.codemeta_version
+        if configured and doc.readable and doc.format == "codemeta" and doc.version != configured:
+            detail = f"{doc.version}, configured {configured}"
             found.add(Finding(doc.path, "@context", "context-mismatch", detail))
         for key in dict.fromkeys(key for key, _ in doc.dangling_roles):
             orcids = ", ".join(orcid for k, orcid in doc.dangling_roles if k == key)
@@ -176,7 +193,7 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list
             found.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
         found.update(compare_term(term, docs, kw_key=keyword_key(config)))
-    return sorted(found, key=Finding.sort_key)
+    return found
 
 
 _ZENODO_GAPS = {
@@ -193,7 +210,7 @@ def has_slot(doc: Doc, term: str) -> bool:
 def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
     """Compare ``term`` in ``docs[1:]`` with the source ``docs[0]``.
 
-    When the source has no slot or no value for it (D2), the other files that hold
+    When the source has no slot or no value for it (docs/check.md), the other files that hold
     it are compared with each other. A source with no ORCID slot (a manifest) also
     gets its authors' ORCIDs compared that way, and a manifest source gets the
     keywords of the rest compared that way, since a subset of one isn't a subset of all.
@@ -246,7 +263,8 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
         return None
     detail = f"{_show(b)}, {ref.path} has {_show(a)}"
     if term == "keywords":
-        misses = [f"{k!r} differs from {near!r}" for k in b if (near := near_miss(k, a, kw_key))]
+        near_miss = near_misses(a, kw_key)
+        misses = [f"{k!r} differs from {near!r}" for k in b if (near := near_miss(k))]
         detail += f" ({', '.join(misses)} only in separators)" if misses else ""
     return Finding(doc.path, term, MISMATCH[term], detail)
 
@@ -277,11 +295,16 @@ def _ignore_separators(key: Callable[[str], str]) -> Callable[[str], str]:
     return lambda k: key(codecs.spaced(k))
 
 
-def near_miss(keyword: str, others: Iterable[str], key: Callable[[str], str]) -> str | None:
-    """The one of ``others`` that ``keyword`` misses only by separators, when it isn't among them as it is."""
-    if key(keyword) in map(key, others):
-        return None
-    return next((o for o in others if key(codecs.spaced(o)) == key(codecs.spaced(keyword))), None)
+def near_misses(others: Iterable[str], key: Callable[[str], str]) -> Callable[[str], str | None]:
+    """For a keyword, the first of ``others`` it misses only by separators, when it isn't among them as it is.
+
+    The keys of ``others`` are made once here, not once per keyword: a long list would take quadratic time.
+    """
+    exact, spaced = set(), {}
+    for other in others:
+        exact.add(key(other))
+        spaced.setdefault(key(codecs.spaced(other)), other)
+    return lambda keyword: None if key(keyword) in exact else spaced.get(key(codecs.spaced(keyword)))
 
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
@@ -293,10 +316,9 @@ def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
     extra = [k for k in manifest.record["keywords"] if key(k) not in known]
     if not extra:
         return None
+    near_miss = near_misses(citation.record["keywords"], key)
     words = [
-        f"{k} ({citation.path} has {near!r}: differs only in separators)"
-        if (near := near_miss(k, citation.record["keywords"], key))
-        else k
+        f"{k} ({citation.path} has {near!r}: differs only in separators)" if (near := near_miss(k)) else k
         for k in extra
     ]
     detail = f"{', '.join(words)}: in {manifest.path}, not in {citation.path}"

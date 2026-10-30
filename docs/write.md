@@ -1,34 +1,42 @@
 # How `citesync write` works
 
-`citesync write` fixes what `check` reports, and nothing more. `citesync write --diff` prints the same edits as a unified diff and writes nothing; it exits 1 when there is a change, or a file it can't read (listed on stderr), so CI can run it.
+`citesync write` fixes what `check` reports, and nothing more. `citesync write --diff` prints the same edits as a unified diff and writes nothing. It exits 1 when there is a change or a file it can't read, so CI can run it.
 
 ## What it writes
 
-It writes every citation file that isn't the source, and a manifest only for the fields listed in `write-manifests` (or all of them with `"all"`, see [config.md](config.md)). A field a file leaves out stays out: a .zenodo.json without a version never gains one. When the source has no value for a field (no DOI in pyproject.toml), write leaves that field alone in the other files. When `files` lists a codemeta.json that doesn't exist, write creates it from the source, with the configured `codemeta-version`; it doesn't create a missing .zenodo.json or CITATION.cff (see [`file-missing`](rules.md#file-missing)).
+It writes every citation file that isn't the source. It changes a manifest only for the fields listed in `write-manifests` (see [config.md](config.md)).
 
-Values that compare equal stay as written: write leaves `v1.2.3` against `1.2.3`, and `LCA` against `lca` unless `keywords-case-sensitive` is set. A finding whose rule `ignore` lists is not written, and an `unreadable` file is never written.
+It leaves these alone:
+
+- a field a file leaves out: a .zenodo.json without a version never gains one;
+- a field the source doesn't hold (no DOI in pyproject.toml);
+- values that compare equal, such as `v1.2.3` against `1.2.3`;
+- findings whose rule is in `ignore`, and `unreadable` files.
+
+When `files` lists a codemeta.json that doesn't exist, write creates it from the source. It gets the configured `codemeta-version`, else 3.0, the version Software Heritage reads. Write doesn't create a missing .zenodo.json or CITATION.cff.
 
 ## How it spells values
 
-It keeps each file's layout: comments, key order and quoting in CITATION.cff, comments in TOML, and in JSON the key order, indentation, one-line arrays and final newline. Each value is spelled the way that file spells it: Zenodo's `"Family, Given"` and lowercase licence ids, a DOI URL in codemeta.json, where a schema.org PropertyValue keeps its other keys, semver in Cargo.toml and package.json, PEP 440 in pyproject.toml.
+Write keeps each file's layout: comments, key order, quoting and indentation. It spells each value the way that file does, such as Zenodo's `"Family, Given"` and lowercase licence ids, or semver in Cargo.toml and package.json.
 
-A value the file can't spell is left as it was, and its finding says why:
+Some values a file can't hold, such as a licence with `AND` in CITATION.cff, or a post-release version in Cargo.toml. Write leaves those as they were, and the finding says why.
 
-- a compound licence in .zenodo.json;
-- a licence with `AND` or `WITH` in CITATION.cff or codemeta.json (`OR` becomes a list);
-- in Cargo.toml and package.json, a version semver has no spelling for (a post-release such as `1.2.3.post1`, an epoch, more than three numbers);
-- in pyproject.toml, a version that isn't PEP 440.
+## Authors and contributors
 
-## Authors
+Contributors are written as authors are.
 
-An author with only a name, such as an organization (`name` in CITATION.cff and codemeta.json), counts as a family name and keeps it; a new one is written to codemeta.json as an `Organization`, not a `Person`. An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation; anyone else gets a new entry. When that would drop an old entry holding more than a name and ORCID, such as after a renaming in a manifest, write leaves that file's authors for you to edit. A Cargo field inherited with `.workspace = true` is left as it is: change it in the workspace's `[workspace.package]`.
+- An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation. Anyone else gets a new entry.
+- If that would drop an old entry with more than a name and ORCID, for example after a rename, write leaves that file's authors for you to edit.
+- An author with only a name, such as an organization, keeps it as a family name. A new one goes into codemeta.json as an `Organization`.
+- Write doesn't add a new .zenodo.json contributor, because Zenodo needs a contributor `type`. Add it by hand.
+- A Cargo field inherited with `.workspace = true` stays as it is. Change it in `[workspace.package]`.
 
 ## Output and exit codes
 
-It prints `wrote <file>` for each file it changed (to stderr with `--format json` or `github`, and not at all with `--quiet`), then reports the findings left as `check` does, in the same [formats](output.md), each with what to do: edit it by hand (with the reason, when write could have written it but didn't), or add the field to `write-manifests`. Exit 0 when no error finding remains, 1 when one does (an unreadable file included), and 2 when citesync couldn't run.
+Write prints `wrote <file>` for each file it changed, to stderr with `--format json`, `github` or `sarif`. `--quiet` drops it. Then it reports the findings that are left, as `check` does, each with what to do about it. The exit codes are those of [`check`](check.md#findings-and-exit-codes).
 
 ## Safety
 
-Every file is written to a temporary file beside it before any is moved into place, so a failure leaves the files as they were, unless a move itself fails, which leaves the files moved before it written. A symlinked file is written through the link, CRLF line ends stay CRLF (a file that mixes LF and CRLF comes back all CRLF), and a file that would not change is not touched.
+Write puts every file in a temporary file beside it before it moves any into place, so a failure leaves your files as they were. Only a failed move can leave some files written and others not. It writes through a symlink that points inside the repo. It doesn't touch a file that wouldn't change, and CRLF line ends stay CRLF.
 
-Known limits of the CITATION.cff round trip: an end-of-line comment aligned with spaces after a value (`title:    x   # c`) is reflowed, a second sequence indented differently from the first is reindented to match it, and a closing `...` and a byte-order mark are dropped.
+In CITATION.cff, write may reflow an end-of-line comment aligned with spaces, reindent a sequence to match the first one, and drop a closing `...` or a byte-order mark.

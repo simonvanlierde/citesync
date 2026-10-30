@@ -11,26 +11,20 @@ Status: experimental. It may change in ways that break your code, without notice
 
 Questions and bugs: see [CONTRIBUTING.md](https://github.com/simonvanlierde/citesync/blob/main/.github/CONTRIBUTING.md).
 
-Software citation metadata: citesync checks that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) say the same thing. Where each field sits in each file comes from a mapping of CodeMeta's crosswalks, exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
+citesync checks that your software's citation metadata says the same thing everywhere: CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json). It can also rewrite the files so they agree. It knows where each field sits in each file from CodeMeta's crosswalks, as exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
 
-## What works now
+## Usage
 
-`citesync check` compares ten fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, repository URL, description, keywords and release date. `citesync write` rewrites the other files to agree with it.
+citesync compares ten fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
 
 ```sh
 uv tool install citesync            # or run it once with uvx citesync check
-citesync check                      # exit 0: they agree; 1: an error finding; 2: citesync couldn't run
+citesync check                      # exit 0: no error finding; 1: an error finding; 2: citesync couldn't run
 citesync check --source pyproject.toml
-citesync check --root path/to/repo  # check another directory
-citesync check --format json        # or --json; also --format github for workflow annotations
-citesync check -v                   # also list fields that weren't compared (not-checked)
-citesync check -q                   # only errors, no summary line
-citesync rules                      # the rules, with their severity; --format json too
+citesync write --diff               # print what write would change, and change nothing
+citesync write                      # rewrite the other files to agree with the source
 citesync explain version-mismatch   # what a rule checks and how to fix it
 citesync config                     # the config in use, and the file it came from
-citesync write                      # rewrite the other files to agree with the source
-citesync write --diff               # print what write would change, and change nothing
-citesync --version
 ```
 
 ```text
@@ -38,13 +32,13 @@ codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0
 1 error, 0 warnings in 3 files
 ```
 
-More in `docs/`:
+`citesync --help` lists every command and option. The reference is in `docs/`:
 
-- [How check works](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md): which files it reads, how spellings are normalised, findings and exit codes.
-- [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it writes, how it keeps each file's layout, and its limits.
+- [How check works](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md): the fields, files, options and exit codes.
+- [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it changes and what it leaves alone.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
-- [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes and every key.
-- [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): the JSON document and GitHub annotations.
+- [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes, and every key.
+- [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): JSON, GitHub annotations and SARIF.
 - [Tested on real repositories](https://github.com/simonvanlierde/citesync/blob/main/docs/tested-repositories.md): what citesync reports on five public repositories.
 
 ## Pre-commit hook
@@ -60,7 +54,7 @@ repos:
       - id: citesync-write
 ```
 
-The hook runs `citesync check` from the repo root when a commit changes CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, `citesync.toml` or `.citesync.toml`, at any depth. It always checks every file, not only the staged ones, and fails the commit on an error finding. `citesync-write` runs `citesync write` only when you ask for it: `prek run citesync-write --stage manual --all-files`.
+The `citesync` hook runs when a commit changes one of the six metadata files or a citesync config, at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
 
 ## Development
 
@@ -69,7 +63,7 @@ You need [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
 ```sh
 uv sync
 uv tool install prek   # once per machine
-prek install     # git hooks
+prek install           # git hooks
 ```
 
 `just` lists the tasks. They mirror what [.github/workflows/](https://github.com/simonvanlierde/citesync/tree/main/.github/workflows) runs.
@@ -80,19 +74,10 @@ just fmt         # apply each stack's fixes and formatting
 just hooks       # the git hooks, as the checks workflow runs them
 ```
 
-`just mutation`, which CI doesn't run, changes `check.py` and `codecs.py` one small step at a time and fails if the tests
-still pass on a change that `tests/mutation-baseline.txt` does not list. A change that
-cannot alter behaviour goes in that file with the reason. It also fails on a listed
-change the tests now catch, so the list stays true.
+`just mutation` mutation-tests `check.py` and `codecs.py`. CI doesn't run it. It fails when the tests miss a change that `tests/mutation-baseline.txt` doesn't list. A change that can't alter behaviour goes in that file, with the reason. It also fails when the tests now catch a listed change, so drop that line.
 
-uv locks only releases at least a week old. If `just check` fails on
-a security fix newer than that, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`,
-and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
+uv locks only releases at least a week old. If `just check` fails on a newer security fix, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`, and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 
-## Releasing
+## Licence
 
-See [docs/releasing.md](https://github.com/simonvanlierde/citesync/blob/main/docs/releasing.md).
-
-## License
-
-See [LICENSE](https://github.com/simonvanlierde/citesync/blob/main/LICENSE) for the license terms.
+See [LICENSE](https://github.com/simonvanlierde/citesync/blob/main/LICENSE).

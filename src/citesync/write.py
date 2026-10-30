@@ -26,9 +26,9 @@ from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from citesync import codecs
-from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_miss, read_docs
+from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_misses, read_docs
 from citesync.config import Config
-from citesync.errors import CannotWrite
+from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
     MANIFESTS,
     Doc,
@@ -37,16 +37,22 @@ from citesync.formats import (
     codemeta_person,
     codemeta_version,
     format_of,
+    inside,
     locate,
     person,
 )
+from citesync.jsonsplice import splice
 from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
+
+# The @context of a codemeta.json write creates when codemeta-version is unset: the version
+# the project template renders and Software Heritage reads.
+NEW_CODEMETA_VERSION = "3.0"
 
 
 def write(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
-) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
-    """Write every finding write may fix; return the new text of each path it changed, and why it skipped a field.
+) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding]]:
+    """Write every finding write may fix; return what it wrote, why it skipped a field, and what it couldn't read.
 
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
@@ -56,8 +62,12 @@ def write(
     Every new text is made before any file is replaced, so an error leaves the files as they were.
     With ``dry_run``, nothing is replaced.
 
+    Returns:
+        The new text of each path it changed, the reason for each (path, term) it left as it was, and the
+        ``unreadable`` findings.
+
     Raises:
-        CheckError: as :func:`citesync.check.check` does.
+        CheckError: as :func:`citesync.check.check` does, and when a file to write resolves outside ``root``.
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
@@ -73,7 +83,7 @@ def write(
             t
             for t in TERMS
             if (doc.path, t) in fix
-            and has_slot(source, t)  # else the others were compared with each other (D2): left alone
+            and has_slot(source, t)  # else the others were compared with each other (docs/check.md): left alone
             and t in source.record
             and t in doc.record
             and (doc.is_citation or t in config.write_manifests)
@@ -88,11 +98,19 @@ def write(
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
-    if "file-missing" not in config.ignore and "codemeta.json" in missing(root, config):
-        texts["codemeta.json"] = _new_codemeta(source, config.codemeta_version, mapping, key)
+    version = config.codemeta_version or NEW_CODEMETA_VERSION
+    for rel in missing(root, config) if source.readable and "file-missing" not in config.ignore else ():
+        if format_of(rel) == "codemeta":
+            texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
+            skipped |= {(rel, term): reason for term, reason in reasons.items()}
     if not dry_run:
+        for rel in texts:  # read_doc refuses an existing file outside; this catches a dangling link to one
+            if not inside(root, rel):
+                msg = f"{rel}: resolves outside the repo root, so write won't write it"
+                raise CheckError(msg)
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)  # a listed docs/codemeta.json may be the first there
         _replace({root / rel: text for rel, text in texts.items()})
-    return dict(sorted(texts.items())), skipped
+    return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"]
 
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
@@ -160,29 +178,41 @@ def _rewrite(
     old = json.loads(text)
     data = copy.deepcopy(old)
     skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
-    return _splice(text, old, data), skipped
+    return splice(text, old, data), skipped
 
 
-def _new_codemeta(source: Doc, version: str, mapping: Mapping, keyword_key: Callable[[str], str]) -> str:
-    """A codemeta.json holding each term the source has, spelled as codemeta spells it."""
+def _new_codemeta(
+    rel: str, source: Doc, version: str, mapping: Mapping, keyword_key: Callable[[str], str]
+) -> tuple[str, dict[str, str]]:
+    """A codemeta.json at ``rel`` holding each term the source has, spelled as codemeta spells it.
+
+    A term codemeta can't spell is left out, not left blank, and returned with the reason:
+    a blank value reads as no value, so check would pass on it and write never fill it.
+    """
     blank = {
         "name": "",
         "description": "",
         "version": "",
         "datePublished": "",
-        "identifier": "https://doi.org/",  # the placeholders' shapes pick the forms: DOI and SPDX URLs
+        "identifier": "https://doi.org/",  # the blanks' shapes pick the forms: DOI and SPDX URLs
         "codeRepository": "",
         "license": "https://spdx.org/licenses/",
         "author": [],
         "contributor": [],
         "keywords": [],
     }
-    terms = [t for t in blank if t in source.record]
     data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
-    data |= {t: blank[t] for t in terms}
-    doc = Doc("codemeta.json", "codemeta", {}, frozenset(), version, release=True)
-    _apply(doc, source, terms, data, mapping, None, keyword_key)
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
+    skipped = {}
+    for term in (t for t in blank if t in source.record):
+        try:
+            if term in PEOPLE:
+                data[term] = _people("codemeta", blank[term], source, str(mapping["codemeta", term]), mapping, term)
+            else:
+                data[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
+        except CannotWrite as err:
+            skipped[term] = str(err)
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", skipped
 
 
 def _yaml(text: str) -> YAML:
@@ -327,9 +357,9 @@ def _keywords(old: Any, value: tuple[str, ...], key: Callable[[str], str], *, ad
     subset of a citation file's, so only the manifest loses words, or only the citation file gains them.
     """
     items = old if isinstance(old, list) else [old]
-    want = set(map(key, value))
+    want, near_miss = set(map(key, value)), near_misses(value, key)
     for i, word in enumerate(items):  # a near miss takes the source's spelling where it stands
-        if (near := near_miss(str(word), value, key)) and key(near) not in {key(str(k)) for k in items}:
+        if (near := near_miss(str(word))) and key(near) not in {key(str(k)) for k in items}:
             items[i] = _styled(near, word)
     if remove:
         for i in reversed(range(len(items))):
@@ -355,7 +385,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
             Zenodo contributor would be added, since Zenodo needs a contributor type.
     """
     items = list(old) if isinstance(old, list) else [old]
-    decoded = [_decode(fmt, el, path, mapping, term) for el in items]
+    decoded = [person(fmt, el, path, mapping, term) for el in items]
     npm = term == "author" and "npm" in {fmt, source.format}
     people: tuple[Person, ...] = source.record[term][:1] if npm else source.record[term]
     matches = _matches(decoded, people)
@@ -413,16 +443,6 @@ def _relist(old: list[Any], new: list[Any]) -> None:
     else:  # a reorder: rebuild the list
         old.clear()
         old.extend(new)
-
-
-def _decode(fmt: str, element: Any, path: str, mapping: Mapping, term: str) -> Person | None:  # noqa: ANN401
-    if fmt == "cff-1.2.0" and isinstance(element, dict):
-        element = cff_person(element)
-    elif fmt == "codemeta":
-        element = codemeta_person(element)
-    elif fmt == "npm" and isinstance(element, str):
-        element = {"name": element}
-    return person(fmt, element, path, mapping, term)
 
 
 def _matches(decoded: list[Person | None], people: tuple[Person, ...]) -> list[int | None]:
@@ -483,10 +503,13 @@ def _rename(fmt: str, element: Any, p: Person, path: str, mapping: Mapping, term
     if fmt == "codemeta" and codemeta_person(element) is not element:  # a name-only entry keeps its one name
         element["name"] = p.name
         return
-    if fmt == "cff-1.2.0":
+    keys = {relative(str(mapping[fmt, t]), path) for t in person_terms(term)[:2]}
+    if fmt == "cff-1.2.0" and cff_person(element).get("family-names") == fields.get("family-names"):
+        keys.discard("family-names")  # only the given name changed: the particle and suffix stay as they are
+    elif fmt == "cff-1.2.0":
         for key in ("name-particle", "name-suffix"):
             element.pop(key, None)  # folded into family-names by now
-    for key in {relative(str(mapping[fmt, t]), path) for t in person_terms(term)[:2]}:
+    for key in keys:
         if key in fields:
             element[key] = _styled(fields[key], element.get(key))
         else:
@@ -506,73 +529,3 @@ def _styled(new: Any, old: Any) -> Any:  # noqa: ANN401
     if isinstance(old, ScalarString) and isinstance(new, str) and not isinstance(new, ScalarString):
         return type(old)(new)
     return new
-
-
-# JSON: splice changed values into the original text, so everything else keeps its bytes.
-
-_DECODER = json.JSONDecoder()
-
-
-def _skip(text: str, i: int) -> int:
-    while i < len(text) and text[i] in " \t\r\n":
-        i += 1
-    return i
-
-
-def _node(text: str, i: int) -> tuple[int, int, dict[Any, Any] | None]:
-    """The (start, end, children) of the JSON value at ``i``; children by key or index, None for a scalar."""
-    i = _skip(text, i)
-    opener = text[i]
-    if opener not in "[{":
-        return i, _DECODER.raw_decode(text, i)[1], None
-    kids: dict[Any, Any] = {}
-    j = i + 1
-    while True:
-        j = _skip(text, j)
-        if text[j] in "]}":
-            return i, j + 1, kids
-        if opener == "{":
-            key, end = _DECODER.raw_decode(text, j)
-            j = _skip(text, end) + 1  # past the colon
-        else:
-            key = len(kids)
-        kids[key] = _node(text, j)
-        j = _skip(text, kids[key][1])
-        j += text[j] == ","
-
-
-def _splice(text: str, old: Any, new: Any) -> str:  # noqa: ANN401
-    indent = re.search(r"\n([ \t]+)\S", text)
-    edits: list[tuple[int, int, str]] = []
-    _diff(text, _node(text, 0), old, new, edits, indent[1] if indent else "  ")
-    for start, end, value in sorted(edits, reverse=True):
-        text = text[:start] + value + text[end:]
-    return text
-
-
-def _diff(text: str, node: tuple[int, int, Any], old: Any, new: Any, edits: list, indent: str) -> None:  # noqa: ANN401
-    """Collect a replacement for each smallest value that differs between ``old`` and ``new``."""
-    start, end, kids = node
-    if type(old) is type(new) and old == new:
-        return
-    if isinstance(old, dict) and isinstance(new, dict) and list(old) == list(new):
-        for key in old:
-            _diff(text, kids[key], old[key], new[key], edits, indent)
-    elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
-        for i, (a, b) in enumerate(zip(old, new, strict=True)):
-            _diff(text, kids[i], a, b, edits, indent)
-    elif isinstance(old, list) and isinstance(new, list) and old and new[: len(old)] == old:
-        # appended to: add after the last element in its layout, leaving the others' text alone
-        last_start, last_end, _ = kids[len(old) - 1]
-        line = text[text.rfind("\n", 0, last_start) + 1 :]
-        margin = line[: len(line) - len(line.lstrip(" \t"))]
-        sep = ",\n" + margin if "\n" in text[start:end] else ", "
-        multi = "\n" in text[last_start:last_end]
-        dumped = (json.dumps(el, indent=indent if multi else None, ensure_ascii=False) for el in new[len(old) :])
-        edits.append((last_end, last_end, "".join(sep + d.replace("\n", "\n" + margin) for d in dumped)))
-    elif "\n" in text[start:end]:  # a multi-line value stays multi-line, at the indentation of its line
-        line = text[text.rfind("\n", 0, start) + 1 :]
-        margin = line[: len(line) - len(line.lstrip(" \t"))]
-        edits.append((start, end, json.dumps(new, indent=indent, ensure_ascii=False).replace("\n", "\n" + margin)))
-    else:
-        edits.append((start, end, json.dumps(new, ensure_ascii=False)))

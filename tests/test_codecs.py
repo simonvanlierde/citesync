@@ -2,6 +2,7 @@
 
 import datetime as dt
 import re
+import time
 from collections.abc import Callable
 
 import pytest
@@ -149,6 +150,7 @@ def test_repo_key_path_case() -> None:
     ("decode", "raw", "expected"),
     [
         (codecs.orcid_decode, "https://orcid.org/0000-0002-1825-009x/", "0000-0002-1825-009X"),
+        (codecs.orcid_decode, "/ 0000-0002-1825-0097", "0000-0002-1825-0097"),
         (codecs.repo_decode, "https://github.com/o/BOX/", "https://github.com/o/BOX"),
         (codecs.zenodo_name_decode, None, None),
         (codecs.zenodo_name_decode, "  ", None),
@@ -208,6 +210,21 @@ def test_contact_name(name: str) -> None:
     assert codecs.contact_name_decode(f"{name} <ada@example.org>") == name
     assert codecs.contact_name_decode(name) == name
     assert codecs.contact_name_decode(codecs.contact_name_decode(name)) == name
+
+
+@pytest.mark.parametrize(
+    ("decode", "raw", "expected"),
+    [
+        (codecs.contact_name_decode, "a" + " " * 10_000 + "<", "a <"),
+        (codecs.orcid_decode, "a" + " " * 100_000 + "a", "A" + " " * 100_000 + "A"),
+    ],
+    ids=["contact", "orcid"],
+)
+def test_decode_takes_linear_time(decode: Callable[[object], object], raw: str, expected: str) -> None:
+    """A long run of spaces once made the regular expression try every way to split it."""
+    start = time.perf_counter()
+    assert decode(raw) == expected
+    assert time.perf_counter() - start < 1
 
 
 # semver.org's regular expression, without the named groups

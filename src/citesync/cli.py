@@ -7,22 +7,25 @@ unless moving a written file into place failed: files moved before it stay writt
 """
 
 import argparse
+import io
 import json
 import os
+import re
 import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from citesync.check import Finding, check
-from citesync.config import Config, find_root, load_config, render
+from citesync.config import Config, find_root, git_top, load_config, render
 from citesync.errors import CheckError
-from citesync.rules import DOCS_URL, RULES, explain
+from citesync.rules import DOCS_URL, RULES, explain, url
 
 JSON_VERSION = 1
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
 _SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
+_CONTROL = re.compile("[\x00-\x1f\x7f-\x9f]")  # C0 and C1: a file's ESC could retitle the terminal or hide lines
 
 
 # Imports that only `write`, `--version` or the JSON report need wait until they're used:
@@ -52,8 +55,10 @@ class _VersionAction(argparse.Action):
         parser.exit()
 
 
-class _Formatter(argparse.HelpFormatter):
+class _Formatter(argparse.RawDescriptionHelpFormatter):
     """argparse's formatter, sized as ``shutil.get_terminal_size`` would size it, without importing shutil.
+
+    Raw, so the epilog's exit-code table keeps its lines.
 
     argparse builds one for every argument it adds, and shutil's imports cost 3 ms a run.
     """
@@ -81,10 +86,23 @@ class _Parser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
 
 
+_DESCRIPTION = """Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
+(pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file."""
+_EPILOG = f"""exit codes:
+  0  no error finding (warnings and info don't fail)
+  1  an error finding; with write --diff, a change to make or a file it can't read
+  2  citesync couldn't run: a bad config or option, a missing source file
+
+config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
+[workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
+
+docs: {DOCS_URL.rsplit("/", 1)[0]}"""
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = _Parser(prog="citesync", description=__doc__.splitlines()[0])
+    parser = _Parser(prog="citesync", description=_DESCRIPTION, epilog=_EPILOG)
     parser.add_argument("--version", action=_VersionAction)
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", metavar="command")
     root = _Parser(add_help=False)
     root.add_argument(
         "--root",
@@ -93,27 +111,36 @@ def _parser() -> argparse.ArgumentParser:
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
     report = _Parser(add_help=False, parents=[root])
-    report.add_argument("--format", choices=("text", "json", "github", "sarif"), default="text")
+    report.add_argument(
+        "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
+    )
     report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     shown = report.add_mutually_exclusive_group()
     shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
-    sub.add_parser("check", parents=[report], help="report where the files disagree")
-    write_ = sub.add_parser("write", parents=[report], help="rewrite the files to agree with the source")
+    check = "report where the files disagree with the source"
+    sub.add_parser("check", parents=[report], help=check, description=f"{check.capitalize()}.", epilog=_EPILOG)
+    write = "rewrite the files to agree with the source"
+    write_ = sub.add_parser(
+        "write",
+        parents=[report],
+        help=write,
+        description=f"{write.capitalize()}, changing only what check reports,\nand a manifest only for the fields"
+        " in write-manifests.",
+        epilog=_EPILOG,
+    )
     write_.add_argument("--diff", action="store_true", help="print the changes as a unified diff and write nothing")
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", help="list the rules")
-    rules.add_argument("--format", choices=("text", "json"), default="text")
+    rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
     sub.add_parser("explain", help="print a rule's documentation").add_argument("rule", help="a rule id")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the command line and return its exit code."""
-    parser = _parser()
-    args = parser.parse_args(argv)
-    if getattr(args, "diff", False) and args.format != "text":
-        parser.error("--diff prints a unified diff; it takes no --format")
+    _utf8_streams()
+    args = _parse(argv)
     if args.command in {"rules", "explain"}:
         return _rules(args)
     try:
@@ -137,8 +164,11 @@ def main(argv: list[str] | None = None) -> int:
         from citesync.write import advice  # noqa: PLC0415
 
         if not args.quiet:  # stdout stays one document in the json and github formats
-            for path in written:
-                print(f"wrote {path}", file=sys.stdout if args.format == "text" else sys.stderr)
+            shown = {(f.file, f.term) for f in findings}
+            for path in written:  # a field left out of a created file has no finding to carry its reason
+                left = [f"{t}: {why}" for (p, t), why in sorted(skipped.items()) if p == path and (p, t) not in shown]
+                wrote = f"wrote {path}" + (f", leaving out {'; '.join(left)}" if left else "")
+                print(wrote, file=sys.stdout if args.format == "text" else sys.stderr)
         findings = [
             f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config, skipped)})")
             for f in findings
@@ -147,22 +177,40 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if any(f.severity == "error" for f in findings) else 0
 
 
+def _parse(argv: list[str] | None) -> argparse.Namespace:
+    """The parsed command line; with no command, the help on stderr and exit 2."""
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if args.command is None:
+        parser.print_help(sys.stderr)
+        parser.exit(2)
+    if getattr(args, "diff", False) and args.format != "text":
+        parser.error("--diff prints a unified diff; it takes no --format")
+    return args
+
+
+def _utf8_streams() -> None:
+    """Print UTF-8 whatever the streams were opened with: a Windows pipe is cp1252, which can't print most names."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper) and stream.encoding.lower().replace("-", "") != "utf8":
+            stream.reconfigure(encoding="utf-8")
+
+
 def _write(root: Path, config: Config) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
     from citesync.write import write  # noqa: PLC0415
 
-    return write(root, config)
+    written, skipped, _ = write(root, config)
+    return written, skipped
 
 
 def _write_diff(root: Path, config: Config) -> int:
     """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
     from citesync.write import write  # noqa: PLC0415
 
-    texts, _ = write(root, config, dry_run=True)
+    texts, _, unreadable = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
-    unreadable = [f for f in check(root, config)[0] if f.rule == "unreadable"]
     for f in unreadable:  # the diff can't show a file write never touches, so say so
-        where = f"{f.file}:{f.line}:{f.column}" if f.line else f.file
-        print(f"{where}: error[unreadable] {f.message}", file=sys.stderr)
+        print(f"{f.where}: error[unreadable] {f.message}", file=sys.stderr)
     return 1 if texts or unreadable else 0
 
 
@@ -190,42 +238,48 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         findings = [f for f in findings if f.severity == "error"]
     elif not args.verbose:
         findings = [f for f in findings if f.severity != "info"]
+    # Code scanning and annotations place a file by its path in the repo, not under citesync's root.
+    top, root = git_top(args.root), args.root.resolve()
+    prefix = f"{root.relative_to(top).as_posix()}/" if top and top != root else ""
     if args.format == "sarif":
-        print(json.dumps(_sarif(findings), indent=2))
+        print(json.dumps(_sarif(findings, prefix), indent=2))
         return
     total = f"{_count(counts['error'], 'error')}, {_count(counts['warning'], 'warning')} in {_count(files, 'file')}"
     if args.format == "github":
         for f in findings:
-            where = f"file={_escape(f.file, property_=True)}," if f.file else ""
+            where = f"file={_escape(prefix + f.file, property_=True)}," if f.file else ""
             where += f"line={f.line},col={f.column}," if f.line else ""
-            message = _escape(f"{f.term}: {f.message}" if f.term else f.message)
+            message = _escape(_printable(f.text))
             print(f"::{_GITHUB_LEVEL[f.severity]} {where}title=citesync {f.rule}::{message}")
         if not args.quiet:  # GitHub shows only the first 10 annotations of a level, so give the totals
             print(f"::notice::citesync: {total}")
         return
     colour = _colour()
     for f in findings:
-        where = f"{f.file}{f':{f.line}:{f.column}' if f.line else ''}: " if f.file else ""
+        where = _printable(f"{f.where}: ") if f.file else ""
         severity = f"\033[{_ANSI[f.severity]}m{f.severity}\033[0m" if colour else f.severity
-        print(f"{where}{severity}[{f.rule}] " + (f"{f.term}: {f.message}" if f.term else f.message))
+        print(f"{where}{severity}[{f.rule}] {_printable(f.text)}")
     if not args.quiet:
         print(total)
 
 
-def _sarif(findings: list[Finding]) -> dict[str, Any]:
-    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding."""
+def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
+    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding on a file.
+
+    ``prefix`` is the root's path in its git repo, ending in ``/``, or empty at the repo's top.
+    """
+    findings = [f for f in findings if f.file]  # code scanning may refuse a result with no location
     results = []
     for f in findings:
         result: dict[str, Any] = {
             "ruleId": f.rule,
             "level": _SARIF_LEVEL[f.severity],
-            "message": {"text": f"{f.term}: {f.message}" if f.term else f.message},
+            "message": {"text": f.text},
         }
-        if f.file:
-            location: dict[str, Any] = {"artifactLocation": {"uri": f.file}}
-            if f.line:
-                location["region"] = {"startLine": f.line, "startColumn": f.column or 1}
-            result["locations"] = [{"physicalLocation": location}]
+        location: dict[str, Any] = {"artifactLocation": {"uri": f"{prefix}{f.file}"}}
+        if f.line:
+            location["region"] = {"startLine": f.line, "startColumn": f.column or 1}
+        result["locations"] = [{"physicalLocation": location}]
         results.append(result)
     driver = {
         "name": "citesync",
@@ -235,7 +289,7 @@ def _sarif(findings: list[Finding]) -> dict[str, Any]:
             {
                 "id": rule,
                 "shortDescription": {"text": RULES[rule].summary},
-                "helpUri": f"{DOCS_URL}#{rule}",
+                "helpUri": url(rule),
                 "defaultConfiguration": {"level": _SARIF_LEVEL[RULES[rule].severity]},
             }
             for rule in sorted({f.rule for f in findings})
@@ -249,16 +303,19 @@ def _sarif(findings: list[Finding]) -> dict[str, Any]:
 
 
 def _diff(root: Path, texts: dict[str, str]) -> str:
-    """The unified diff from each file to its new text, with git's ``a/`` and ``b/`` prefixes."""
+    """The unified diff from each file to its new text, with git's ``a/`` and ``b/`` prefixes.
+
+    A file write would create is diffed from ``/dev/null``, as git shows a new file.
+    """
     import difflib  # noqa: PLC0415
 
     return "".join(
         line
         for rel, new in texts.items()
         for line in difflib.unified_diff(
-            (root / rel).read_bytes().decode("utf-8").splitlines(keepends=True),
+            (root / rel).read_bytes().decode("utf-8").splitlines(keepends=True) if (root / rel).exists() else [],
             new.splitlines(keepends=True),
-            f"a/{rel}",
+            f"a/{rel}" if (root / rel).exists() else "/dev/null",
             f"b/{rel}",
         )
     )
@@ -287,8 +344,7 @@ def _rules(args: argparse.Namespace) -> int:
         return 0
     if args.format == "json":
         rules = [
-            {"rule": rule, "severity": r.severity, "summary": r.summary, "url": f"{DOCS_URL}#{rule}"}
-            for rule, r in RULES.items()
+            {"rule": rule, "severity": r.severity, "summary": r.summary, "url": url(rule)} for rule, r in RULES.items()
         ]
         print(json.dumps(rules, indent=2))
         return 0
@@ -296,6 +352,11 @@ def _rules(args: argparse.Namespace) -> int:
     for rule, r in RULES.items():
         print(f"{rule:<{width}}  {r.severity:<7}  {r.summary}")
     return 0
+
+
+def _printable(text: str) -> str:
+    r"""``text`` with each control character written as ``\xNN``."""
+    return _CONTROL.sub(lambda m: f"\\x{ord(m[0]):02x}", text)
 
 
 def _escape(text: str, *, property_: bool = False) -> str:

@@ -7,26 +7,46 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+To upgrade from 0.1.0:
+
+- `citesync check` has four new error rules: `contributor-mismatch`, `date-mismatch`, `zenodo-license-list` and `file-missing`. To turn any of them off for now, list it under `ignore`. [docs/rules.md](docs/rules.md) describes each rule.
+- `codemeta-version` no longer defaults to 3.0. To keep checking codemeta.json's `@context` as before, set `codemeta-version = "3.0"`.
+- Use citesync through its command line or the pre-commit hook. Its Python modules are internal and may change in any release.
+
 ### Added
 
-- Contributors are compared as authors are: codemeta.json `contributor`, .zenodo.json `contributors` and package.json `contributors`. CITATION.cff has no contributor list, so with it as the source those files must agree with each other. Only the people count, never a CodeMeta Role or a Zenodo contributor `type`. A difference is a `contributor-mismatch` error. `citesync write` renames and reorders contributors, but leaves a new Zenodo contributor for a hand edit, since Zenodo needs a type for each one.
-- The release date is compared: CFF `date-released`, CodeMeta `datePublished` and Zenodo `publication_date`, by day, so a time after the date doesn't count. A difference is a `date-mismatch` error, and `citesync write` fixes it as `YYYY-MM-DD`.
-- `version-behind-tag` warns when the source's version is older than the repo's newest git tag, as after a release tagged without bumping CITATION.cff. citesync reads the tags from `.git` itself, so it runs no `git`.
-- `citesync check --format sarif` (and `write`) prints a SARIF 2.1.0 log that GitHub code scanning can upload with `github/codeql-action/upload-sarif`.
-- `citesync write` creates codemeta.json when the `files` setting lists it and it doesn't exist yet. A missing listed file is a new `file-missing` error in `citesync check`.
-- When a repo has no .zenodo.json, Zenodo reads CITATION.cff, so two rules check it. `zenodo-license-list` is an error for a `license` list, which Zenodo refuses. `zenodo-drops-field` warns about `identifiers` and `references`, which Zenodo leaves out of the record; a Zenodo DOI among the identifiers is fine.
-- A keyword that differs from another file's only in hyphens, underscores or spaces is named in the finding, as in `industrial-ecology (CITATION.cff has 'industrial ecology': differs only in separators)`. `citesync write` gives it the source's spelling where it stands, instead of dropping it.
-- `keywords-ignore-separators = true` treats such keywords as equal. Against Cargo.toml they always are, since crates.io refuses a keyword with a space.
+- Contributors are compared across codemeta.json, .zenodo.json and package.json, the same way as authors (`contributor-mismatch`).
+- Release dates are compared across CITATION.cff, codemeta.json and .zenodo.json (`date-mismatch`).
+- `version-behind-tag` warns when the source's version is older than the repo's newest git tag.
+- `--format sarif` prints a SARIF log that GitHub code scanning can upload.
+- `citesync write` creates codemeta.json when the `files` setting lists it and it doesn't exist yet.
+- `citesync --help` lists the exit codes and where config is read from. `citesync` with no command prints the help.
+- Two rules for repos where Zenodo reads CITATION.cff: `zenodo-license-list` and `zenodo-drops-field`.
+- A keyword that differs from another file's only in hyphens, underscores or spaces is named as such, and `citesync write` gives it the source's spelling. `keywords-ignore-separators = true` treats such keywords as equal.
 
 ### Changed
 
-- `citesync check` starts about a third faster: it no longer loads what only `write`, `--version` or `--json` need.
+- **Breaking:** `codemeta-version` has no default. When it's unset, any CodeMeta version passes and `citesync write` leaves `@context` alone.
+- **Breaking:** a file listed in the `files` setting that doesn't exist is a `file-missing` error. 0.1.0 skipped it.
+- The field mapping comes from codemeta-drift 0.2.0, which adds contributors and release dates.
+- `citesync check` starts about a third faster.
 
 ### Fixed
 
-- `citesync write` writes a new CITATION.cff entity (an author with only `name`) to codemeta.json as an `Organization`; it was a `Person` with that name as `familyName`.
-- When `citesync write` adds authors to a JSON list, the entries already there keep their layout; a list of one-line entries was rewritten with each entry over several lines.
-- `python -m citesync` runs the command line, as `citesync` does. It failed with "No module named citesync.__main__".
+- `citesync write` wrote a CITATION.cff entity (an author with only a name) to codemeta.json as a `Person`. It's now an `Organization`.
+- `citesync write` reformatted the existing entries of a JSON author list when it added an author.
+- `python -m citesync` failed with "No module named `citesync.__main__`".
+- With `doi: ""` in CITATION.cff, the DOI under `identifiers` was ignored.
+- codemeta.json entries written with `type` and `id` instead of `@type` and `@id` were ignored.
+- A title with an accent typed two different ways didn't match itself.
+- `citesync write` folded an author's `name-particle` and `name-suffix` into `family-names` when it changed the given name.
+- GitHub annotations didn't attach to their files when the root was a subdirectory of the git repo.
+- codemeta.json keywords given as one string weren't split on full-width (`，`) or ideographic (`、`) commas.
+- A manifest or .zenodo.json that starts with a byte order mark gave a confusing parser error.
+- A file behind a symlink that points out of the repo was read, and `write` could change it. It's now `unreadable`.
+- Control characters in a file could retitle the terminal or hide lines. They now print as `\xNN`.
+- Printing non-ASCII text to a stdout that isn't UTF-8, such as a Windows pipe, crashed.
+- Some inputs made `citesync check` run for minutes, such as an author string with a long run of spaces or a keyword list thousands long.
 
 ## [0.1.0] - 2026-10-29
 

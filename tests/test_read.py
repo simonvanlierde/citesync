@@ -47,6 +47,14 @@ def test_every_fixture_file_has_a_record() -> None:
     assert on_disk == {(repo, rel) for repo, rel, _ in CASES}
 
 
+@pytest.mark.parametrize("blank", ['doi: ""\n', "doi:\n"])
+def test_a_blank_alternative_gives_way_to_the_next(blank: str, tmp_path: Path) -> None:
+    ids = "identifiers:\n  - {type: doi, value: 10.5281/zenodo.1}\n"
+    cff = "cff-version: 1.2.0\nmessage: m\ntitle: x\n" + blank + ids
+    (tmp_path / "CITATION.cff").write_text(cff, encoding="utf-8")
+    assert read_doc(tmp_path, "CITATION.cff", load_mapping()).record["identifier"] == "10.5281/zenodo.1"
+
+
 def test_cargo_member_without_workspace_drops_inherited_keys(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text('[package]\nname = "x"\nversion.workspace = true\n', encoding="utf-8")
     assert read_doc(tmp_path, "Cargo.toml", load_mapping()).record == {"name": "x"}

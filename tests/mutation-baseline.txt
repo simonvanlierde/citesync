@@ -2,7 +2,15 @@
 # Mutant numbers shift when their function changes: rerun and recheck each line then.
 citesync.check.xǁFindingǁsort_key__mutmut_3  every finding with no file gets the same stand-in, and they already sort last
 citesync.check.xǁFindingǁsort_key__mutmut_5  only unreadable has no term, and a file has at most one, so its stand-in is never compared
-citesync.check.x_read_docs__mutmut_35  readable is only read as a truth value, and None is falsy like False
-citesync.check.x_compare_term__mutmut_32  authors compare with orcid_only=True, where kw_key is not read
+citesync.check.x_read_docs__mutmut_50  readable is only read as a truth value, and None is falsy like False
+citesync.check.x_compare_term__mutmut_28  authors compare with orcid_only=True, where kw_key is not read
 citesync.check.x__same_people__mutmut_18  zip's strict=None is falsy, the same as False
 citesync.check.x__same_people__mutmut_21  zip's strict defaults to False
+citesync.check.x_git_tags__mutmut_12  encoding=None reads the locale's encoding, UTF-8 wherever the tests run, and git files are ASCII
+citesync.check.x_git_tags__mutmut_14  "UTF-8" and "utf-8" name the same codec
+citesync.check.x_git_tags__mutmut_22  encoding=None reads the locale's encoding, UTF-8 wherever the tests run, and git files are ASCII
+citesync.check.x_git_tags__mutmut_27  "UTF-8" and "utf-8" name the same codec
+citesync.check.x_git_tags__mutmut_42  encoding=None reads the locale's encoding, UTF-8 wherever the tests run, and git files are ASCII
+citesync.check.x_git_tags__mutmut_47  "UTF-8" and "utf-8" name the same codec
+citesync.check.x_git_tags__mutmut_55  a ref name has no space, so a packed-refs line splits the same from either end
+citesync.check.x_version_behind_tag__mutmut_5  with no version, Version(None) is InvalidVersion and returns []; the early return only spares packaging's import, which test_check_leaves_slow_imports_alone checks in a subprocess mutmut doesn't reach

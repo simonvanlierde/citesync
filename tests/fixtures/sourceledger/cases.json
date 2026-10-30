@@ -7,13 +7,29 @@
     {
       "name": "defaults",
       "config": {},
+      "exit": 0,
+      "findings": [],
+      "info": [
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "contributor",
+          "why": "no file holds a contributor"
+        }
+      ]
+    },
+    {
+      "name": "codemeta-version-3.0",
+      "config": {
+        "codemeta-version": "3.0"
+      },
       "exit": 1,
       "findings": [
         {
           "rule": "context-mismatch",
           "file": "codemeta.json",
           "term": "@context",
-          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version defaults to 3.0"
+          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version is 3.0"
         }
       ],
       "info": [

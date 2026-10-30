@@ -1,17 +1,23 @@
 """`citesync check` on the fixtures, against the findings in each cases.json, plus the D2 table and exit codes."""
 
+import io
 import json
 import os
+import re
 import shutil
 import subprocess
+import sys
+import time
 from importlib.metadata import version
 from pathlib import Path
 
 import jsonschema
 import pytest
 
-from citesync.check import Finding
+from citesync import codecs
+from citesync.check import Finding, compare
 from citesync.cli import _sarif, main
+from citesync.formats import Doc
 from citesync.mapping import TERMS
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -146,24 +152,13 @@ def test_d2_gap(
     assert code == (1 if findings else 0)
 
 
-@pytest.mark.parametrize(("cff", "codemeta"), [("0.3.1-rc.1", "0.3.1rc1"), ("v1.2.3", "1.2.3"), ("1.0", "1.0.0")])
-def test_versions_compare_as_pep440(
-    cff: str, codemeta: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    (tmp_path / "CITATION.cff").write_text(CFF + f"version: {cff}\n", encoding="utf-8")
-    (tmp_path / "codemeta.json").write_text(_codemeta(version=codemeta), encoding="utf-8")
-    assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "0 errors, 0 warnings in 2 files\n", "")
-    (tmp_path / "codemeta.json").write_text(_codemeta(version="0.3.1rc2"), encoding="utf-8")
-    code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
-    assert (code, out.split(" ")[:2]) == (1, ["codemeta.json:", "error[version-mismatch]"])
-
-
+@pytest.mark.parametrize("keywords", ["alpha, beta,gamma", "alpha\uff0c beta\u3001gamma"])
 def test_codemeta_keywords_may_be_one_comma_separated_string(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    keywords: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """schema.org lets ``keywords`` be one Text with commas between the keywords."""
+    """schema.org lets ``keywords`` be one Text with commas between the keywords, full-width ones too."""
     (tmp_path / "CITATION.cff").write_text(CFF + "keywords: [alpha, beta, gamma]\n", encoding="utf-8")
-    (tmp_path / "codemeta.json").write_text(_codemeta(keywords="alpha, beta,gamma"), encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(keywords=keywords), encoding="utf-8")
     assert _run(capsys, "check", "--root", str(tmp_path)) == (0, "0 errors, 0 warnings in 2 files\n", "")
 
 
@@ -176,6 +171,7 @@ def test_findings_are_sorted_and_text_matches_codemeta_drift(
         encoding="utf-8",
     )
     (tmp_path / ".zenodo.json").write_text(json.dumps({"title": "z", "license": "apache-2.0"}), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('codemeta-version = "3.0"\n', encoding="utf-8")
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
     assert code == 1
     assert _run(capsys, "check", "--root", str(tmp_path), "--quiet")[1] == out.rsplit("5 errors", 1)[0]
@@ -224,7 +220,8 @@ def test_sarif_levels_and_region() -> None:
             Finding("a.json", "name", "name-mismatch", "m", line=3, column=5),
             Finding("a.json", "author", "role-dangling", "m"),
             Finding("a.json", "x", "not-checked", "m"),
-        ]
+        ],
+        "",
     )
     run = log["runs"][0]
     assert [r["level"] for r in run["results"]] == ["error", "warning", "note"]
@@ -233,10 +230,14 @@ def test_sarif_levels_and_region() -> None:
     assert "region" not in run["results"][1]["locations"][0]["physicalLocation"]
 
 
-def test_sarif_finding_without_a_file_has_no_locations() -> None:
-
-    log = _sarif([Finding(file=None, term="version", rule="not-checked", message="no file holds it")])
-    assert "locations" not in log["runs"][0]["results"][0]
+def test_every_sarif_result_has_a_location(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A finding on no file, a not-checked term no file holds, has nowhere to point, so SARIF leaves it out."""
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
+    _, out, _ = _run(capsys, "check", "-v", "--root", str(tmp_path), "--format", "sarif")
+    run = json.loads(out)["runs"][0]
+    assert [r["ruleId"] for r in run["results"]] == ["name-mismatch"]
+    assert [r["id"] for r in run["tool"]["driver"]["rules"]] == ["name-mismatch"]
 
 
 @pytest.mark.parametrize(
@@ -294,6 +295,30 @@ def test_unreadable_file_is_a_finding(
     _, github, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github")
     where = f"line={position[0]},col={position[1]}," if position else ""
     assert f"::error file={name},{where}title=citesync unreadable::" in github
+
+
+@pytest.mark.parametrize(("name", "text"), [(".zenodo.json", '{"title": "x"}'), ("pyproject.toml", PYPROJECT)])
+def test_a_byte_order_mark_is_named(name: str, text: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    report = _check_json(tmp_path, capsys, {"CITATION.cff": "\ufeff" + CFF, name: "\ufeff" + text})
+    assert [(f["file"], f["message"]) for f in report["findings"] if f["rule"] == "unreadable"] == [
+        (name, "starts with a byte order mark: save it as UTF-8 without one")
+    ]
+
+
+def test_a_file_through_a_symlinked_directory_out_of_the_repo_is_unreadable(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "outside" / "codemeta.json").write_text(_codemeta(name="secret"), encoding="utf-8")
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "docs").symlink_to(tmp_path / "outside")
+    files = {"CITATION.cff": CFF, "citesync.toml": 'files = ["docs/codemeta.json"]\n'}
+    report = _check_json(root, capsys, files)
+    assert [(f["rule"], f["file"], f["message"]) for f in _split(report)[0]] == [
+        ("unreadable", "docs/codemeta.json", "resolves outside the repo root")
+    ]
+    assert "secret" not in json.dumps(report)
 
 
 def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -609,6 +634,17 @@ def test_keywords_that_differ_only_in_separators(
     assert [(f["rule"], f["file"], f["term"], f["message"]) for f in _split(report)[0]] == expected
 
 
+def test_many_keywords_compare_in_linear_time() -> None:
+    words = [f"w{i}" for i in range(20_000)]
+    ref = Doc("CITATION.cff", "cff-1.2.0", {"keywords": (*words, "big data")}, frozenset(), "1.2.0", release=True)
+    doc = Doc("codemeta.json", "codemeta", {"keywords": (*words, "big-data", "x")}, frozenset(), "3.0", release=True)
+    start = time.perf_counter()
+    finding = compare("keywords", ref, doc, kw_key=codecs.name_key)
+    assert time.perf_counter() - start < 1
+    assert finding is not None
+    assert finding.message.endswith("('big-data' differs from 'big data' only in separators)")
+
+
 def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     files = {
         "CITATION.cff": CFF + "keywords: [b, a]\nauthors:\n  - {given-names: Ada, family-names: Lovelace}\n",
@@ -637,28 +673,6 @@ def test_long_values_are_cut_in_messages(
     files = {"CITATION.cff": CFF, "codemeta.json": _codemeta(name="n" * length)}
     [finding] = _split(_check_json(tmp_path, capsys, files))[0]
     assert finding["message"] == f"'{shown}', CITATION.cff has 'x'"
-
-
-@pytest.mark.parametrize(
-    ("tree", "expected"),
-    [
-        ("https://github.com/example/r/tree/v1.0", []),
-        (
-            "https://github.com/example/s/tree/v1.0",
-            ["'https://github.com/example/s/tree/v1.0', CITATION.cff has 'https://github.com/Example/R'"],
-        ),
-    ],
-)
-def test_repository_urls_compare_by_key(
-    tree: str, expected: list[str], tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """Zenodo's GitHub integration writes the release tree URL, and GitHub paths are case-insensitive."""
-    zenodo = {"title": "x", "related_identifiers": [{"relation": "isSupplementTo", "identifier": tree}]}
-    files = {
-        "CITATION.cff": CFF + "repository-code: https://github.com/Example/R\n",
-        ".zenodo.json": json.dumps(zenodo),
-    }
-    assert [f["message"] for f in _split(_check_json(tmp_path, capsys, files))[0]] == expected
 
 
 @pytest.mark.parametrize(
@@ -760,6 +774,7 @@ def test_one_planted_disagreement(
 ) -> None:
     root = tmp_path / "repo"
     shutil.copytree(SYNTHETIC, root)
+    (root / "citesync.toml").write_text('codemeta-version = "3.0"\n', encoding="utf-8")
     text = (root / name).read_text(encoding="utf-8")
     assert text.count(old) == 1
     (root / name).write_text(text.replace(old, new), encoding="utf-8")
@@ -798,6 +813,83 @@ def test_schema_lets_a_minor_release_add_rules_and_fields(tmp_path: Path, capsys
     report["findings"][0]["rule"] = "Not_Kebab"
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(report, OUTPUT_SCHEMA)
+
+
+EPILOG = """\
+exit codes:
+  0  no error finding (warnings and info don't fail)
+  1  an error finding; with write --diff, a change to make or a file it can't read
+  2  citesync couldn't run: a bad config or option, a missing source file
+
+config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
+[workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
+
+docs: https://github.com/simonvanlierde/citesync/blob/main/docs
+"""
+
+
+@pytest.mark.parametrize(
+    ("args", "head"),
+    [
+        (
+            ["--help"],
+            """\
+usage: citesync [-h] [--version] command ...
+
+Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
+(pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file.
+
+positional arguments:
+  command
+    check     report where the files disagree with the source
+    write     rewrite the files to agree with the source
+    config    print the config in use and where it came from
+    rules     list the rules
+    explain   print a rule's documentation
+
+options:
+  -h, --help  show this help message and exit
+  --version   show the version and exit
+
+""",
+        ),
+        (
+            ["check", "--help"],
+            """\
+usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--format {text,json,github,sarif}]
+                      [--json] [-v | -q]
+
+Report where the files disagree with the source.
+
+options:
+  -h, --help            show this help message and exit
+  --root ROOT           repo root (default: the nearest directory up with a citation file or
+                        config, inside the git repo)
+  --source SOURCE       the file the others must agree with; overrides config
+  --format {text,json,github,sarif}
+                        output format (default: text)
+  --json                alias of --format json
+  -v, --verbose         also print not-checked info
+  -q, --quiet           print only errors, and no summary
+
+""",
+        ),
+    ],
+    ids=["citesync", "check"],
+)
+def test_help(args: list[str], head: str, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("COLUMNS", "100")
+    with pytest.raises(SystemExit) as exc:
+        main(args)
+    assert (exc.value.code, capsys.readouterr().out) == (0, head + EPILOG)
+
+
+def test_no_command_prints_the_help_and_exits_2(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main([])
+    out, err = capsys.readouterr()
+    assert (exc.value.code, out) == (2, "")
+    assert err.startswith("usage: citesync [-h] [--version] command ...")
 
 
 def test_version(capsys: pytest.CaptureFixture[str]) -> None:
@@ -846,6 +938,28 @@ def test_colour(
     assert _run(capsys, "check", "--root", str(tmp_path))[1].startswith(start)
 
 
+@pytest.mark.parametrize("fmt", ["text", "github"])
+def test_control_characters_are_escaped(fmt: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A keyword holding ESC could retitle the terminal or hide lines."""
+    (tmp_path / "CITATION.cff").write_text(CFF + "keywords: [a]\n", encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(keywords=["\x1b]0;x\x07\x9b"]), encoding="utf-8")
+    code, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", fmt)
+    assert code == 1
+    assert not re.search("[\x00-\x09\x0b-\x1f\x7f-\x9f]", out)
+    assert "\\x1b]0;x\\x07\\x9b" in out
+
+
+def test_a_non_utf8_stdout_prints_utf8(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Windows pipe is cp1252, which can't encode a CJK title: printing it must not fail the check."""
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="\u6bdb\u6cfd\u4e1c"), encoding="utf-8")
+    raw = io.BytesIO()
+    monkeypatch.setattr("sys.stdout", io.TextIOWrapper(raw, encoding="cp1252"))
+    assert main(["check", "--root", str(tmp_path)]) == 1
+    sys.stdout.flush()
+    assert "\u6bdb\u6cfd\u4e1c" in raw.getvalue().decode("utf-8")
+
+
 def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
@@ -885,6 +999,37 @@ def test_what_zenodo_reads_from_cff_alone(
     assert all(f["file"] == "CITATION.cff" for f in report["findings"] if f["rule"].startswith("zenodo-"))
 
 
+def test_a_blank_doi_does_not_hide_the_identifiers_doi(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = {
+        "CITATION.cff": CFF + 'doi: ""\nidentifiers:\n  - {type: doi, value: 10.5281/zenodo.1}\n',
+        "codemeta.json": _codemeta(identifier="https://doi.org/10.5281/zenodo.2"),
+    }
+    assert _triples(_split(_check_json(tmp_path, capsys, files))[0]) == [
+        ("doi-mismatch", "codemeta.json", "identifier")
+    ]
+
+
+@pytest.mark.parametrize("term", ["name", "description"])
+def test_titles_compare_in_nfc(term: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    nfc, nfd = "\u00c9conomie", "E\u0301conomie"
+    cff = {"name": "title", "description": "abstract"}[term]
+    files = {"CITATION.cff": CFF + f'{cff}: "{nfc}"\n', "codemeta.json": _codemeta(**{term: nfd})}
+    if term == "name":
+        files["CITATION.cff"] = files["CITATION.cff"].replace('title: "x"\n', "")
+    assert _split(_check_json(tmp_path, capsys, files))[0] == []
+
+
+def test_nested_lists_are_not_followed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """YAML aliases share one list, so ten levels of ten hold 10**10 leaves in a file of a few hundred bytes."""
+    levels = ["a0: &a0 [MIT, MIT, MIT, MIT, MIT, MIT, MIT, MIT, MIT, MIT]"]
+    levels += [f"a{i}: &a{i} [{', '.join([f'*a{i - 1}'] * 10)}]" for i in range(1, 10)]
+    cff = CFF + "\n".join(levels) + "\nlicense: [*a9]\ndoi: [*a9]\n"
+    start = time.perf_counter()
+    report = _check_json(tmp_path, capsys, {"CITATION.cff": cff, ".zenodo.json": json.dumps({"title": "x"})})
+    assert time.perf_counter() - start < 1
+    assert _split(report)[0] == []
+
+
 def test_release_dates_compare_by_day(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     files = {
         "CITATION.cff": CFF + "date-released: 2026-01-15\n",
@@ -903,19 +1048,22 @@ def _git(root: Path, *args: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("version", "tags", "pack", "expected"),
+    ("version", "tags", "packed", "expected"),
     [
-        ("0.1.0", ["v0.1.0", "v0.2.0", "latest"], False, "0.1.0, the newest tag is v0.2.0"),
-        ("0.1.0", ["v0.1.0", "v0.2.0rc1"], True, "0.1.0, the newest tag is v0.2.0rc1"),
-        ("0.2.0", ["v0.1.0", "0.2.0"], False, None),
-        ("0.1.0", ["latest"], False, None),
-        ("0.1.0", [], False, None),
+        ("0.1.0", ["v0.1.0", "v0.2.0", "latest"], 0, "0.1.0, the newest tag is v0.2.0"),
+        ("0.1.0", ["v0.1.0", "v0.2.0rc1"], 2, "0.1.0, the newest tag is v0.2.0rc1"),
+        ("0.1.0", ["v0.1.0", "v0.2.0"], 1, "0.1.0, the newest tag is v0.2.0"),  # loose beside packed
+        ("0.9.5", ["v0.10.0", "v0.9.0"], 0, "0.9.5, the newest tag is v0.10.0"),  # by version, not as text
+        ("", ["v0.2.0"], 0, None),
+        ("0.2.0", ["v0.1.0", "0.2.0"], 0, None),
+        ("0.1.0", ["latest"], 0, None),
+        ("0.1.0", [], 0, None),
     ],
 )
 def test_version_behind_the_newest_tag_warns(
     version: str,
     tags: list[str],
-    pack: bool,  # noqa: FBT001
+    packed: int,
     expected: str | None,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -924,13 +1072,17 @@ def test_version_behind_the_newest_tag_warns(
     (tmp_path / "CITATION.cff").write_text(CFF + f"version: {version}\n", encoding="utf-8")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t.test", "commit", "-qm", "x")
-    for tag in tags:
+    for i, tag in enumerate(tags, 1):  # the first `packed` tags go into packed-refs, the rest stay loose
         _git(tmp_path, "tag", tag)
-    if pack:
-        _git(tmp_path, "pack-refs", "--all")
+        if i == packed:
+            _git(tmp_path, "pack-refs", "--all")
     report = _check_json(tmp_path, capsys, {})
-    found = [(f["file"], f["severity"], f["message"]) for f in report["findings"] if f["rule"] == "version-behind-tag"]
-    assert found == ([("CITATION.cff", "warning", expected)] if expected else [])
+    found = [
+        (f["file"], f["term"], f["severity"], f["message"])
+        for f in report["findings"]
+        if f["rule"] == "version-behind-tag"
+    ]
+    assert found == ([("CITATION.cff", "version", "warning", expected)] if expected else [])
 
 
 def test_a_linked_worktree_reads_the_clone_tags(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -946,6 +1098,26 @@ def test_a_linked_worktree_reads_the_clone_tags(tmp_path: Path, capsys: pytest.C
     assert [f["message"] for f in report["findings"] if f["rule"] == "version-behind-tag"] == [
         "0.1.0, the newest tag is v1.0.0"
     ]
+
+
+def test_a_subdirectory_root_reads_the_repo_tags_and_reports_repo_paths(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "CITATION.cff").write_text(CFF + "version: 1.0.0\n", encoding="utf-8")
+    (pkg / ".zenodo.json").write_text(json.dumps({"title": "y"}), encoding="utf-8")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t.test", "commit", "-qm", "x")
+    _git(tmp_path, "tag", "v3.0.0")
+
+    _, out, _ = _run(capsys, "check", "--root", str(pkg), "--format", "sarif")
+    results = json.loads(out)["runs"][0]["results"]
+    uris = [(r["ruleId"], r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]) for r in results]
+    assert uris == [("name-mismatch", "pkg/.zenodo.json"), ("version-behind-tag", "pkg/CITATION.cff")]
+    _, out, _ = _run(capsys, "check", "--root", str(pkg), "--format", "github")
+    assert out.startswith("::error file=pkg/.zenodo.json,title=citesync name-mismatch::")
 
 
 ROLE = {"@type": "Role", "schema:author": {"@id": f"https://orcid.org/{ORCID_A}"}, "roleName": "Software"}

@@ -14,10 +14,13 @@ from citesync.rules import RULES
 
 @dataclass(frozen=True)
 class Config:
-    """The settings a check runs with. ``None`` for files or manifests means the default discovery."""
+    """The settings a check runs with. ``None`` for files or manifests means the default discovery.
+
+    ``codemeta_version`` None means any CodeMeta version citesync reads passes.
+    """
 
     source: str = "CITATION.cff"
-    codemeta_version: str = "3.0"
+    codemeta_version: str | None = None
     files: tuple[str, ...] | None = None
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
@@ -27,7 +30,7 @@ class Config:
     origin: str = "defaults"
 
 
-# Config tables inside manifests, in the D7 order: (file, mapping path, origin).
+# Config tables inside manifests, in the order docs/config.md lists them: (file, mapping path, origin).
 _MANIFEST_TABLES = (
     ("pyproject.toml", "tool.citesync", "pyproject.toml [tool.citesync]"),
     ("Cargo.toml", "workspace.metadata.citesync", "Cargo.toml [workspace.metadata.citesync]"),
@@ -37,7 +40,7 @@ _MANIFEST_TABLES = (
 
 
 def find_config(root: Path) -> tuple[dict[str, Any], str]:
-    """The raw config table and where it came from, in the D7 order; ``({}, "defaults")`` when none.
+    """The raw config table and where it came from, in the order docs/config.md lists; ``({}, "defaults")`` when none.
 
     A manifest that can't be read, or has a non-table on the way to the config table,
     holds no config here: the check reports it as ``unreadable`` if it is broken.
@@ -68,6 +71,12 @@ def find_root(start: Path) -> Path:
         if (directory / ".git").exists():
             break
     return start
+
+
+def git_top(start: Path) -> Path | None:
+    """The nearest directory from ``start`` up that holds ``.git``: the top of its repo, or None outside one."""
+    start = start.resolve()
+    return next((directory for directory in (start, *start.parents) if (directory / ".git").exists()), None)
 
 
 def load_config(root: Path, source: str | None = None) -> Config:
@@ -156,7 +165,9 @@ def render(config: Config) -> str:
     lines = [
         f"# from {config.origin}",
         f"source = {json.dumps(config.source)}",
-        f"codemeta-version = {json.dumps(config.codemeta_version)}",
+        f"codemeta-version = {json.dumps(config.codemeta_version)}"
+        if config.codemeta_version is not None
+        else "# codemeta-version: not set, so any supported @context passes",
         f"files = {json.dumps(list(config.files))}"
         if config.files is not None
         else "# files: not set, so every citation file present",

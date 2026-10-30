@@ -8,6 +8,7 @@ PEP 621 ``dynamic``), and the codecs in :mod:`citesync.codecs` read the spelling
 import json
 import re
 import tomllib
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -30,6 +31,7 @@ _NPM_BARE_REPO = re.compile(r"^[\w.-]+/[\w.-]+$")
 _URL_LABELS = {"source": "Source", "sourcecode": "Source", "repository": "Repository", "homepage": "Homepage"}
 _TOML_AT = re.compile(r" \(at (?:line (\d+), column (\d+)|end of document)\)$")
 _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
+_KEYWORD_COMMAS = re.compile("[,\uff0c\u3001]")  # ASCII, full-width and ideographic commas
 
 
 @dataclass(frozen=True)
@@ -94,14 +96,21 @@ def format_of(path: str) -> str:
     return fmt
 
 
+def inside(root: Path, rel: str) -> bool:
+    """Whether ``rel`` resolves inside ``root``: a symlink may point anywhere in the repo, but not out of it."""
+    return (root / rel).resolve().is_relative_to(root.resolve())
+
+
 def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
     """Read ``rel`` under ``root`` into its record.
 
     Raises:
-        UnreadableError: when the file can't be read or parsed, has a format version
+        UnreadableError: when the file resolves outside ``root``, can't be read or parsed, has a format version
             citesync doesn't read, or has a key holding a shape its format doesn't allow.
     """
     fmt = format_of(rel)
+    if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
+        raise UnreadableError(rel, "resolves outside the repo root")
     data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
@@ -153,14 +162,19 @@ def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:
         for entry in (data[key] if isinstance(data.get(key), list) else [data.get(key)])
         if isinstance(entry, dict)
     ]
-    people = {codecs.orcid_decode(e.get("@id")) for _, e in entries if e.get("@type") != "Role"}
+    people = {codecs.orcid_decode(_ld(e, "id")) for _, e in entries if _ld(e, "type") != "Role"}
     found = []
     for key, entry in entries:
         target = entry.get("schema:author")
-        orcid = codecs.orcid_decode(target.get("@id") if isinstance(target, dict) else target)
-        if entry.get("@type") == "Role" and orcid and orcid not in people:
+        orcid = codecs.orcid_decode(_ld(target, "id") if isinstance(target, dict) else target)
+        if _ld(entry, "type") == "Role" and orcid and orcid not in people:
             found.append((key, orcid))
     return tuple(found)
+
+
+def _ld(node: dict[str, Any], key: str) -> object:
+    """``node``'s ``@type`` or ``@id``, or the ``type`` or ``id`` that CodeMeta 3's context makes an alias of it."""
+    return node.get(f"@{key}", node.get(key))
 
 
 def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
@@ -168,7 +182,7 @@ def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
-def load(path: Path, rel: str) -> dict[str, Any]:
+def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901 - one branch per way a file fails
     """Parse the TOML, JSON or YAML file at ``path``, named ``rel`` in errors.
 
     Raises:
@@ -180,6 +194,8 @@ def load(path: Path, rel: str) -> dict[str, Any]:
         raise UnreadableError(rel, f"cannot read: {err.strerror}") from err
     except UnicodeDecodeError as err:
         raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
+    if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
+        raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)
@@ -242,22 +258,20 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
         dynamic = set(project.get("dynamic", []))  # a dynamic field is skipped, the rest still checked
         return {**data, "project": {k: v for k, v in project.items() if k not in dynamic}}
-    if fmt == "cff-1.2.0" and isinstance(data.get("authors"), list):
-        return {**data, "authors": [cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
     if fmt == "npm":
         return _adapt_npm(data)
     if fmt == "codemeta":
         data = dict(data)
         for key in PEOPLE:
-            if isinstance(people := data.get(key), (dict, list)):
-                people = people if isinstance(people, list) else [people]  # JSON-LD allows one node for a list of one
-                data[key] = [codemeta_person(p) for p in people]
+            if isinstance(people := data.get(key), dict):  # JSON-LD allows one node for a list of one
+                data[key] = [people]
     return data
 
 
 def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
     """(container, key) of the value ``term`` reads at ``path``: the first alternative that has one.
 
+    A blank value (null, ``""``, ``[]``) counts as none, so CFF's ``doi: ""`` gives way to ``identifiers``.
     Shared by the reader and the writer, so both pick the same value. A Cargo virtual workspace
     holds its fields in ``[workspace.package]``; a PEP 621 url label matches as packaging normalises
     it, the exact label first; Zenodo's isSupplementTo also lists papers by DOI, which are skipped.
@@ -271,7 +285,9 @@ def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:
             if not isinstance(node, dict):
                 continue
             label = key if key in node else next((k for k in node if url_label(k) == key), None)
-            if label is None or (term == "codeRepository" and codecs.doi_decode(node[label])):
+            if label is None or node[label] in (None, "", []):
+                continue
+            if term == "codeRepository" and codecs.doi_decode(node[label]):
                 continue
             return node, label
     return None
@@ -305,12 +321,8 @@ def codemeta_person(author: object) -> object:
 
 
 def _adapt_npm(data: dict[str, Any]) -> dict[str, Any]:
-    """Read npm's ``Name <email>`` person strings as ``{name}`` and a repository object or shorthand as a URL."""
+    """Read npm's repository object or shorthand as a URL."""
     data = dict(data)
-    if isinstance(data.get("author"), str):
-        data["author"] = {"name": data["author"]}
-    if isinstance(data.get("contributors"), list):
-        data["contributors"] = [{"name": c} if isinstance(c, str) else c for c in data["contributors"]]
     if isinstance(data.get("repository"), dict):
         data["repository"] = data["repository"].get("url")
     if isinstance(data.get("repository"), str) and _NPM_BARE_REPO.match(data["repository"]):
@@ -338,7 +350,7 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
     """The nearest Cargo.toml above ``rel`` with a ``[workspace]``, inside the repo root."""
     for parent in PurePosixPath(rel).parents[1:]:
         candidate = root / parent / "Cargo.toml"
-        if candidate.is_file():
+        if candidate.is_file() and inside(root, str(parent / "Cargo.toml")):
             data = load(candidate, str(parent / "Cargo.toml"))
             if "workspace" in data:
                 return data
@@ -355,12 +367,16 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
     raw = slot[0][slot[1]]
     if term == "keywords":
         items = (
-            raw if isinstance(raw, list) else raw.split(",") if fmt == "codemeta" and isinstance(raw, str) else [raw]
+            raw
+            if isinstance(raw, list)
+            else _KEYWORD_COMMAS.split(raw)
+            if fmt == "codemeta" and isinstance(raw, str)
+            else [raw]
         )
         words = tuple(codecs.clean(w) for w in items if isinstance(w, str) and w.strip())
         return words or None
-    if term in {"name", "description"}:
-        return (codecs.clean(raw) or None) if isinstance(raw, str) else None
+    if term in {"name", "description"}:  # in NFC, as names are, so equal text never differs by its encoding
+        return (codecs.clean(unicodedata.normalize("NFC", raw)) or None) if isinstance(raw, str) else None
     return _DECODE[term](raw)
 
 
@@ -373,8 +389,17 @@ _DECODE = {
 }
 
 
-def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str = "author") -> Person | None:
-    """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID."""
+def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) -> Person | None:
+    """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID.
+
+    Check and write both read people here, so they match people the same way.
+    """
+    if fmt == "cff-1.2.0" and isinstance(element, dict):
+        element = cff_person(element)
+    elif fmt == "codemeta":
+        element = codemeta_person(element)
+    elif fmt == "npm" and isinstance(element, str):  # "Name <email>"
+        element = {"name": element}
     given_term, family_term, orcid_term = person_terms(term)
 
     def sub(term: str) -> object:
@@ -403,7 +428,7 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str =
     if name is None and orcid is None:
         return None
     org = isinstance(element, dict) and (
-        element.get("@type") == "Organization"
+        _ld(element, "type") == "Organization"
         if fmt == "codemeta"
         else fmt == "cff-1.2.0" and "given-names" not in element and "name" in element
     )
