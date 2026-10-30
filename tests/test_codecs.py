@@ -191,7 +191,8 @@ def test_swhid_key_is_the_core_with_a_lowercase_hash() -> None:
 def test_swhid_encode_lowercases_the_hash_and_keeps_the_qualifiers() -> None:
     swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
     upper = swhid.upper().replace("SWH:1:DIR", "swh:1:dir")
-    assert codecs.swhid_encode(upper + ";origin=https://github.com/O/R") == swhid + ";origin=https://github.com/O/R"
+    qualifiers = ";origin=https://github.com/O/R;path=/SRC"
+    assert codecs.swhid_encode(upper + qualifiers) == swhid + qualifiers
 
 
 def test_doi_decode_reads_property_values() -> None:
