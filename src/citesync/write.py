@@ -257,7 +257,8 @@ def _rewrite(
         skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
         out = io.StringIO()
         yaml.dump(data, out)
-        return out.getvalue(), skipped
+        head = re.match(r"(?:[ \t]*(?:#.*)?\n)*(?=---)", text)  # ruamel drops the comments above a ---
+        return (head[0] if head else "") + out.getvalue(), skipped
     if doc.path.endswith(".toml"):
         data = tomlkit.parse(text)
         skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)

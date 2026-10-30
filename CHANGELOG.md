@@ -62,6 +62,7 @@ To upgrade from 0.1.0:
 - Control characters in a file could retitle the terminal or hide lines. They now print as `\xNN`.
 - Printing non-ASCII text to a stdout that isn't UTF-8, such as a Windows pipe, crashed.
 - Some inputs made `citesync check` run for minutes, such as an author string with a long run of spaces or a keyword list thousands long.
+- `citesync write` dropped the comments above a `---` line at the top of CITATION.cff.
 
 ## [0.1.0] - 2026-10-29
 

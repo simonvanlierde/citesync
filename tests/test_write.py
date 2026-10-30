@@ -1054,3 +1054,11 @@ def test_a_new_zenodo_contributor_is_left_for_a_hand_edit(tmp_path: Path, capsys
     assert code == 1
     assert "Zenodo needs a type for each contributor" in out
     assert (root / ".zenodo.json").read_bytes() == before
+
+
+def test_comments_above_a_document_start_survive(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    cff = _edit(root / "CITATION.cff", "cff-version", "\n---\n# under the marker\ncff-version")
+    _edit(root / "codemeta.json", '"1.2.3"', '"1.2.4"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"1.2.3"', '"1.2.4"')
