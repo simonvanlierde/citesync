@@ -746,7 +746,9 @@ def test_codemeta_property_value_doi(
     ],
 )
 def test_codemeta_property_value_swhid(
-    swhid: str, XX, "value": swhid}]
+    swhid: str, expected: list[tuple[str, str, str]], tmp_path: Path, run: "Run"
+) -> None:
+    identifier = ["https://doi.org/10.1/a", {"@type": "PropertyValue", "propertyID": "swhid", "value": swhid}]
     cff = CFF + 'doi: "10.1/a"\n'
     cff += "identifiers:\n  - {type: swh, value: swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505}\n"
     # The .zenodo.json keeps CFF's identifiers out of zenodo-drops-field.

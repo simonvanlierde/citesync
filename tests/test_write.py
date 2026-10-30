@@ -434,18 +434,18 @@ def test_a_property_value_doi_keeps_its_keys(shape: str, tmp_path: Path, run: "R
     )
 
 
-def test_a_property_value_swhid_is_written_beside_the_doi(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_a_property_value_swhid_is_written_beside_the_doi(tmp_path: Path, run: "Run") -> None:
     root = _synthetic(tmp_path / "repo")
     swhid = {"@type": "PropertyValue", "propertyID": "swhid", "value": REV}
     old = ["https://doi.org/10.5281/zenodo.1234567", swhid]
     _edit(root / "codemeta.json", '"https://doi.org/10.5281/zenodo.1234567"', json.dumps(old))
 
-    _run(capsys, "write", "--root", str(root))
+    run("write", "--root", str(root))
     identifier = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["identifier"]
     assert identifier == [old[0], {**swhid, "value": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"}]
 
 
-def test_a_zenodo_swhid_without_a_scheme_keeps_its_shape(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_a_zenodo_swhid_without_a_scheme_keeps_its_shape(tmp_path: Path, run: "Run") -> None:
     root = _synthetic(tmp_path / "repo")
     _edit(
         root / ".zenodo.json",
@@ -453,7 +453,7 @@ def test_a_zenodo_swhid_without_a_scheme_keeps_its_shape(tmp_path: Path, capsys:
         f'"identifier": "{REV}"',
     )
 
-    _run(capsys, "write", "--root", str(root))
+    run("write", "--root", str(root))
     related = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))["related_identifiers"]
     assert related[2] == {
         "relation": "isIdenticalTo",
@@ -597,16 +597,19 @@ def test_crlf_line_ends_stay(name: str, tmp_path: Path, run: "Run") -> None:
         assert written == _expected(name).replace(b"\n", b"\r\n")
 
 
-@pytest.mark.parametrize("crlf_lines", [1, 12, 13])  # of 24 lines: a tie keeps LF
+@pytest.mark.parametrize("crlf_lines", [1, 14, 15])  # of 28 lines: a tie keeps LF
 def test_mixed_line_ends_take_the_more_common_one(crlf_lines: int, tmp_path: Path, run: "Run") -> None:
     root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
-    lines = (PLANTED / "CITATION.cff").read_bytes().splitlines(keepends=True)
+    lines = [
+        b"# mixed\n",
+        *(PLANTED / "CITATION.cff").read_bytes().splitlines(keepends=True),
+    ]  # an even count, for the tie
     mixed = [line.replace(b"\n", b"\r\n") for line in lines[:crlf_lines]] + lines[crlf_lines:]
     (root / "CITATION.cff").write_bytes(b"".join(mixed))
 
     assert run("write", "--root", str(root))[0] == 0
-    expected = _expected("CITATION.cff")
-    assert (root / "CITATION.cff").read_bytes() == (expected.replace(b"\n", b"\r\n") if crlf_lines > 12 else expected)
+    expected = b"# mixed\n" + _expected("CITATION.cff")
+    assert (root / "CITATION.cff").read_bytes() == (expected.replace(b"\n", b"\r\n") if crlf_lines > 14 else expected)
 
 
 def test_a_mixed_file_write_leaves_alone_keeps_its_line_ends(tmp_path: Path, run: "Run") -> None:
