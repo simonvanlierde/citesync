@@ -1,8 +1,10 @@
 """`citesync write` against committed expected files, plus what it must leave alone."""
 
 import json
+import os
 import re
 import shutil
+import stat
 import tempfile
 from pathlib import Path
 
@@ -802,20 +804,94 @@ def test_a_grown_json_array_keeps_its_one_line_elements(tmp_path: Path, capsys: 
     assert (root / "codemeta.json").read_text(encoding="utf-8") == codemeta.replace(turing, f"{turing},\n    {hopper}")
 
 
-def test_a_listed_codemeta_json_that_is_missing_is_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json", ".zenodo.json"]\n')
+# What write creates from the synthetic CITATION.cff: no contributor, since CFF has no contributor list.
+CREATED = """{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "synthagree",
+  "description": "A made-up package whose metadata files all agree.",
+  "version": "1.2.3",
+  "datePublished": "2026-01-15",
+  "identifier": "https://doi.org/10.5281/zenodo.1234567",
+  "codeRepository": "https://github.com/example/synthagree",
+  "license": "https://spdx.org/licenses/Apache-2.0",
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Ada",
+      "familyName": "Lovelace",
+      "@id": "https://orcid.org/0000-0002-1825-0097"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Alan",
+      "familyName": "Turing"
+    }
+  ],
+  "keywords": [
+    "alpha",
+    "beta",
+    "gamma",
+    "delta"
+  ]
+}
+"""
+
+
+@pytest.mark.parametrize("rel", ["codemeta.json", "docs/codemeta.json"])
+def test_a_listed_codemeta_json_that_is_missing_is_created(
+    rel: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", f'files = ["{rel}", ".zenodo.json"]\n')
     (root / "codemeta.json").unlink()
+    (root / "docs").mkdir()
 
     code, out, _ = _run(capsys, "check", "--root", str(root))
     assert code == 1
-    assert "codemeta.json: error[file-missing]" in out
-    _run(capsys, "write", "--root", str(root))
-    created = (root / "codemeta.json").read_text(encoding="utf-8")
-    expected = json.loads((SYNTHETIC / "codemeta.json").read_text(encoding="utf-8"))
-    del expected["contributor"]  # CITATION.cff, the source, has no contributor list to copy
-    assert json.loads(created) == expected
-    assert (root / "codemeta.json").stat().st_mode & 0o044, "readable by others, as a new file normally is"
+    assert f"{rel}: error[file-missing] listed under files" in out
+    umask = os.umask(0o027)
+    try:
+        assert _run(capsys, "write", "--root", str(root))[1].startswith(f"wrote {rel}\n")
+    finally:
+        os.umask(umask)
+    assert (root / rel).read_text(encoding="utf-8") == CREATED
+    assert stat.S_IMODE((root / rel).stat().st_mode) == 0o666 & ~0o027, "what open() would give a new file"
     assert _run(capsys, "check", "--root", str(root))[0] == 0
+
+
+def test_an_ignored_missing_codemeta_json_is_not_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\nignore = ["file-missing"]\n')
+    (root / "codemeta.json").unlink()
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
+    assert not (root / "codemeta.json").exists()
+
+
+def test_no_codemeta_json_is_created_from_an_unreadable_source(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\n')
+    (root / "codemeta.json").unlink()
+    (root / "CITATION.cff").write_text("title: [\n", encoding="utf-8")
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 1
+    assert not (root / "codemeta.json").exists()
+
+
+def test_a_created_codemeta_json_leaves_out_what_it_cannot_spell(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\nmanifests = []\n')
+    (root / "codemeta.json").unlink()
+    _edit(root / "CITATION.cff", 'license: "Apache-2.0"', 'license: "MIT AND Apache-2.0"')
+    _edit(root / "CITATION.cff", "date-released: 2026-01-15", 'date-released: "2026"')
+
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 0
+    assert out.splitlines()[0] == (
+        "wrote codemeta.json, leaving out datePublished: 2026 is not a YYYY-MM-DD date;"
+        " license: a licence list can only say OR, not AND or WITH"
+    )
+    created = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    assert {"license", "datePublished"} & created.keys() == set()
 
 
 @pytest.mark.parametrize(("config", "context"), [("", "3.0"), ('codemeta-version = "4.0"\n', "4.0")])

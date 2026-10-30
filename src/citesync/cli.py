@@ -137,8 +137,11 @@ def main(argv: list[str] | None = None) -> int:
         from citesync.write import advice  # noqa: PLC0415
 
         if not args.quiet:  # stdout stays one document in the json and github formats
-            for path in written:
-                print(f"wrote {path}", file=sys.stdout if args.format == "text" else sys.stderr)
+            shown = {(f.file, f.term) for f in findings}
+            for path in written:  # a field left out of a created file has no finding to carry its reason
+                left = [f"{t}: {why}" for (p, t), why in sorted(skipped.items()) if p == path and (p, t) not in shown]
+                wrote = f"wrote {path}" + (f", leaving out {'; '.join(left)}" if left else "")
+                print(wrote, file=sys.stdout if args.format == "text" else sys.stderr)
         findings = [
             f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config, skipped)})")
             for f in findings

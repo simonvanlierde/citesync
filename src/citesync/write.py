@@ -96,8 +96,11 @@ def write(
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != old:
             texts[doc.path] = new
-    if "file-missing" not in config.ignore and "codemeta.json" in missing(root, config):
-        texts["codemeta.json"] = _new_codemeta(source, config.codemeta_version or NEW_CODEMETA_VERSION, mapping, key)
+    version = config.codemeta_version or NEW_CODEMETA_VERSION
+    for rel in missing(root, config) if source.readable and "file-missing" not in config.ignore else ():
+        if format_of(rel) == "codemeta":
+            texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
+            skipped |= {(rel, term): reason for term, reason in reasons.items()}
     if not dry_run:
         _replace({root / rel: text for rel, text in texts.items()})
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"]
@@ -171,8 +174,14 @@ def _rewrite(
     return _splice(text, old, data), skipped
 
 
-def _new_codemeta(source: Doc, version: str, mapping: Mapping, keyword_key: Callable[[str], str]) -> str:
-    """A codemeta.json holding each term the source has, spelled as codemeta spells it."""
+def _new_codemeta(
+    rel: str, source: Doc, version: str, mapping: Mapping, keyword_key: Callable[[str], str]
+) -> tuple[str, dict[str, str]]:
+    """A codemeta.json at ``rel`` holding each term the source has, spelled as codemeta spells it.
+
+    A term codemeta can't spell is left out, not left blank, and returned with the reason:
+    a blank value reads as no value, so check would pass on it and write never fill it.
+    """
     blank = {
         "name": "",
         "description": "",
@@ -188,9 +197,11 @@ def _new_codemeta(source: Doc, version: str, mapping: Mapping, keyword_key: Call
     terms = [t for t in blank if t in source.record]
     data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
     data |= {t: blank[t] for t in terms}
-    doc = Doc("codemeta.json", "codemeta", {}, frozenset(), version, release=True)
-    _apply(doc, source, terms, data, mapping, None, keyword_key)
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
+    skipped = _apply(doc, source, terms, data, mapping, None, keyword_key)
+    for term in skipped:
+        del data[term]
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", skipped
 
 
 def _yaml(text: str) -> YAML:
