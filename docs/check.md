@@ -52,7 +52,7 @@ codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0
 
 On a terminal the severity is in colour. `NO_COLOR` turns colour off. `FORCE_COLOR` turns it on anywhere, and `FORCE_COLOR=0` or `false` turns it off. `NO_COLOR` wins.
 
-[rules.md](rules.md) lists every rule id, its severity and how to fix it.
+`citesync rules` lists every rule id and its severity. [rules.md](rules.md) says how to fix each one.
 
 | Exit | When |
 | ---: | --- |

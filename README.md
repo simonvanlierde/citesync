@@ -15,7 +15,7 @@ citesync checks that your software's citation metadata says the same thing every
 
 ## Usage
 
-citesync compares ten fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
+citesync compares ten fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another with `--source`. With neither, citesync exits 2. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
 
 ```sh
 uv tool install citesync            # or run it once with uvx citesync check
@@ -31,6 +31,8 @@ citesync config                     # the config in use, and the file it came fr
 codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
 1 error, 0 warnings in 3 files
 ```
+
+A config is optional. A one-line `citesync.toml` is `ignore = ["description-mismatch"]`.
 
 `citesync --help` lists every command and option. The reference is in `docs/`:
 

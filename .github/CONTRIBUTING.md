@@ -26,6 +26,14 @@ request outside what the project sets out to do is closed with a link to this se
 and the git hooks. `just check` runs the checks CI runs, and `just fmt` fixes and
 formats.
 
+## When you change a compared field
+
+1. Change its comparison and message in `src/citesync/rules.py`. Keep normalisation detail only there.
+2. Change its row in `src/citesync/mapping-local.json` if where the field sits in a file changes.
+3. Update the fixtures: `uv run pytest --update-expected` rewrites the expected `cases.json` and `record.json` from actual output. Read the git diff before you commit. [tests/fixtures/README.md](../tests/fixtures/README.md) says how the files are made.
+4. Update the docs. `docs/config.md` lists the fields, and `tests/test_docs.py` fails if one is missing there.
+5. Run `just mutation`, as the README describes.
+
 ## Write commits and pull requests
 
 - **Commits** follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):

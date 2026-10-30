@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from importlib.metadata import version
 from pathlib import Path
 
@@ -51,8 +52,22 @@ def _split(report: dict) -> tuple[list[dict], list[dict]]:
     return [f for f in findings if f["severity"] != "info"], [f for f in findings if f["severity"] == "info"]
 
 
+def _refresh(data: dict, name: str, code: int, findings: list[dict], info: list[dict]) -> None:
+    """Set a case's exit code and findings from actual output, keeping the hand-written entry that matches."""
+    case = next(c for c in data["cases"] if c["name"] == name)
+    case["exit"] = code
+    for key, actual in (("findings", findings), ("info", info)):
+        old = dict(zip(_triples(case[key]), case[key], strict=True))
+        case[key] = [
+            old.get(t) or {"rule": f["rule"], "file": f["file"], "term": f["term"], "why": f["message"]}
+            for t, f in zip(_triples(actual), actual, strict=True)
+        ]
+
+
 @pytest.mark.parametrize(("repo", "case"), CASES, ids=[f"{r}-{c['name']}" for r, c in CASES])
-def test_fixture_case(repo: str, case: dict, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_fixture_case(
+    repo: str, case: dict, tmp_path: Path, capsys: pytest.CaptureFixture[str], update_expected: Callable[..., bool]
+) -> None:
     root = tmp_path / repo
     shutil.copytree(FIXTURES / repo, root)
     _write_config(root, case["config"])
@@ -60,8 +75,11 @@ def test_fixture_case(repo: str, case: dict, tmp_path: Path, capsys: pytest.Capt
     code, out, err = _run(capsys, "check", "--root", str(root), "--format", "json")
     report = json.loads(out)
     jsonschema.validate(report, OUTPUT_SCHEMA)
-    assert (code, err) == (case["exit"], "")
+    assert err == ""
     findings, info = _split(report)
+    if update_expected(FIXTURES / repo / "cases.json", lambda data: _refresh(data, case["name"], code, findings, info)):
+        return
+    assert code == case["exit"]
     assert _triples(findings) == _triples(case["findings"])
     assert _triples(info) == _triples(case["info"])
 
