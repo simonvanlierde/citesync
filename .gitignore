@@ -37,3 +37,6 @@ target/
 
 # mutmut working copy
 mutants/
+
+# Profiles (just profile)
+profile/

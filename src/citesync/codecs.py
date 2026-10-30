@@ -8,7 +8,6 @@ Each codec has ``decode``, from what a file holds to the normalised value, and
 import re
 import unicodedata
 from typing import TYPE_CHECKING
-from urllib.parse import urlsplit
 
 from citesync.errors import CannotWrite
 
@@ -170,6 +169,8 @@ def repo_key(url: str) -> str:
     branch, tag or file page names its repository (``/tree/v1.0`` on GitHub, ``/-/...`` on GitLab,
     ``/src/...`` on Codeberg, Gitea and Bitbucket), and on github.com, which ignores case, the path is casefolded.
     """
+    from urllib.parse import urlsplit  # noqa: PLC0415 - 1.7 ms, needed only when the URLs differ as written
+
     try:
         parts = urlsplit(url.strip())
     except ValueError:  # an unbalanced [ in the host
