@@ -290,6 +290,7 @@ def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:
     Shared by the reader and the writer, so both pick the same value. A Cargo virtual workspace
     holds its fields in ``[workspace.package]``; a PEP 621 url label matches as packaging normalises
     it, the exact label first; Zenodo's isSupplementTo also lists papers by DOI and SWHIDs, which are skipped.
+    Zenodo detects a related identifier's scheme itself, so a SWHID entry with no ``scheme`` counts too.
     """
     if fmt == "cargo" and "package" not in data:
         data = {"package": data.get("workspace", {}).get("package", {})}
@@ -305,6 +306,10 @@ def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:
             if term == "codeRepository" and (codecs.doi_decode(node[label]) or codecs.swhid_decode(node[label])):
                 continue
             return node, label
+    if fmt == "zenodo" and term == "swhid":
+        for node in resolve(data, "related_identifiers[]"):
+            if isinstance(node, dict) and not node.get("scheme") and codecs.swhid_decode(node.get("identifier")):
+                return node, "identifier"
     return None
 
 

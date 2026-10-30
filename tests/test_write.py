@@ -445,6 +445,22 @@ def test_a_property_value_swhid_is_written_beside_the_doi(tmp_path: Path, capsys
     assert identifier == [old[0], {**swhid, "value": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"}]
 
 
+def test_a_zenodo_swhid_without_a_scheme_keeps_its_shape(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    _edit(
+        root / ".zenodo.json",
+        '"identifier": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",\n      "scheme": "swh"',
+        f'"identifier": "{REV}"',
+    )
+
+    _run(capsys, "write", "--root", str(root))
+    related = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))["related_identifiers"]
+    assert related[2] == {
+        "relation": "isIdenticalTo",
+        "identifier": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
+    }
+
+
 @pytest.mark.parametrize("case_sensitive", [False, True])
 def test_values_that_compare_equal_are_left_as_written(
     case_sensitive: bool,  # noqa: FBT001

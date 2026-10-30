@@ -132,6 +132,17 @@ def test_zenodo_repository_skips_a_swhid_supplement(tmp_path: Path) -> None:
     assert (record["codeRepository"], record["swhid"]) == ("https://github.com/o/r", swhid)
 
 
+def test_zenodo_swhid_needs_no_scheme(tmp_path: Path) -> None:
+    """Zenodo detects the scheme itself, so a SWHID entry may leave it out; a DOI entry before it is not a SWHID."""
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    related = [
+        {"relation": "isSupplementTo", "identifier": "10.1/paper"},
+        {"relation": "isIdenticalTo", "identifier": swhid},
+    ]
+    record = _read(tmp_path, ".zenodo.json", json.dumps({"related_identifiers": related}))
+    assert record["swhid"] == swhid
+
+
 def test_codemeta_swhid_sits_beside_the_doi(tmp_path: Path) -> None:
     swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
     identifier = ["https://doi.org/10.1/a", {"@type": "PropertyValue", "propertyID": "swhid", "value": swhid}]
