@@ -387,7 +387,7 @@ _DECODE = {
 }
 
 
-def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str = "author") -> Person | None:
+def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) -> Person | None:
     """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID."""
     given_term, family_term, orcid_term = person_terms(term)
 
