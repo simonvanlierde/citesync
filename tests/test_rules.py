@@ -66,5 +66,7 @@ def test_check_leaves_slow_imports_alone(tmp_path: Path) -> None:
         " print(code, sorted(m for m in ('citesync.write', 'tomlkit', 'importlib.metadata', 'importlib.resources',"
         " 'shutil', 'packaging.version', 'difflib', 'urllib.parse', 'citesync.positions') if m in sys.modules))"
     )
+    # Python 3.12's pathlib imports urllib.parse itself.
+    expected = "0 ['urllib.parse']" if sys.version_info < (3, 13) else "0 []"
     run = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, cwd=tmp_path)  # noqa: S603
-    assert run.stdout.splitlines()[-1] == "0 []", run.stdout + run.stderr
+    assert run.stdout.splitlines()[-1] == expected, run.stdout + run.stderr
