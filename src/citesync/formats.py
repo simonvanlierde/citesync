@@ -96,14 +96,21 @@ def format_of(path: str) -> str:
     return fmt
 
 
+def inside(root: Path, rel: str) -> bool:
+    """Whether ``rel`` resolves inside ``root``: a symlink may point anywhere in the repo, but not out of it."""
+    return (root / rel).resolve().is_relative_to(root.resolve())
+
+
 def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
     """Read ``rel`` under ``root`` into its record.
 
     Raises:
-        UnreadableError: when the file can't be read or parsed, has a format version
+        UnreadableError: when the file resolves outside ``root``, can't be read or parsed, has a format version
             citesync doesn't read, or has a key holding a shape its format doesn't allow.
     """
     fmt = format_of(rel)
+    if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
+        raise UnreadableError(rel, "resolves outside the repo root")
     data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
@@ -350,7 +357,7 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
     """The nearest Cargo.toml above ``rel`` with a ``[workspace]``, inside the repo root."""
     for parent in PurePosixPath(rel).parents[1:]:
         candidate = root / parent / "Cargo.toml"
-        if candidate.is_file():
+        if candidate.is_file() and inside(root, str(parent / "Cargo.toml")):
             data = load(candidate, str(parent / "Cargo.toml"))
             if "workspace" in data:
                 return data

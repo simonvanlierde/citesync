@@ -308,6 +308,22 @@ def test_a_byte_order_mark_is_named(name: str, text: str, tmp_path: Path, capsys
     ]
 
 
+def test_a_file_through_a_symlinked_directory_out_of_the_repo_is_unreadable(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "outside" / "codemeta.json").write_text(_codemeta(name="secret"), encoding="utf-8")
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "docs").symlink_to(tmp_path / "outside")
+    files = {"CITATION.cff": CFF, "citesync.toml": 'files = ["docs/codemeta.json"]\n'}
+    report = _check_json(root, capsys, files)
+    assert [(f["rule"], f["file"], f["message"]) for f in _split(report)[0]] == [
+        ("unreadable", "docs/codemeta.json", "resolves outside the repo root")
+    ]
+    assert "secret" not in json.dumps(report)
+
+
 def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     report = _check_json(
         tmp_path,

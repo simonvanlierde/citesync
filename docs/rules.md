@@ -144,7 +144,7 @@ To fix: Run `citesync write`, which creates a missing codemeta.json; create any 
 
 citesync could not read the file. Severity: error.
 
-The file could not be opened, is not UTF-8, does not parse, has a top level that is not a mapping, holds a value of a shape its format doesn't allow, or is a format version citesync doesn't read (CFF other than 1.2.0, a codemeta.json whose `@context` is not CodeMeta). The finding gives the parser's message, and its line and column when the parser reports them. The other files are still checked against each other. When the unreadable file is the source, each field it has a place for is reported as `not-checked`. This rule can't be ignored.
+The file resolves outside the repo root through a symlink, could not be opened, is not UTF-8, does not parse, has a top level that is not a mapping, holds a value of a shape its format doesn't allow, or is a format version citesync doesn't read (CFF other than 1.2.0, a codemeta.json whose `@context` is not CodeMeta). The finding gives the parser's message, and its line and column when the parser reports them. The other files are still checked against each other. When the unreadable file is the source, each field it has a place for is reported as `not-checked`. This rule can't be ignored.
 
 To fix: Fix the file so its parser accepts it.
 

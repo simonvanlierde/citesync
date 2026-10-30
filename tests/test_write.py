@@ -494,6 +494,33 @@ def test_a_symlink_target_is_written(tmp_path: Path, capsys: pytest.CaptureFixtu
     assert (root / "real" / "codemeta.json").read_bytes() == (EXPECTED / "codemeta.json").read_bytes()
 
 
+def test_a_symlink_out_of_the_repo_is_neither_read_nor_written(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    victim = tmp_path / "victim.cff"
+    victim.write_bytes((root / "CITATION.cff").read_bytes().replace(b'"synthagree"', b'"secret"'))
+    (root / "CITATION.cff").unlink()
+    (root / "CITATION.cff").symlink_to(victim)
+    before = victim.read_bytes()
+
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert "CITATION.cff: error[unreadable] resolves outside the repo root" in out
+    assert "secret" not in out
+    assert victim.read_bytes() == before
+
+
+def test_a_dangling_symlink_out_of_the_repo_is_not_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\n')
+    (root / "codemeta.json").unlink()
+    (root / "codemeta.json").symlink_to(tmp_path / "victim.json")
+
+    code, _, err = _run(capsys, "write", "--root", str(root))
+    assert (code, err) == (2, "citesync: codemeta.json: resolves outside the repo root, so write won't write it\n")
+    assert not (tmp_path / "victim.json").exists()
+
+
 @pytest.mark.parametrize("name", NAMES)
 def test_crlf_line_ends_stay(name: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     source = "codemeta.json" if name == "CITATION.cff" else "CITATION.cff"

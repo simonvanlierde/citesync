@@ -29,6 +29,6 @@ It prints `wrote <file>` for each file it changed (to stderr with `--format json
 
 ## Safety
 
-Every file is written to a temporary file beside it before any is moved into place, so a failure leaves the files as they were, unless a move itself fails, which leaves the files moved before it written. A symlinked file is written through the link, CRLF line ends stay CRLF (a file that mixes LF and CRLF comes back all CRLF), and a file that would not change is not touched.
+Every file is written to a temporary file beside it before any is moved into place, so a failure leaves the files as they were, unless a move itself fails, which leaves the files moved before it written. A symlinked file is written through the link when the link points inside the repo (one that points out of it is `unreadable`, and write won't create a file through it), CRLF line ends stay CRLF (a file that mixes LF and CRLF comes back all CRLF), and a file that would not change is not touched.
 
 Known limits of the CITATION.cff round trip: an end-of-line comment aligned with spaces after a value (`title:    x   # c`) is reflowed, a second sequence indented differently from the first is reindented to match it, and a closing `...` and a byte-order mark are dropped.

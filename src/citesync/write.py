@@ -28,7 +28,7 @@ from ruamel.yaml.util import load_yaml_guess_indent
 from citesync import codecs
 from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_miss, read_docs
 from citesync.config import Config
-from citesync.errors import CannotWrite
+from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
     MANIFESTS,
     Doc,
@@ -37,6 +37,7 @@ from citesync.formats import (
     codemeta_person,
     codemeta_version,
     format_of,
+    inside,
     locate,
     person,
 )
@@ -65,7 +66,7 @@ def write(
         ``unreadable`` findings.
 
     Raises:
-        CheckError: as :func:`citesync.check.check` does.
+        CheckError: as :func:`citesync.check.check` does, and when a file to write resolves outside ``root``.
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
@@ -102,6 +103,10 @@ def write(
             texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
             skipped |= {(rel, term): reason for term, reason in reasons.items()}
     if not dry_run:
+        for rel in texts:  # read_doc refuses an existing file outside; this catches a dangling link to one
+            if not inside(root, rel):
+                msg = f"{rel}: resolves outside the repo root, so write won't write it"
+                raise CheckError(msg)
         _replace({root / rel: text for rel, text in texts.items()})
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"]
 
