@@ -980,7 +980,7 @@ CREATED = """{
     "https://doi.org/10.5281/zenodo.1234567",
     {
       "@type": "PropertyValue",
-      "propertyID": "swhid",
+      "propertyID": "SWHID",
       "value": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
     }
   ],

@@ -319,7 +319,7 @@ def _new_codemeta(
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
     values, skipped = _encode_terms(doc, source, blank, mapping, keyword_key)
     if swhid := source.record.get("swhid"):  # codemeta holds it in identifier, beside the DOI
-        value = {"@type": "PropertyValue", "propertyID": "swhid", "value": swhid}
+        value = {"@type": "PropertyValue", "propertyID": "SWHID", "value": swhid}
         values["identifier"] = [values["identifier"], value] if "identifier" in values else value
     return json.dumps(data | values, indent=2, ensure_ascii=False) + "\n", skipped
 
