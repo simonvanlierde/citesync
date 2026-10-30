@@ -61,13 +61,13 @@ citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar'
 citesync.write.x__people__mutmut_56  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_59  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_60  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_86  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_89  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_90  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_121  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_124  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_125  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_174  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__people__mutmut_88  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_91  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_92  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_123  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_126  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_127  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_176  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__relist__mutmut_10  zip's strict=None is falsy, the same as False
 citesync.write.x__relist__mutmut_13  zip's strict defaults to False
 citesync.write.x__new_person__mutmut_22  a person with no name stops at the CannotWrite in _people before reaching Cargo or npm
@@ -93,9 +93,8 @@ citesync.write.x_init__mutmut_75  a blank's text is never read, only its type
 citesync.write.x_init__mutmut_89  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
 citesync.write.x_init__mutmut_95  a blank's text is never read: "XXXX" has no git+ or .git to keep
 citesync.write.x_init__mutmut_100  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x_init__mutmut_140  any width past the longest line keeps every line whole
-citesync.write.x_init__mutmut_141  any width past the longest line keeps every line whole
-citesync.write.x_init__mutmut_142  mapping=None keeps ruamel's default of 2
-citesync.write.x_init__mutmut_145  mapping's default is 2
-citesync.write.x_init__mutmut_148  init writes no mapping inside a mapping, the only place this indent shows
-citesync.write.x_init__mutmut_169  a person with no name splits into no given name, from "" as from "XXXX"
+citesync.write.x_init__mutmut_144  any width past the longest line keeps every line whole
+citesync.write.x_init__mutmut_145  any width past the longest line keeps every line whole
+citesync.write.x_init__mutmut_146  mapping=None keeps ruamel's default of 2
+citesync.write.x_init__mutmut_149  mapping's default is 2
+citesync.write.x_init__mutmut_152  init writes no mapping inside a mapping, the only place this indent shows

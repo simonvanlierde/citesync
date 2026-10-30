@@ -139,7 +139,7 @@ def init(
     Each term comes from the first file that holds it: the configured source, then codemeta.json,
     .zenodo.json and the manifests in that order, so a citation file's ORCIDs and name parts win.
     Keywords come from every file, so each manifest's are in it. A licence list is left out when
-    there is no .zenodo.json, as Zenodo would refuse it.
+    there is no .zenodo.json, as Zenodo would refuse it, unless config ignores ``zenodo-license-list``.
     With ``dry_run``, nothing is written.
 
     Returns:
@@ -178,7 +178,11 @@ def init(
         cff, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key(config)
     )
     data.update((blank[term][0], value) for term, value in values.items())
-    if not (root / ".zenodo.json").is_file() and ("license", "zenodo-license-list") in zenodo_gaps(data):
+    if (
+        not (root / ".zenodo.json").is_file()
+        and "zenodo-license-list" not in config.ignore
+        and ("license", "zenodo-license-list") in zenodo_gaps(data)
+    ):
         del data["license"]
         skipped["license"] = ZENODO_GAPS["zenodo-license-list"]
     yaml = YAML()
@@ -188,9 +192,9 @@ def init(
     yaml.dump(data, out)
     if not dry_run:
         _replace({root / "CITATION.cff": out.getvalue()})
-    splits = []  # as _fields splits a one-string name
+    splits = []
     for p in record["author"]:  # _merged makes sure there is one
-        given, _, family = (p.name or "").rpartition(" ")
+        given, family = _split_name(p.name)
         if p.family is None and not p.organization and given:
             splits.append((str(p.name), given, family))
     return out.getvalue(), skipped, splits
@@ -524,7 +528,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
         raise CannotWrite(msg)
     kept = {matches[0]} if npm and fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
     # a new name with no ORCID may be a dropped entry renamed: its ORCID can't be moved over safely, nor lost
-    renamed = any(i is None and not p.orcid for p, i in zip(people, matches, strict=True))
+    renamed = any(i is None and not p.orcid and not p.organization for p, i in zip(people, matches, strict=True))
     for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was
         orcid = "ORCID" if renamed and (q := decoded[i]) and q.orcid else None
         if i not in kept and (extra := _extra(fmt, el, path, mapping, term) or orcid):
@@ -596,12 +600,19 @@ def _match(decoded: list[Person | None], used: set[int], p: Person) -> int | Non
     return next(by_name, next(by_orcid, None))
 
 
+def _split_name(name: str | None) -> tuple[str, str]:
+    """The given and family names of a one-string name; given is empty for one word."""
+    # shortcut: the last word is the family name, so `Tu Youyou` and particles come out wrong; init says so
+    given, _, family = (name or "").rpartition(" ")
+    return given, family
+
+
 def _fields(fmt: str, p: Person, path: str, mapping: Mapping, term: str) -> dict[str, str]:
     """A person's name and ORCID under the keys ``fmt`` keeps them in."""
     gkey, fkey, okey = (relative(at, path) if (at := mapping[fmt, t]) else None for t in person_terms(term))
     given, family = p.given, p.family
-    if family is None:  # shortcut: from a one-string name the last word is the family name; fix by hand if not
-        rest, _, family = (p.name or "").rpartition(" ")
+    if family is None:
+        rest, family = _split_name(p.name)
         given = rest or None
     if gkey == fkey:
         fields = {gkey: codecs.zenodo_name_encode(given, family) if fmt == "zenodo" else p.name}

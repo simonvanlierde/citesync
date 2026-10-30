@@ -1389,6 +1389,19 @@ def test_a_dropped_entry_with_only_an_orcid_and_more_is_named_by_what_it_holds(t
     assert f"(edit it by hand: renaming would drop the email of {extra!r})" in out
 
 
+def test_an_organization_may_replace_an_author_with_an_orcid(tmp_path: Path, run: "Run") -> None:
+    """An organization can't have an ORCID, so it can't be the dropped author renamed."""
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    _edit(
+        root / "CITATION.cff",
+        '  - given-names: "Ada"\n    family-names: "Lovelace"\n    orcid: "https://orcid.org/0000-0002-1825-0097"\n',
+        '  - name: "Royal Society"\n',
+    )
+    assert run("write", "-q", "--root", str(root)) == (0, "", "")
+    codemeta = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    assert codemeta["author"][0] == {"@type": "Organization", "name": "Royal Society"}
+
+
 def test_a_second_person_of_the_same_name_is_a_new_entry(tmp_path: Path, run: "Run") -> None:
     root = _synthetic(tmp_path / "repo", "manifests = []\n")
     turing = '    family-names: "Turing"\n'
