@@ -1192,6 +1192,23 @@ def test_a_person_with_only_an_orcid_is_left_out_of_a_manifest(
     )
 
 
+def test_a_package_json_ignores_a_later_author_with_only_an_orcid(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Only the first author reaches a package.json, so a later one with no name can't stop the write."""
+    root = _synthetic(tmp_path / "repo", 'manifests = ["package.json"]\nwrite-manifests = ["author"]\n')
+    _edit(
+        root / "CITATION.cff",
+        '  - given-names: "Alan"\n    family-names: "Turing"\n',
+        '  - orcid: "https://orcid.org/0000-0001-5109-3700"\n',
+    )
+    package = _edit(root / "package.json", '"author": "Ada Lovelace"', '"author": "Antonie van Leeuwenhoek"')
+    _run(capsys, "write", "--root", str(root))
+    assert (root / "package.json").read_text(encoding="utf-8") == package.replace(
+        "Antonie van Leeuwenhoek", "Ada Lovelace"
+    )
+
+
 def test_a_package_json_gets_only_the_first_author(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """A package.json has one author: with two in the source, the first is written and the second isn't added."""
     root = _synthetic(tmp_path / "repo", 'write-manifests = "all"\n')
@@ -1492,6 +1509,16 @@ def test_a_legacy_licence_table_is_edited_in_place(tmp_path: Path, capsys: pytes
     pyproject = _edit(root / "pyproject.toml", 'license = "Apache-2.0"', 'license = { text = "MIT" }')
     assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
     assert (root / "pyproject.toml").read_text(encoding="utf-8") == pyproject.replace('"MIT"', '"Apache-2.0"')
+
+
+def test_a_licence_id_holding_text_is_rewritten(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A string licence is not PEP 621's legacy table, whatever its id holds."""
+    root = _synthetic(tmp_path / "repo", 'write-manifests = ["license"]\n')
+    pyproject = _edit(root / "pyproject.toml", 'license = "Apache-2.0"', 'license = "LicenseRef-context"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "pyproject.toml").read_text(encoding="utf-8") == pyproject.replace(
+        "LicenseRef-context", "Apache-2.0"
+    )
 
 
 def test_a_codemeta_licence_list_keeps_its_url_form(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

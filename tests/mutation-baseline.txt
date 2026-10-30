@@ -57,9 +57,7 @@ citesync.write.x__apply__mutmut_26  write passes only terms read_doc found, and 
 citesync.write.x__apply__mutmut_80  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__encode__mutmut_41  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__encode__mutmut_45  the codeRepository branch reads neither source nor keyword_key
-citesync.write.x__license__mutmut_28  a table without text reads as no licence, so write never gets one, and no SPDX id holds "text"
 citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
-citesync.write.x__people__mutmut_25  only out[0] reaches a package.json, and the first person alone decides it
 citesync.write.x__people__mutmut_27  only out[0] reaches a package.json, and the first person alone decides it
 citesync.write.x__people__mutmut_56  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_59  matches has one entry per person, so strict never fires
