@@ -276,13 +276,18 @@ def _init(root: Path, config: Config, *, diff: bool) -> int:
     from citesync.write import init  # noqa: PLC0415
 
     text, skipped, splits = init(root, config, dry_run=diff)
-    if diff:
-        sys.stdout.write(_diff(root, {"CITATION.cff": text}))
-        return 0
     left = "; ".join(f"{term}: {why}" for term, why in skipped.items())
+    notes = [
+        f"check the name split: {name!r} became given {given!r}, family {family!r}" for name, given, family in splits
+    ]
+    if diff:  # the notes go to stderr, so stdout stays a diff a tool can read
+        sys.stdout.write(_diff(root, {"CITATION.cff": text}))
+        for line in ([f"leaving out {left}"] if left else []) + notes:
+            print(line, file=sys.stderr)
+        return 0
     print("wrote CITATION.cff" + (f", leaving out {left}" if left else ""))
-    for name, given, family in splits:
-        print(f"check the name split: {name!r} became given {given!r}, family {family!r}")
+    for line in notes:
+        print(line)
     return 0
 
 
