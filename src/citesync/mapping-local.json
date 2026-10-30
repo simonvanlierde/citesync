@@ -184,7 +184,7 @@
       "format": "codemeta",
       "term": "swhid",
       "path": "identifier",
-      "source": "curated:CodeMeta has no SWHID term; a SWHID sits in identifier, as a PropertyValue with propertyID swhid or a swh:1: string, beside the DOI"
+      "source": "curated:CodeMeta has no SWHID term; a SWHID sits in identifier, beside the DOI, as a swh:1: string or a PropertyValue (propertyID SWHID) whose value is one"
     },
     {
       "format": "codemeta",
@@ -287,7 +287,8 @@
       "format": "zenodo",
       "term": "swhid",
       "path": "related_identifiers[scheme=swh].identifier",
-      "source": "curated:the cell says id, the Zenodo record id; a SWHID is the identifier of the related_identifiers entry with scheme swh"
+      "source": "curated:the cell says id, the Zenodo record id; a SWHID is the identifier of the related_identifiers entry with scheme swh",
+      "comment": "scheme is optional: Zenodo detects it from the identifier. Also read an entry with no scheme whose identifier starts swh:1: as the SWHID."
     },
     {
       "format": "zenodo",
