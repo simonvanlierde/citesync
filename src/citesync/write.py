@@ -85,7 +85,10 @@ def write(
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
-    errors = [f for f in findings(docs, unreadable, config)[0] if f.severity == "error"]
+    # zenodo-license-list sits on a term write may rewrite, but no rewrite turns the list into one licence
+    errors = [
+        f for f in findings(docs, unreadable, config)[0] if f.severity == "error" and f.rule != "zenodo-license-list"
+    ]
     fix = {(f.file, f.term) for f in errors}
     source, texts, skipped, done = docs[0], {}, {}, set()
     key = keyword_key(config)

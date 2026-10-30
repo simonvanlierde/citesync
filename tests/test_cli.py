@@ -119,6 +119,17 @@ def test_fixable_count_only_when_check_fails(tmp_path: Path, capsys: pytest.Capt
     assert _run(capsys, "check", "--root", str(root)) == (0, "0 errors, 0 warnings in 2 files\n", "")
 
 
+def test_counts_leave_out_a_licence_list_write_cannot_fix(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A rewritten CITATION.cff doesn't make its zenodo-license-list error count as fixed."""
+    cff = 'cff-version: 1.2.0\nmessage: "m"\ntitle: "y"\nversion: 1.0.0\nlicense:\n  - MIT\n  - Apache-2.0\n'
+    spdx = ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]
+    codemeta = json.dumps({**json.loads(CODEMETA), "version": "2.0.0", "license": spdx})
+    files = {"CITATION.cff": cff, "codemeta.json": codemeta, "citesync.toml": 'source = "codemeta.json"\n'}
+    root = _repo(tmp_path, files)
+    assert _run(capsys, "check", "--root", str(root))[1].endswith("\n1 fixable with `citesync write`\n")
+    assert _run(capsys, "write", "--root", str(root))[1].endswith("\n1 fixed, 1 left in 2 files\n")
+
+
 def test_a_missing_source_names_the_root(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = _repo(tmp_path, {"codemeta.json": CODEMETA})
     assert _run(capsys, "check", "--root", str(root)) == (
