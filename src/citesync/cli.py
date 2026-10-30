@@ -19,7 +19,7 @@ from typing import Any
 from citesync.check import Finding, check
 from citesync.config import Config, find_root, git_top, load_config, render
 from citesync.errors import CheckError
-from citesync.rules import DOCS_URL, RULES, explain
+from citesync.rules import DOCS_URL, RULES, explain, url
 
 JSON_VERSION = 1
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
@@ -210,8 +210,7 @@ def _write_diff(root: Path, config: Config) -> int:
     texts, _, unreadable = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
     for f in unreadable:  # the diff can't show a file write never touches, so say so
-        where = f"{f.file}:{f.line}:{f.column}" if f.line else f.file
-        print(f"{where}: error[unreadable] {f.message}", file=sys.stderr)
+        print(f"{f.where}: error[unreadable] {f.message}", file=sys.stderr)
     return 1 if texts or unreadable else 0
 
 
@@ -250,17 +249,16 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         for f in findings:
             where = f"file={_escape(prefix + f.file, property_=True)}," if f.file else ""
             where += f"line={f.line},col={f.column}," if f.line else ""
-            message = _escape(_printable(f"{f.term}: {f.message}" if f.term else f.message))
+            message = _escape(_printable(f.text))
             print(f"::{_GITHUB_LEVEL[f.severity]} {where}title=citesync {f.rule}::{message}")
         if not args.quiet:  # GitHub shows only the first 10 annotations of a level, so give the totals
             print(f"::notice::citesync: {total}")
         return
     colour = _colour()
     for f in findings:
-        where = _printable(f"{f.file}{f':{f.line}:{f.column}' if f.line else ''}: ") if f.file else ""
+        where = _printable(f"{f.where}: ") if f.file else ""
         severity = f"\033[{_ANSI[f.severity]}m{f.severity}\033[0m" if colour else f.severity
-        message = _printable(f"{f.term}: {f.message}" if f.term else f.message)
-        print(f"{where}{severity}[{f.rule}] {message}")
+        print(f"{where}{severity}[{f.rule}] {_printable(f.text)}")
     if not args.quiet:
         print(total)
 
@@ -276,7 +274,7 @@ def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
         result: dict[str, Any] = {
             "ruleId": f.rule,
             "level": _SARIF_LEVEL[f.severity],
-            "message": {"text": f"{f.term}: {f.message}" if f.term else f.message},
+            "message": {"text": f.text},
         }
         location: dict[str, Any] = {"artifactLocation": {"uri": f"{prefix}{f.file}"}}
         if f.line:
@@ -291,7 +289,7 @@ def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
             {
                 "id": rule,
                 "shortDescription": {"text": RULES[rule].summary},
-                "helpUri": f"{DOCS_URL}#{rule}",
+                "helpUri": url(rule),
                 "defaultConfiguration": {"level": _SARIF_LEVEL[RULES[rule].severity]},
             }
             for rule in sorted({f.rule for f in findings})
@@ -346,8 +344,7 @@ def _rules(args: argparse.Namespace) -> int:
         return 0
     if args.format == "json":
         rules = [
-            {"rule": rule, "severity": r.severity, "summary": r.summary, "url": f"{DOCS_URL}#{rule}"}
-            for rule, r in RULES.items()
+            {"rule": rule, "severity": r.severity, "summary": r.summary, "url": url(rule)} for rule, r in RULES.items()
         ]
         print(json.dumps(rules, indent=2))
         return 0

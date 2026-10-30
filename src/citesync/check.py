@@ -9,7 +9,7 @@ from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, slots
 from citesync.mapping import FORMATS, PEOPLE, TERMS, Mapping, load_mapping
-from citesync.rules import DOCS_URL, MISMATCH, RULES
+from citesync.rules import MISMATCH, RULES, url
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,16 @@ class Finding:
         """``error``, ``warning`` or ``info``, from the rule."""
         return RULES[self.rule].severity
 
+    @property
+    def text(self) -> str:
+        """The message, after the term it is about."""
+        return f"{self.term}: {self.message}" if self.term else self.message
+
+    @property
+    def where(self) -> str | None:
+        """``file:line:column``, or the file alone when the line isn't known."""
+        return f"{self.file}:{self.line}:{self.column}" if self.line else self.file
+
     def sort_key(self) -> tuple[bool, str, str, str]:
         """Findings sort by file, rule and term; those on no file come last."""
         return (self.file is None, self.file or "", self.rule, self.term or "")
@@ -46,7 +56,7 @@ class Finding:
             "term": self.term,
             "message": self.message,
             "help": rule.help,
-            "url": f"{DOCS_URL}#{self.rule}",
+            "url": url(self.rule),
             "line": self.line,
             "column": self.column,
         }

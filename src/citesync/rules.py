@@ -8,6 +8,11 @@ from dataclasses import dataclass
 DOCS_URL = "https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md"
 
 
+def url(rule: str) -> str:
+    """The link to ``rule``'s section of the rules page."""
+    return f"{DOCS_URL}#{rule}"
+
+
 @dataclass(frozen=True)
 class Rule:
     """One rule. ``help`` says what to do about a finding; ``details`` how the rule compares."""
