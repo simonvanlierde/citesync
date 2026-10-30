@@ -612,6 +612,34 @@ def test_crlf_line_ends_stay(name: str, tmp_path: Path, run: "Run") -> None:
         assert written == _expected(name).replace(b"\n", b"\r\n")
 
 
+def test_a_byte_order_mark_stays(tmp_path: Path, run: "Run") -> None:
+    """Only CITATION.cff can start with one: JSON and TOML files with one are refused as unreadable."""
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    (root / "CITATION.cff").write_bytes(b"\xef\xbb\xbf" + (PLANTED / "CITATION.cff").read_bytes())
+
+    assert run("write", "--root", str(root))[0] == 0
+    assert (root / "CITATION.cff").read_bytes() == b"\xef\xbb\xbf" + _expected("CITATION.cff")
+
+
+KEYWORDS = '  - "alpha"\n  - "beta"\n  - "gamma"\n  - "delta"\n'
+
+
+@pytest.mark.parametrize(
+    ("planted", "written"),
+    [(KEYWORDS.replace("  -", "    -"), KEYWORDS), (KEYWORDS + "...\n", KEYWORDS)],
+    ids=["second-sequence-indent", "document-end"],
+)
+def test_the_cff_layout_write_does_not_keep(planted: str, written: str, tmp_path: Path, run: "Run") -> None:
+    """The two limits docs/write.md names: if this fails, write keeps them now, so update the docs."""
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    cff = _edit(root / "CITATION.cff", KEYWORDS, planted)
+    _edit(root / "codemeta.json", '"1.2.3"', '"1.2.4"')
+    assert run("write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"1.2.3"', '"1.2.4"').replace(
+        planted, written
+    )
+
+
 @pytest.mark.parametrize("crlf_lines", [1, 14, 15])  # of 28 lines: a tie keeps LF
 def test_mixed_line_ends_take_the_more_common_one(crlf_lines: int, tmp_path: Path, run: "Run") -> None:
     root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')

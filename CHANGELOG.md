@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- `citesync write` keeps a byte order mark at the start of CITATION.cff ([docs/write.md](docs/write.md)).
+
 ## [0.2.0] - 2026-10-30
 
 To upgrade from 0.1.0:

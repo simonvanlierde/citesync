@@ -28,8 +28,11 @@ citesync.jsonsplice.x__edits__mutmut_123  json.dumps reads ensure_ascii as a tru
 citesync.jsonsplice.x__edits__mutmut_133  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.write.x_write__mutmut_59  "UTF-8" and "utf-8" name the same codec
 citesync.write.x_write__mutmut_1  every caller passes dry_run, so its default is never read
-citesync.write.x_write__mutmut_104  without a context, no (file, "@context") error exists for done to mark fixed
-citesync.write.x_write__mutmut_125  _new_codemeta only puts rel in the stand-in Doc, whose path nothing reads
+citesync.write.x_write__mutmut_116  without a context, no (file, "@context") error exists for done to mark fixed
+citesync.write.x_write__mutmut_137  _new_codemeta only puts rel in the stand-in Doc, whose path nothing reads
+citesync.write.x_write__mutmut_64  "\uFEFF" and "\ufeff" are the same character
+citesync.write.x_write__mutmut_67  "\uFEFF" and "\ufeff" are the same character
+citesync.write.x_write__mutmut_75  ruamel.yaml drops a BOM left in lf as it drops the one removeprefix takes, and write adds one back either way
 citesync.write.x__replace__mutmut_16  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
 citesync.write.x__replace__mutmut_17  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
 citesync.write.x__replace__mutmut_20  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
