@@ -43,6 +43,29 @@ bench:
     uv sync -q
     hyperfine -N -w 3 -r 30 '.venv/bin/citesync check'
 
+# Profile `check` on this repo and `write --diff` on tests/write/planted: the slowest imports,
+# a CPU profile (text here, html in profile/) and peak memory. Output goes to profile/.
+profile:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    uv sync -q
+    mkdir -p profile
+    py=.venv/bin/python
+    for run in "check:check" "write:write --diff --root tests/write/planted"; do
+        name=${run%%:*} args=${run#*:}
+        echo "== citesync $args"
+        # Exit 1 is a finding or a diff, not a failed run.
+        $py -X importtime -m citesync $args >/dev/null 2>profile/$name.importtime
+        echo "-- slowest imports (cumulative us)"
+        grep '^import time:' profile/$name.importtime | sort -t'|' -k2 -rn | head -8
+        $py -m pyinstrument -i 0.0001 -r session -o profile/$name.pyisession -m citesync $args >/dev/null
+        $py -m pyinstrument --load profile/$name.pyisession -r html -o profile/$name.html
+        $py -m pyinstrument --load profile/$name.pyisession -r text | head -40
+        $py -m memray run -q -f -o profile/$name.memray -m citesync $args >/dev/null 2>&1
+        echo "-- peak memory: $($py -m memray stats profile/$name.memray 2>/dev/null | grep -A1 'Peak memory' | tail -1 | tr -d '\t')"
+    done
+    echo "HTML profiles: profile/check.html profile/write.html"
+
 # Fix and format every stack here, as each stack's `fmt` recipe does.
 fmt:
     @just py-fmt

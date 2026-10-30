@@ -26,6 +26,17 @@ request outside what the project sets out to do is closed with a link to this se
 and the git hooks. `just check` runs the checks CI runs, and `just fmt` fixes and
 formats.
 
+## Profile
+
+`just bench` times `citesync check` on this repo. `just profile` shows where the time
+goes, for `check` on this repo and `write --diff` on `tests/write/planted`: the slowest
+imports, a sampling CPU profile with full call stacks, and peak memory. It saves the
+results in `profile/`, which git ignores; open `profile/check.html` in a browser to explore
+the CPU profile. Most of a run is Python starting and importing modules, so a fix usually
+moves an import into the function that needs it, and `tests/test_rules.py` checks that
+`check` doesn't import those modules. CI doesn't time anything: run times on shared
+machines vary too much to fail a build on.
+
 ## When you change a compared field
 
 1. Change its comparison and message in `src/citesync/rules.py`. Keep normalisation detail only there.
