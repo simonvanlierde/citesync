@@ -46,6 +46,7 @@ To upgrade from 0.1.0:
 
 ### Fixed
 
+- `citesync write` dropped an author's ORCID when the source renamed them and had no ORCID for them. It now leaves that file's authors for you to edit ([docs/write.md](docs/write.md#authors-and-contributors)).
 - `citesync write` wrote a CITATION.cff entity (an author with only a name) to codemeta.json as a `Person`. It's now an `Organization`.
 - `citesync write` reformatted the existing entries of a JSON author list when it added an author.
 - `python -m citesync` failed with "No module named `citesync.__main__`".

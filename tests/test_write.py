@@ -277,6 +277,15 @@ CANNOT = [
         'family-names: "Turing"\n    affiliation: "NPL"\n',
         "renaming would drop the affiliation of 'Alan Turing'",
     ),
+    (  # a source author with no ORCID and a new name may be the same person, or not: neither keeps the ORCID safely
+        "CITATION.cff",
+        '"Lovelace"\n    orcid: "https://orcid.org/0000-0002-1825-0097"\n',
+        '"Byron"\n',
+        "codemeta.json",
+        "",
+        "",
+        "renaming would drop the ORCID of 'Ada Lovelace'",
+    ),
     ("CITATION.cff", '"1.2.3"', '"1.2.3.post1"', "Cargo.toml", "", "", "semver has no spelling for 1.2.3.post1"),
     ("CITATION.cff", '"1.2.3"', '"2!1.0"', "package.json", "", "", "semver has no spelling for 2!1.0"),
     ("CITATION.cff", '"1.2.3"', '"2024.10 beta"', "pyproject.toml", "", "", "2024.10 beta is not a PEP 440 version"),
@@ -729,14 +738,13 @@ def test_write_keeps_roles(old: str, new: str, tmp_path: Path, capsys: pytest.Ca
 
 
 def test_replacing_the_person_of_a_role_warns(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """Write renames the first author in place, dropping the ORCID both Roles name, and check then warns."""
+    """Write replaces the first author with another ORCID, dropping the one both Roles name; check then warns."""
     root = _synthetic(tmp_path / "repo", 'source = "CITATION.cff"\nwrite-manifests = "all"\n')
     before = _with_roles(root)
     cff = root / "CITATION.cff"
     old = '  - given-names: "Ada"\n    family-names: "Lovelace"\n    orcid: "https://orcid.org/0000-0002-1825-0097"\n'
-    cff.write_text(
-        cff.read_text(encoding="utf-8").replace(old, '  - given-names: "Grace"\n    family-names: "Hopper"\n')
-    )
+    new = '  - given-names: "Grace"\n    family-names: "Hopper"\n    orcid: "https://orcid.org/0000-0001-5109-3700"\n'
+    cff.write_text(cff.read_text(encoding="utf-8").replace(old, new))
 
     code, out, err = _run(capsys, "write", "--root", str(root))
     assert (code, err) == (0, ""), out

@@ -494,8 +494,9 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
     end. npm keeps one author, so only the first is set and the rest stay.
 
     Raises:
-        CannotWrite: when an entry it would drop holds more than a name and ORCID, or when a
-            Zenodo contributor would be added, since Zenodo needs a contributor type.
+        CannotWrite: when an entry it would drop holds more than a name and ORCID, or an ORCID
+            while someone with no ORCID is added, or when a Zenodo contributor would be added,
+            since Zenodo needs a contributor type.
     """
     items = list(old) if isinstance(old, list) else [old]
     decoded = [person(fmt, el, path, mapping, term) for el in items]
@@ -512,8 +513,11 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
         msg = f"{nameless.orcid} has no name, and this file has no place for an ORCID"
         raise CannotWrite(msg)
     kept = {matches[0]} if npm and fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
+    # a new name with no ORCID may be a dropped entry renamed: its ORCID can't be moved over safely, nor lost
+    renamed = any(i is None and not p.orcid for p, i in zip(people, matches, strict=True))
     for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was
-        if i not in kept and (extra := _extra(fmt, el, path, mapping, term)):
+        orcid = "ORCID" if renamed and (q := decoded[i]) and q.orcid else None
+        if i not in kept and (extra := _extra(fmt, el, path, mapping, term) or orcid):
             q = decoded[i]
             msg = f"renaming would drop the {extra} of {(q.name if q and q.name else el)!r}"
             raise CannotWrite(msg)
