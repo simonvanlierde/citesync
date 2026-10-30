@@ -27,7 +27,7 @@
 }
 ```
 
-Findings are sorted by file, rule and field. `line` and `column` count from 1. For a finding on a field they point at the field's key, or at the table or object above it when the key isn't there under the name the mapping gives. For `unreadable` they point where the parser stopped, when it says. They are null where there is nothing to point at, such as a finding on no file, `file-missing` and `manifest-skipped`. A list's key stands for the whole list, so an author finding points at `authors`, not at one author. A column counts characters, not bytes. `file` is null for a field no file holds. `term`, the CodeMeta term, is null for `unreadable` and `file-missing`. In the message, a value longer than 80 characters is cut short with `...`. JSON always lists every finding: `-q` and `-v` change only the text and GitHub output.
+Findings are sorted by file, rule and field. `line` and `column` count from 1. For a finding on a field they point at the field's key, or at the table or object above it when the key isn't there under the name the mapping gives. For `unreadable` they point where the parser stopped, when it says. They are null where there is nothing to point at, such as a finding on no file, `file-missing` and `manifest-skipped`. A list's key stands for the whole list, so an author finding points at `authors`, not at one author. A column counts characters, not bytes. `file` is null for a field no file holds. `term`, the CodeMeta term, is null for `unreadable`, `file-missing` and `manifest-skipped`. In the message, a value longer than 80 characters is cut short with `...`. JSON always lists every finding: `-q` and `-v` change only the text, GitHub and SARIF output.
 
 [tests/output.schema.json](../tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields, so ignore what you don't know. Only a major release removes or retypes a field, and it bumps `version`.
 
@@ -37,7 +37,7 @@ Findings are sorted by file, rule and field. `line` and `column` count from 1. F
 
 ## SARIF
 
-`--format sarif` writes one SARIF 2.1.0 log. Each finding is a result with its `ruleId`, `level` (`error`, `warning`, or `note` for info), message and file, and a `region` with `startLine` and `startColumn` when the finding has a line. Each rule carries its `help` text, which code scanning shows beside the alert. Like the text format, it leaves out info findings unless you pass `-v`. It always leaves out a finding on no file, because SARIF has nowhere to point it.
+`--format sarif` writes one SARIF 2.1.0 log. Each finding is a result with its `ruleId`, `level` (`error`, `warning`, or `note` for info), message and file, and a `region` with `startLine` and `startColumn` when the finding has a line. Each rule carries its `help` text, which code scanning shows beside the alert. Like the text format, it leaves out info findings unless you pass `-v`, and warnings too with `-q`. It always leaves out a finding on no file, because SARIF has nowhere to point it.
 
 Upload it to GitHub code scanning with `github/codeql-action/upload-sarif`:
 
