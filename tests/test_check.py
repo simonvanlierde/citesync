@@ -298,6 +298,14 @@ def test_unreadable_file_is_a_finding(
     assert f"::error file={name},{where}title=citesync unreadable::" in github
 
 
+@pytest.mark.parametrize(("name", "text"), [(".zenodo.json", '{"title": "x"}'), ("pyproject.toml", PYPROJECT)])
+def test_a_byte_order_mark_is_named(name: str, text: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    report = _check_json(tmp_path, capsys, {"CITATION.cff": "\ufeff" + CFF, name: "\ufeff" + text})
+    assert [(f["file"], f["message"]) for f in report["findings"] if f["rule"] == "unreadable"] == [
+        (name, "starts with a byte order mark: save it as UTF-8 without one")
+    ]
+
+
 def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     report = _check_json(
         tmp_path,

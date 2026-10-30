@@ -175,7 +175,7 @@ def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
-def load(path: Path, rel: str) -> dict[str, Any]:
+def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901 - one branch per way a file fails
     """Parse the TOML, JSON or YAML file at ``path``, named ``rel`` in errors.
 
     Raises:
@@ -187,6 +187,8 @@ def load(path: Path, rel: str) -> dict[str, Any]:
         raise UnreadableError(rel, f"cannot read: {err.strerror}") from err
     except UnicodeDecodeError as err:
         raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
+    if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
+        raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)
