@@ -77,3 +77,25 @@ citesync.write.x__new_person__mutmut_25  tomlkit writes a plain dict in an array
 citesync.write.x__rename__mutmut_57  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__rename__mutmut_60  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__set__mutmut_26  a comment stands after its value, so its new column is never below 1
+citesync.write.x_init__mutmut_1  every caller passes dry_run, so its default is never read
+citesync.write.x_init__mutmut_27  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_29  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_30  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_31  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_32  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_39  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_40  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_41  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_44  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_45  _encode reads only the stand-in Doc's format
+citesync.write.x_init__mutmut_65  a blank's text is never read, only its type
+citesync.write.x_init__mutmut_70  a blank's text is never read, only its type
+citesync.write.x_init__mutmut_75  a blank's text is never read, only its type
+citesync.write.x_init__mutmut_89  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x_init__mutmut_95  a blank's text is never read: "XXXX" has no git+ or .git to keep
+citesync.write.x_init__mutmut_100  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x_init__mutmut_142  any width past the longest line keeps every line whole
+citesync.write.x_init__mutmut_143  any width past the longest line keeps every line whole
+citesync.write.x_init__mutmut_144  mapping=None keeps ruamel's default of 2
+citesync.write.x_init__mutmut_147  mapping's default is 2
+citesync.write.x_init__mutmut_150  init writes no mapping inside a mapping, the only place this indent shows

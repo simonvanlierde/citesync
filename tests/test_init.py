@@ -1,5 +1,6 @@
 """`citesync init`: a CITATION.cff from the files a repo already has."""
 
+import json
 import shutil
 from pathlib import Path
 
@@ -126,3 +127,76 @@ def test_init_names_a_field_it_left_out(tmp_path: Path, capsys: pytest.CaptureFi
         "wrote CITATION.cff, leaving out license: a licence list can only say OR, not AND or WITH\n",
     )
     assert "license" not in _cff(tmp_path)
+
+
+LONG = "Measures what glows, and how long it keeps glowing, in a description longer than a YAML line wraps at."
+WRITTEN = f"""\
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+type: software
+title: radium
+abstract: {LONG}
+version: 0.4.0
+authors:
+  - given-names: Marie
+    family-names: Curie
+  - given-names: Tu
+    family-names: Youyou
+repository-code: https://example.org/radium
+license: MIT
+keywords:
+  - chemistry
+  - physics
+"""
+
+
+def test_init_writes_this_text(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """The keys in CFF's order, sequences indented under their key, and no line wrapped."""
+    (tmp_path / "pyproject.toml").write_text(PYPROJECT.replace("Measures what glows.", LONG), encoding="utf-8")
+    assert _run(capsys, "init", "--root", str(tmp_path))[0] == 0
+    assert (tmp_path / "CITATION.cff").read_text(encoding="utf-8") == WRITTEN
+
+
+def test_init_takes_each_field_from_the_first_file_that_has_it(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    codemeta = {
+        "@context": "https://w3id.org/codemeta/3.0",
+        "name": "radium",
+        "datePublished": "1898-12-26",
+        "author": [{"@type": "Person", "givenName": "Marie", "familyName": "Curie"}],
+    }
+    (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
+    assert _run(capsys, "init", "--root", str(tmp_path))[0] == 0
+    text = (tmp_path / "CITATION.cff").read_text(encoding="utf-8")
+    assert "title: radium\nabstract: Measures what glows.\nversion: 0.4.0\ndate-released: 1898-12-26\n" in text
+    assert "authors:\n  - given-names: Marie\n    family-names: Curie\nrepository-code:" in text
+
+
+def test_init_refuses_a_dangling_citation_file_link(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
+    (tmp_path / "CITATION.cff").symlink_to(tmp_path / "elsewhere.cff")
+    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    assert (code, err) == (
+        2,
+        "citesync: CITATION.cff already exists; `citesync write` makes it agree with another file\n",
+    )
+    assert not (tmp_path / "elsewhere.cff").exists()
+
+
+def test_init_refuses_when_a_file_cannot_be_read(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text("{", encoding="utf-8")
+    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    assert code == 2
+    assert err.startswith("citesync: codemeta.json:1:2: ")
+    assert not (tmp_path / "CITATION.cff").exists()
+
+
+def test_init_names_every_file_it_read_for_a_missing_title(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    pyproject = '[build-system]\nbuild-backend = "uv_build"\n\n[project]\nauthors = [{ name = "Tu Youyou" }]\n'
+    (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
+    (tmp_path / "package.json").write_text('{"author": "Tu Youyou"}\n', encoding="utf-8")
+    code, _, err = _run(capsys, "init", "--root", str(tmp_path))
+    assert (code, err) == (2, "citesync: no title in pyproject.toml, package.json, and CITATION.cff needs one\n")
