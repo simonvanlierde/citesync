@@ -40,35 +40,35 @@ def _planted(root: Path) -> Path:
 FIX = "Make the file agree with the source, or the other way round if the source is wrong."
 # 15 errors planted in four files; write fixes the 9 that write-manifests lets it.
 CHECK_SNAPSHOT = f"""\
-.zenodo.json: error[author-mismatch] author: 'Alan Turing; Ada Lovelace (0000-0002-1825-0097)', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'
+.zenodo.json:6:3: error[author-mismatch] author: 'Alan Turing; Ada Lovelace (0000-0002-1825-0097)', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'
   help: {FIX}
-.zenodo.json: error[date-mismatch] datePublished: '2025-12-01', CITATION.cff has '2026-01-15'
+.zenodo.json:22:3: error[date-mismatch] datePublished: '2025-12-01', CITATION.cff has '2026-01-15'
   help: {FIX}
-.zenodo.json: error[license-mismatch] license: 'mit', CITATION.cff has 'Apache-2.0'
+.zenodo.json:21:3: error[license-mismatch] license: 'mit', CITATION.cff has 'Apache-2.0'
   help: {FIX}
-.zenodo.json: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree'
+.zenodo.json:23:3: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree'
   help: {FIX}
-codemeta.json: error[author-mismatch] author: 'Ada Lovelace (0000-0001-5109-3700); Alan Turing', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'
+codemeta.json:11:3: error[author-mismatch] author: 'Ada Lovelace (0000-0001-5109-3700); Alan Turing', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'
   help: {FIX}
-codemeta.json: error[keywords-mismatch] keywords: missing delta (compared with CITATION.cff)
+codemeta.json:24:3: error[keywords-mismatch] keywords: missing delta (compared with CITATION.cff)
   help: {FIX}
-codemeta.json: error[version-mismatch] version: '1.2.4', CITATION.cff has '1.2.3'
+codemeta.json:6:3: error[version-mismatch] version: '1.2.4', CITATION.cff has '1.2.3'
   help: {FIX}
-package.json: error[author-mismatch] author: 'Alan Turing', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'
+package.json:5:3: error[author-mismatch] author: 'Alan Turing', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing'
   help: {FIX}
-package.json: error[keywords-not-subset] keywords: zeta: in package.json, not in CITATION.cff
+package.json:12:3: error[keywords-not-subset] keywords: zeta: in package.json, not in CITATION.cff
   help: Add the keyword to the citation file, or remove it from the manifest.
-package.json: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree'
+package.json:8:3: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree'
   help: {FIX}
-package.json: error[version-mismatch] version: '1.2.4', CITATION.cff has '1.2.3'
+package.json:3:3: error[version-mismatch] version: '1.2.4', CITATION.cff has '1.2.3'
   help: {FIX}
-pyproject.toml: error[keywords-not-subset] keywords: zeta: in pyproject.toml, not in CITATION.cff
+pyproject.toml:12:1: error[keywords-not-subset] keywords: zeta: in pyproject.toml, not in CITATION.cff
   help: Add the keyword to the citation file, or remove it from the manifest.
-pyproject.toml: error[license-mismatch] license: 'MIT', CITATION.cff has 'Apache-2.0'
+pyproject.toml:11:1: error[license-mismatch] license: 'MIT', CITATION.cff has 'Apache-2.0'
   help: {FIX}
-pyproject.toml: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree'
+pyproject.toml:15:1: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree'
   help: {FIX}
-pyproject.toml: error[version-mismatch] version: '1.2.4', CITATION.cff has '1.2.3'
+pyproject.toml:7:1: error[version-mismatch] version: '1.2.4', CITATION.cff has '1.2.3'
   help: {FIX}
 15 errors, 0 warnings in 6 files
 9 fixable with `citesync write`
@@ -78,17 +78,17 @@ wrote .zenodo.json
 wrote codemeta.json
 wrote package.json
 wrote pyproject.toml
-package.json: error[author-mismatch] author: 'Alan Turing', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing' (edit it by hand, or add author to write-manifests)
+package.json:5:3: error[author-mismatch] author: 'Alan Turing', CITATION.cff has 'Ada Lovelace (0000-0002-1825-0097); Alan Turing' (edit it by hand, or add author to write-manifests)
   help: {FIX}
-package.json: error[keywords-not-subset] keywords: zeta: in package.json, not in CITATION.cff (edit it by hand, or add keywords to write-manifests)
+package.json:12:3: error[keywords-not-subset] keywords: zeta: in package.json, not in CITATION.cff (edit it by hand, or add keywords to write-manifests)
   help: Add the keyword to the citation file, or remove it from the manifest.
-package.json: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree' (edit it by hand, or add codeRepository to write-manifests)
+package.json:8:3: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree' (edit it by hand, or add codeRepository to write-manifests)
   help: {FIX}
-pyproject.toml: error[keywords-not-subset] keywords: zeta: in pyproject.toml, not in CITATION.cff (edit it by hand, or add keywords to write-manifests)
+pyproject.toml:12:1: error[keywords-not-subset] keywords: zeta: in pyproject.toml, not in CITATION.cff (edit it by hand, or add keywords to write-manifests)
   help: Add the keyword to the citation file, or remove it from the manifest.
-pyproject.toml: error[license-mismatch] license: 'MIT', CITATION.cff has 'Apache-2.0' (edit it by hand, or add license to write-manifests)
+pyproject.toml:11:1: error[license-mismatch] license: 'MIT', CITATION.cff has 'Apache-2.0' (edit it by hand, or add license to write-manifests)
   help: {FIX}
-pyproject.toml: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree' (edit it by hand, or add codeRepository to write-manifests)
+pyproject.toml:15:1: error[repository-mismatch] codeRepository: 'https://github.com/example/other', CITATION.cff has 'https://github.com/example/synthagree' (edit it by hand, or add codeRepository to write-manifests)
   help: {FIX}
 9 fixed, 6 left in 6 files
 """  # noqa: E501

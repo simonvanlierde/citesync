@@ -13,24 +13,28 @@ def _skip(text: str, i: int) -> int:
     return i
 
 
-def _node(text: str, i: int) -> tuple[int, int, dict[Any, Any] | None]:
-    """The (start, end, children) of the JSON value at ``i``; children by key or index, None for a scalar."""
+def _node(text: str, i: int, key_at: int | None = None) -> tuple[int, int, dict[Any, Any] | None, int | None]:
+    """The (start, end, children, key start) of the JSON value at ``i``; children by key or index, None for a scalar.
+
+    ``key_at`` is where the key naming the value starts, for a value in an object.
+    """
     i = _skip(text, i)
     opener = text[i]
     if opener not in "[{":
-        return i, _DECODER.raw_decode(text, i)[1], None
+        return i, _DECODER.raw_decode(text, i)[1], None, key_at
     kids: dict[Any, Any] = {}
     j = i + 1
     while True:
         j = _skip(text, j)
         if text[j] in "]}":
-            return i, j + 1, kids
+            return i, j + 1, kids, key_at
         if opener == "{":
+            key_start = j
             key, end = _DECODER.raw_decode(text, j)
             j = _skip(text, end) + 1  # past the colon
         else:
-            key = len(kids)
-        kids[key] = _node(text, j)
+            key, key_start = len(kids), None
+        kids[key] = _node(text, j, key_start)
         j = _skip(text, kids[key][1])
         j += text[j] == ","
 
@@ -45,9 +49,9 @@ def splice(text: str, old: Any, new: Any) -> str:  # noqa: ANN401
     return text
 
 
-def _edits(text: str, node: tuple[int, int, Any], old: Any, new: Any, edits: list, indent: str) -> None:  # noqa: ANN401
+def _edits(text: str, node: tuple[int, int, Any, Any], old: Any, new: Any, edits: list, indent: str) -> None:  # noqa: ANN401
     """Collect a replacement for each smallest value that differs between ``old`` and ``new``."""
-    start, end, kids = node
+    start, end, kids, _ = node
     if type(old) is type(new) and old == new:
         return
     if isinstance(old, dict) and isinstance(new, dict) and list(old) == list(new):
@@ -58,7 +62,7 @@ def _edits(text: str, node: tuple[int, int, Any], old: Any, new: Any, edits: lis
             _edits(text, kids[i], a, b, edits, indent)
     elif isinstance(old, list) and isinstance(new, list) and old and new[: len(old)] == old:
         # appended to: add after the last element in its layout, leaving the others' text alone
-        last_start, last_end, _ = kids[len(old) - 1]
+        last_start, last_end, *_ = kids[len(old) - 1]
         line = text[text.rfind("\n", 0, last_start) + 1 :]
         margin = line[: len(line) - len(line.lstrip(" \t"))]
         sep = ",\n" + margin if "\n" in text[start:end] else ", "

@@ -325,7 +325,7 @@ def test_a_value_write_cannot_spell_is_left_with_the_reason(
     assert code == 1
     assert (root / name).read_bytes() == before
     assert any(
-        line.startswith(f"{name}: ") and line.endswith(f" (edit it by hand: {reason})") for line in out.splitlines()
+        line.startswith(f"{name}:") and line.endswith(f" (edit it by hand: {reason})") for line in out.splitlines()
     ), out
 
 

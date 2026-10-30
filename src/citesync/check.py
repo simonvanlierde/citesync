@@ -127,8 +127,13 @@ _NOT_RELEASED = {
 
 def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
     """Every finding for the repo at ``root``, sorted, the number of files checked, and the unused ignore entries."""
-    docs, read = read_docs(root, config, load_mapping())
+    mapping = load_mapping()
+    docs, read = read_docs(root, config, mapping)
     found, unused = findings(docs, [*read, *version_behind_tag(docs[0], git_tags(root))], config)
+    if any(f.file and f.term for f in found):  # a check with nothing to point at reads no file twice
+        from citesync.positions import place  # noqa: PLC0415
+
+        found = place(root, docs, found, mapping)
     return sorted(found, key=Finding.sort_key), len(docs), unused
 
 

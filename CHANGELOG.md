@@ -29,6 +29,7 @@ To upgrade from 0.1.0:
 - A failing `citesync check` says how many findings `citesync write` would fix. `citesync write` ends with how many it fixed and how many are left, and `write --diff` prints its count on stderr.
 - `-v` names each manifest check left out, and why (`manifest-skipped`). `citesync config` prints the repo root in use.
 - `--color auto|always|never` sets colour whatever `NO_COLOR` and `FORCE_COLOR` say, and `-V` is short for `--version`.
+- Each finding on a key gives the key's line and column: `file:line:col` in the text output, and a line and column or region in the JSON, GitHub and SARIF output, so an editor or code scanning can jump to it ([docs/output.md](docs/output.md)).
 - A mistyped rule id, `--format` value or `write-manifests` field gets a "did you mean" suggestion. On Python before 3.14, option values get none.
 
 ### Changed

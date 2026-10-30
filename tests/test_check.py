@@ -47,6 +47,11 @@ def _triples(items: list[dict]) -> list[tuple[str, str | None, str | None]]:
     return [(i["rule"], i["file"], i["term"]) for i in items]
 
 
+def _at(items: list[dict]) -> list[tuple[int | None, int | None]]:
+    """Where each finding points; an expected entry without ``line`` points nowhere."""
+    return [(i.get("line"), i.get("column")) for i in items]
+
+
 def _split(report: dict) -> tuple[list[dict], list[dict]]:
     """The findings that fail a run, and the info."""
     findings = report["findings"]
@@ -60,9 +65,15 @@ def _refresh(data: dict, name: str, code: int, findings: list[dict], info: list[
     for key, actual in (("findings", findings), ("info", info)):
         old = dict(zip(_triples(case[key]), case[key], strict=True))
         case[key] = [
-            old.get(t) or {"rule": f["rule"], "file": f["file"], "term": f["term"], "why": f["message"]}
+            _place(old.get(t) or {"rule": f["rule"], "file": f["file"], "term": f["term"], "why": f["message"]}, f)
             for t, f in zip(_triples(actual), actual, strict=True)
         ]
+
+
+def _place(entry: dict, actual: dict) -> dict:
+    """``entry`` with the line and column of ``actual``, or without them when it has none."""
+    entry = {k: v for k, v in entry.items() if k not in {"line", "column"}}
+    return entry | ({"line": actual["line"], "column": actual["column"]} if actual["line"] else {})
 
 
 @pytest.mark.parametrize(("repo", "case"), CASES, ids=[f"{r}-{c['name']}" for r, c in CASES])
@@ -83,6 +94,8 @@ def test_fixture_case(
     assert code == case["exit"]
     assert _triples(findings) == _triples(case["findings"])
     assert _triples(info) == _triples(case["info"])
+    assert _at(findings) == _at(case["findings"])
+    assert _at(info) == _at(case["info"])
 
     # Text: two lines per finding (the help under it) and a summary, info only with -v, and the
     # count write could fix when check fails.
@@ -197,11 +210,11 @@ def test_findings_are_sorted_and_text_matches_codemeta_drift(
     assert code == 1
     assert _run(capsys, "check", "--root", str(tmp_path), "--quiet")[1] == out.rsplit("5 errors", 1)[0]
     assert [line for line in out.splitlines() if not line.startswith("  help: ")] == [
-        ".zenodo.json: error[license-mismatch] license: 'apache-2.0', CITATION.cff has 'MIT'",
-        ".zenodo.json: error[name-mismatch] name: 'z', CITATION.cff has 'x'",
-        "codemeta.json: error[context-mismatch] @context: 4.0, configured 3.0",
-        "codemeta.json: error[name-mismatch] name: 'y', CITATION.cff has 'x'",
-        "codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'",
+        ".zenodo.json:1:16: error[license-mismatch] license: 'apache-2.0', CITATION.cff has 'MIT'",
+        ".zenodo.json:1:2: error[name-mismatch] name: 'z', CITATION.cff has 'x'",
+        "codemeta.json:1:2: error[context-mismatch] @context: 4.0, configured 3.0",
+        "codemeta.json:1:47: error[name-mismatch] name: 'y', CITATION.cff has 'x'",
+        "codemeta.json:1:60: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'",
         "5 errors, 0 warnings in 3 files",
         "5 fixable with `citesync write`",
     ]
@@ -214,7 +227,8 @@ def test_github_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> No
     lines = out.splitlines()
     assert code == 1
     assert lines[0] == (
-        f"::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'%0Ahelp: {FIX}"
+        "::error file=codemeta.json,line=1,col=47,title=citesync name-mismatch::"
+        f"name: 'y', CITATION.cff has 'x'%0Ahelp: {FIX}"
     )
     assert all(line.startswith("::notice title=citesync not-checked::") for line in lines[1:-1])
     assert lines[-1] == "::notice::citesync: 1 error, 0 warnings in 2 files"
@@ -235,6 +249,7 @@ def test_sarif_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> Non
     assert (result["ruleId"], result["level"]) == ("name-mismatch", "error")
     assert result["message"]["text"] == "name: 'y', CITATION.cff has 'x'"
     assert [loc["physicalLocation"]["artifactLocation"]["uri"] for loc in result["locations"]] == ["codemeta.json"]
+    assert result["locations"][0]["physicalLocation"]["region"] == {"startLine": 1, "startColumn": 47}
 
 
 def test_sarif_levels_and_region() -> None:
@@ -959,7 +974,10 @@ def test_github_format_quiet_has_no_summary(tmp_path: Path, capsys: pytest.Captu
     (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
     _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github", "-q")
     assert out.splitlines() == [
-        f"::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'%0Ahelp: {FIX}"
+        (
+            "::error file=codemeta.json,line=1,col=47,title=citesync name-mismatch::"
+            f"name: 'y', CITATION.cff has 'x'%0Ahelp: {FIX}"
+        )
     ]
 
 
@@ -969,10 +987,10 @@ def test_github_format_escapes_the_file_property(tmp_path: Path, capsys: pytest.
     (tmp_path / "CITATION.cff").write_text(CFF + "license: Apache-2.0\n", encoding="utf-8")
     (tmp_path / "citesync.toml").write_text('manifests = ["a,b:c/package.json"]\n', encoding="utf-8")
     _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github")
-    assert out.startswith("::error file=a%2Cb%3Ac/package.json,title=")
+    assert out.startswith("::error file=a%2Cb%3Ac/package.json,line=1,col=15,title=")
 
 
-PLAIN, RED = "codemeta.json: error[", "codemeta.json: \033[1;31merror\033[0m["
+PLAIN, RED = "codemeta.json:1:47: error[", "codemeta.json:1:47: \033[1;31merror\033[0m["
 
 
 @pytest.mark.parametrize(
@@ -1173,7 +1191,7 @@ def test_a_subdirectory_root_reads_the_repo_tags_and_reports_repo_paths(
     uris = [(r["ruleId"], r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]) for r in results]
     assert uris == [("name-mismatch", "pkg/.zenodo.json"), ("version-behind-tag", "pkg/CITATION.cff")]
     _, out, _ = _run(capsys, "check", "--root", str(pkg), "--format", "github")
-    assert out.startswith("::error file=pkg/.zenodo.json,title=citesync name-mismatch::")
+    assert out.startswith("::error file=pkg/.zenodo.json,line=1,col=2,title=citesync name-mismatch::")
 
 
 ROLE = {"@type": "Role", "schema:author": {"@id": f"https://orcid.org/{ORCID_A}"}, "roleName": "Software"}
