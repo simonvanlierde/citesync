@@ -30,7 +30,7 @@ class Config:
     origin: str = "defaults"
 
 
-# Config tables inside manifests, in the D7 order: (file, mapping path, origin).
+# Config tables inside manifests, in the order docs/config.md lists them: (file, mapping path, origin).
 _MANIFEST_TABLES = (
     ("pyproject.toml", "tool.citesync", "pyproject.toml [tool.citesync]"),
     ("Cargo.toml", "workspace.metadata.citesync", "Cargo.toml [workspace.metadata.citesync]"),
@@ -40,7 +40,7 @@ _MANIFEST_TABLES = (
 
 
 def find_config(root: Path) -> tuple[dict[str, Any], str]:
-    """The raw config table and where it came from, in the D7 order; ``({}, "defaults")`` when none.
+    """The raw config table and where it came from, in the order docs/config.md lists; ``({}, "defaults")`` when none.
 
     A manifest that can't be read, or has a non-table on the way to the config table,
     holds no config here: the check reports it as ``unreadable`` if it is broken.

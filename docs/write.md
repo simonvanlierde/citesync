@@ -4,7 +4,7 @@
 
 ## What it writes
 
-It writes every citation file that isn't the source, and a manifest only for the fields listed in `write-manifests` (or all of them with `"all"`, see [config.md](config.md)). A field a file leaves out stays out: a .zenodo.json without a version never gains one. When the source has no value for a field (no DOI in pyproject.toml), write leaves that field alone in the other files. When `files` lists a codemeta.json that doesn't exist, write creates it from the source, with the configured `codemeta-version`, else 3.0 (the version Software Heritage reads); it doesn't create a missing .zenodo.json or CITATION.cff (see [`file-missing`](rules.md#file-missing)).
+It writes every citation file that isn't the source, and a manifest only for the fields listed in `write-manifests` (or all of them with `"all"`, see [config.md](config.md)). A field a file leaves out stays out: a .zenodo.json without a version never gains one. When the source has no value for a field (no DOI in pyproject.toml), write leaves that field alone in the other files. When `files` lists a codemeta.json that doesn't exist (at the root or in a subdirectory), write creates it from the source, if the source is readable. It takes the configured `codemeta-version`, else 3.0, the version Software Heritage reads, and leaves out a field codemeta.json can't spell, such as a licence with `AND`. It doesn't create a missing .zenodo.json or CITATION.cff (see [`file-missing`](rules.md#file-missing)).
 
 Values that compare equal stay as written: write leaves `v1.2.3` against `1.2.3`, and `LCA` against `lca` unless `keywords-case-sensitive` is set. A finding whose rule `ignore` lists is not written, and an `unreadable` file is never written.
 
@@ -19,13 +19,13 @@ A value the file can't spell is left as it was, and its finding says why:
 - in Cargo.toml and package.json, a version semver has no spelling for (a post-release such as `1.2.3.post1`, an epoch, more than three numbers);
 - in pyproject.toml, a version that isn't PEP 440.
 
-## Authors
+## Authors and contributors
 
-An author with only a name, such as an organization (`name` in CITATION.cff and codemeta.json), counts as a family name and keeps it; a new one is written to codemeta.json as an `Organization`, not a `Person`. An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation; anyone else gets a new entry. When that would drop an old entry holding more than a name and ORCID, such as after a renaming in a manifest, write leaves that file's authors for you to edit. A Cargo field inherited with `.workspace = true` is left as it is: change it in the workspace's `[workspace.package]`.
+Contributors are written as authors are. An author with only a name, such as an organization (`name` in CITATION.cff and codemeta.json), counts as a family name and keeps it; a new one is written to codemeta.json as an `Organization`, not a `Person`. An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation; anyone else gets a new entry. When that would drop an old entry holding more than a name and ORCID, such as after a renaming in a manifest, write leaves that file's authors for you to edit. A new .zenodo.json contributor is left for you to add, since Zenodo needs a contributor `type`, which citesync doesn't choose; one matched by name or ORCID is renamed and keeps its type. A Cargo field inherited with `.workspace = true` is left as it is: change it in the workspace's `[workspace.package]`.
 
 ## Output and exit codes
 
-It prints `wrote <file>` for each file it changed (to stderr with `--format json` or `github`, and not at all with `--quiet`), then reports the findings left as `check` does, in the same [formats](output.md), each with what to do: edit it by hand (with the reason, when write could have written it but didn't), or add the field to `write-manifests`. Exit 0 when no error finding remains, 1 when one does (an unreadable file included), and 2 when citesync couldn't run.
+It prints `wrote <file>` for each file it changed (to stderr with `--format json`, `github` or `sarif`, and not at all with `--quiet`), adding the fields it left out of a codemeta.json it created and why, then reports the findings left as `check` does, in the same [formats](output.md), each with what to do: edit it by hand (with the reason, when write could have written it but didn't), or add the field to `write-manifests`. Exit 0 when no error finding remains, 1 when one does (an unreadable file included), and 2 when citesync couldn't run.
 
 ## Safety
 

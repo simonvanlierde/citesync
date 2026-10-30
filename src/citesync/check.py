@@ -197,7 +197,7 @@ def has_slot(doc: Doc, term: str) -> bool:
 def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
     """Compare ``term`` in ``docs[1:]`` with the source ``docs[0]``.
 
-    When the source has no slot or no value for it (D2), the other files that hold
+    When the source has no slot or no value for it (docs/check.md), the other files that hold
     it are compared with each other. A source with no ORCID slot (a manifest) also
     gets its authors' ORCIDs compared that way, and a manifest source gets the
     keywords of the rest compared that way, since a subset of one isn't a subset of all.

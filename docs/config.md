@@ -1,6 +1,6 @@
 # Configuration
 
-Config goes in the first of `citesync.toml`, `.citesync.toml`, `[tool.citesync]` in pyproject.toml, `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml, or `"citesync"` in package.json. `citesync config` prints the config in use and the file it came from.
+citesync reads one config: the first of these it finds, in this order: `citesync.toml`, `.citesync.toml`, `[tool.citesync]` in pyproject.toml, `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml, or `"citesync"` in package.json. The others are ignored, not merged. `citesync config` prints the config in use and the file it came from.
 
 ```toml
 source = "CITATION.cff"                  # any of the six files

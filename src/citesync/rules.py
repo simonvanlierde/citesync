@@ -27,7 +27,7 @@ _SEPARATORS = (
 )
 
 _FIX = "Make the file agree with the source, or the other way round if the source is wrong."
-_D2 = (
+_GAP = (
     " When the source has no place or no value for the field (pyproject.toml has no DOI),"
     " the other files that hold it must agree with each other."
 )
@@ -114,7 +114,7 @@ _FIELDS = {
 MISMATCH = {term: rule for term, (rule, _, _) in _FIELDS.items()}
 
 RULES = {
-    **{rule: Rule("error", summary, _FIX, details + _D2) for rule, summary, details in _FIELDS.values()},
+    **{rule: Rule("error", summary, _FIX, details + _GAP) for rule, summary, details in _FIELDS.values()},
     "keywords-not-subset": Rule(
         "error",
         "A manifest has a keyword the citation file doesn't.",

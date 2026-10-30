@@ -15,14 +15,16 @@ Software citation metadata: citesync checks that CITATION.cff, codemeta.json, .z
 
 ## What works now
 
-`citesync check` compares ten fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, repository URL, description, keywords and release date. `citesync write` rewrites the other files to agree with it.
+`citesync check` compares ten fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, repository URL, description, keywords and release date. `citesync write` rewrites the other citation files to agree with it; it changes a manifest only for the fields listed in `write-manifests`.
+
+Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
 
 ```sh
 uv tool install citesync            # or run it once with uvx citesync check
-citesync check                      # exit 0: they agree; 1: an error finding; 2: citesync couldn't run
+citesync check                      # exit 0: no error finding; 1: an error finding; 2: citesync couldn't run
 citesync check --source pyproject.toml
 citesync check --root path/to/repo  # check another directory
-citesync check --format json        # or --json; also --format github for workflow annotations
+citesync check --format json        # or --json; also github (workflow annotations) and sarif (code scanning)
 citesync check -v                   # also list fields that weren't compared (not-checked)
 citesync check -q                   # only errors, no summary line
 citesync rules                      # the rules, with their severity; --format json too
@@ -44,7 +46,7 @@ More in `docs/`:
 - [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it writes, how it keeps each file's layout, and its limits.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
 - [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes and every key.
-- [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): the JSON document and GitHub annotations.
+- [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): the JSON document, GitHub annotations and SARIF.
 - [Tested on real repositories](https://github.com/simonvanlierde/citesync/blob/main/docs/tested-repositories.md): what citesync reports on five public repositories.
 
 ## Pre-commit hook
@@ -93,6 +95,6 @@ and remove it a week later ([how](https://github.com/simonvanlierde/project-temp
 
 See [docs/releasing.md](https://github.com/simonvanlierde/citesync/blob/main/docs/releasing.md).
 
-## License
+## Licence
 
-See [LICENSE](https://github.com/simonvanlierde/citesync/blob/main/LICENSE) for the license terms.
+See [LICENSE](https://github.com/simonvanlierde/citesync/blob/main/LICENSE) for the licence terms.

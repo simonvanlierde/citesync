@@ -82,7 +82,7 @@ def write(
             t
             for t in TERMS
             if (doc.path, t) in fix
-            and has_slot(source, t)  # else the others were compared with each other (D2): left alone
+            and has_slot(source, t)  # else the others were compared with each other (docs/check.md): left alone
             and t in source.record
             and t in doc.record
             and (doc.is_citation or t in config.write_manifests)

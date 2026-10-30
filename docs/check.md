@@ -4,7 +4,7 @@
 
 ## Which files it reads
 
-By default it reads every citation file present and the release manifests at the repo root: a pyproject.toml without `[build-system]` and a private package.json are skipped, a field in pyproject's `dynamic` is skipped on its own, and a Cargo workspace is read through `[workspace.package]`. [Configuration](config.md) changes the lists. The tests run each of the six files as the source against a fixture where all six agree, and CITATION.cff as the source against [five real repositories](tested-repositories.md).
+By default it reads every citation file present and the release manifests at the repo root: a pyproject.toml without `[build-system]` and a private package.json are skipped, a field in pyproject's `dynamic` is skipped on its own, and a Cargo workspace is read through `[workspace.package]`. [Configuration](config.md) changes the lists.
 
 Run from a subdirectory, citesync finds the repo root as ruff does: it walks up to the nearest directory with a citation file or a citesync config, and stops at the git root, so a submodule keeps its own files. File paths in findings are relative to that root.
 
@@ -22,9 +22,9 @@ Spellings are normalised before comparing:
 - PEP 621 url labels as packaging normalises them (`Source Code`, `homepage`).
 - Versions as PEP 440 versions (`v1.2.3` = `1.2.3`, `1.0` = `1.0.0`, `0.3.1-rc.1` = `0.3.1rc1`, `1.0.0-dev.1` = `1.0.0.dev1`). A version that isn't one (`unreleased`) must match exactly.
 
-Names and keywords compare case-insensitively, with whitespace collapsed and Unicode in NFC; set `keywords-case-sensitive = true` to compare keywords by case too. A keyword that differs from another file's only in separators (`big-data`, `big_data`, `big data`) is named as a near miss in the finding, and write gives it the source's spelling where it stands; set `keywords-ignore-separators = true` to treat such keywords as equal. Findings show each file's own spelling.
+People's names and keywords compare case-insensitively, with whitespace collapsed and Unicode in NFC; titles and descriptions compare as written, with whitespace collapsed and Unicode in NFC. Set `keywords-case-sensitive = true` to compare keywords by case too. A keyword that differs from another file's only in separators (`big-data`, `big_data`, `big data`) is named as a near miss in the finding, and write gives it the source's spelling where it stands; set `keywords-ignore-separators = true` to treat such keywords as equal. Findings show each file's own spelling.
 
-Manifests are compared on version, authors' names, licence, repository URL and keywords, not on name or description. npm's one `author` is compared with the first author.
+Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords, not on name or description. npm's one `author` is compared with the first author.
 
 ## Findings and exit codes
 
@@ -38,12 +38,12 @@ codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0
 
 The severity is in colour on a terminal. `NO_COLOR` turns colour off, and `FORCE_COLOR` turns it on anywhere (`FORCE_COLOR=0` or `false` turns it off). `NO_COLOR` wins.
 
-The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `contributor-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch`, `keywords-mismatch` and `date-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `version-behind-tag` (warning) when the source's version is older than the newest git tag; `zenodo-license-list` and `zenodo-drops-field` (warning) for what Zenodo can't take from a CITATION.cff alone; `file-missing` for a file `files` lists that doesn't exist; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [rules.md](rules.md) explains each one.
+The rule ids name the field: `name-mismatch`, `version-mismatch`, `author-mismatch`, `contributor-mismatch`, `license-mismatch`, `doi-mismatch`, `repository-mismatch`, `description-mismatch`, `keywords-mismatch` and `date-mismatch` when a field differs from the source; `keywords-not-subset` for a manifest keyword the citation file doesn't have; `context-mismatch` when codemeta.json's `@context` isn't the configured CodeMeta version; `role-dangling` (warning) for a CodeMeta Role in codemeta.json whose person, named by ORCID, isn't listed; `version-behind-tag` (warning) when the source's version is older than the newest git tag; `zenodo-license-list` (error) and `zenodo-drops-field` (warning) for what Zenodo can't take from a CITATION.cff alone; `file-missing` for a file `files` lists that doesn't exist; `unreadable` for a file citesync can't read; and `not-checked` (info) for a field that wasn't compared. [rules.md](rules.md) explains each one.
 
 | Exit | When |
 | ---: | --- |
-| 0 | no error finding |
+| 0 | no error finding: warnings and info don't fail a run |
 | 1 | an error finding, an unreadable file included |
-| 2 | citesync couldn't run: a bad config or option, a missing source file, or an internal error. stdout is empty and stderr has one `citesync: <message>` line |
+| 2 | citesync couldn't run: a bad config or option, a missing source file, or an internal error. stdout is empty and stderr says why (a bad option prints the usage first) |
 
-The JSON and GitHub formats are in [output.md](output.md).
+The JSON, GitHub and SARIF formats are in [output.md](output.md).
