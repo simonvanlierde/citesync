@@ -27,7 +27,7 @@ citesync treats these spellings as equal:
 
 - SPDX ids, SPDX URLs and Zenodo's lowercase ids. A licence list reads as `A OR B`.
 - ORCID URLs and bare iDs.
-- Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`. CFF `name-particle` and `name-suffix` count as part of the family name. A name in one string, such as codemeta `name` or npm `author`, also matches given and family names written family name first, as in `Mao Zedong` or `毛泽东`. Two split names must have the same parts.
+- Zenodo's `"Family, Given"` and npm or Cargo `"Name <email>"`. CFF `name-particle` and `name-suffix` count as part of the family name. A name in one string, such as codemeta `name` or npm `author`, also matches given and family names written family name first, as in `Tu Youyou` or `屠呦呦`. Two split names must have the same parts.
 - DOIs with or without `https://doi.org/`, and a DOI in a codemeta.json PropertyValue.
 - Repository URLs, read as npm's hosted-git-info reads them: with or without `git+`, `.git`, `http://` or `www.`, as npm shorthands (`github:owner/repo`) or SSH remotes. A branch, tag or file page on GitHub, GitLab, Codeberg, Gitea or Bitbucket names its repository, as in `…/tree/v1.0`. Host names, and GitHub paths, compare in any case.
 - PEP 621 url labels, normalised as packaging does (`Source Code`, `homepage`).

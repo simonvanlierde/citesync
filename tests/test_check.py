@@ -659,11 +659,11 @@ MISMATCHED = [("author-mismatch", "codemeta.json", "author")]
 @pytest.mark.parametrize(
     ("given", "family", "other", "expected"),
     [
-        pytest.param("泽东", "毛", {"name": "毛泽东"}, [], id="one-name-family-first-no-space"),
-        pytest.param("Zedong", "Mao", {"name": "Mao Zedong"}, [], id="one-name-family-first"),
-        pytest.param("Zedong", "Mao", {"name": "Zedong Mao"}, [], id="one-name-given-first"),
+        pytest.param("呦呦", "屠", {"name": "屠呦呦"}, [], id="one-name-family-first-no-space"),
+        pytest.param("Youyou", "Tu", {"name": "Tu Youyou"}, [], id="one-name-family-first"),
+        pytest.param("Youyou", "Tu", {"name": "Youyou Tu"}, [], id="one-name-given-first"),
         pytest.param("Simon", "Lierde", {"givenName": "Lierde", "familyName": "Simon"}, MISMATCHED, id="split-swapped"),
-        pytest.param("Zedong", "Mao", {"name": "Mao Ze"}, MISMATCHED, id="one-name-differs"),
+        pytest.param("Youyou", "Tu", {"name": "Tu You"}, MISMATCHED, id="one-name-differs"),
     ],
 )
 def test_family_first_names_match_only_against_one_name(
