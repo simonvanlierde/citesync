@@ -8,7 +8,8 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-from citesync.cli import main
+from citesync.check import Finding
+from citesync.cli import _sarif, main
 from citesync.mapping import TERMS
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -195,6 +196,45 @@ def test_github_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> No
     assert lines[0] == "::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'"
     assert all(line.startswith("::notice title=citesync not-checked::") for line in lines[1:-1])
     assert lines[-1] == "::notice::citesync: 1 error, 0 warnings in 2 files"
+
+
+def test_sarif_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
+    code, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "sarif")
+    log = json.loads(out)
+    (run,) = log["runs"]
+    driver = run["tool"]["driver"]
+    assert (code, log["version"], driver["name"]) == (1, "2.1.0", "citesync")
+    assert driver["informationUri"] == "https://github.com/simonvanlierde/citesync"
+    assert [(r["id"], r["defaultConfiguration"]["level"]) for r in driver["rules"]] == [("name-mismatch", "error")]
+    assert driver["rules"][0]["helpUri"].endswith("/docs/rules.md#name-mismatch")
+    (result,) = run["results"]
+    assert (result["ruleId"], result["level"]) == ("name-mismatch", "error")
+    assert result["message"]["text"] == "name: 'y', CITATION.cff has 'x'"
+    assert [loc["physicalLocation"]["artifactLocation"]["uri"] for loc in result["locations"]] == ["codemeta.json"]
+
+
+def test_sarif_levels_and_region() -> None:
+
+    log = _sarif(
+        [
+            Finding("a.json", "name", "name-mismatch", "m", line=3, column=5),
+            Finding("a.json", "author", "role-dangling", "m"),
+            Finding("a.json", "x", "not-checked", "m"),
+        ]
+    )
+    run = log["runs"][0]
+    assert [r["level"] for r in run["results"]] == ["error", "warning", "note"]
+    assert [r["id"] for r in run["tool"]["driver"]["rules"]] == ["name-mismatch", "not-checked", "role-dangling"]
+    assert run["results"][0]["locations"][0]["physicalLocation"]["region"] == {"startLine": 3, "startColumn": 5}
+    assert "region" not in run["results"][1]["locations"][0]["physicalLocation"]
+
+
+def test_sarif_finding_without_a_file_has_no_locations() -> None:
+
+    log = _sarif([Finding(file=None, term="version", rule="not-checked", message="no file holds it")])
+    assert "locations" not in log["runs"][0]["results"][0]
 
 
 @pytest.mark.parametrize(

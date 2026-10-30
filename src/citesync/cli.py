@@ -22,6 +22,7 @@ from citesync.rules import DOCS_URL, RULES, explain
 JSON_VERSION = 1
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
+_SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
 
 
 # Imports that only `write`, `--version` or the JSON report need wait until they're used:
@@ -92,7 +93,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
     report = _Parser(add_help=False, parents=[root])
-    report.add_argument("--format", choices=("text", "json", "github"), default="text")
+    report.add_argument("--format", choices=("text", "json", "github", "sarif"), default="text")
     report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     shown = report.add_mutually_exclusive_group()
     shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
@@ -189,6 +190,9 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         findings = [f for f in findings if f.severity == "error"]
     elif not args.verbose:
         findings = [f for f in findings if f.severity != "info"]
+    if args.format == "sarif":
+        print(json.dumps(_sarif(findings), indent=2))
+        return
     total = f"{_count(counts['error'], 'error')}, {_count(counts['warning'], 'warning')} in {_count(files, 'file')}"
     if args.format == "github":
         for f in findings:
@@ -206,6 +210,42 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         print(f"{where}{severity}[{f.rule}] " + (f"{f.term}: {f.message}" if f.term else f.message))
     if not args.quiet:
         print(total)
+
+
+def _sarif(findings: list[Finding]) -> dict[str, Any]:
+    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding."""
+    results = []
+    for f in findings:
+        result: dict[str, Any] = {
+            "ruleId": f.rule,
+            "level": _SARIF_LEVEL[f.severity],
+            "message": {"text": f"{f.term}: {f.message}" if f.term else f.message},
+        }
+        if f.file:
+            location: dict[str, Any] = {"artifactLocation": {"uri": f.file}}
+            if f.line:
+                location["region"] = {"startLine": f.line, "startColumn": f.column or 1}
+            result["locations"] = [{"physicalLocation": location}]
+        results.append(result)
+    driver = {
+        "name": "citesync",
+        "version": _version(),
+        "informationUri": "https://github.com/simonvanlierde/citesync",
+        "rules": [
+            {
+                "id": rule,
+                "shortDescription": {"text": RULES[rule].summary},
+                "helpUri": f"{DOCS_URL}#{rule}",
+                "defaultConfiguration": {"level": _SARIF_LEVEL[RULES[rule].severity]},
+            }
+            for rule in sorted({f.rule for f in findings})
+        ],
+    }
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{"tool": {"driver": driver}, "results": results}],
+    }
 
 
 def _diff(root: Path, texts: dict[str, str]) -> str:
