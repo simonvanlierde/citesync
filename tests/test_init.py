@@ -48,6 +48,7 @@ def test_init_from_every_file_passes_check(tmp_path: Path, run: "Run") -> None:
     data = _cff(root)
     assert data["title"] == "synthagree"
     assert data["doi"] == "10.5281/zenodo.1234567"
+    assert data["identifiers"] == [{"type": "swh", "value": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"}]
     assert data["authors"][0] == {
         "given-names": "Ada",
         "family-names": "Lovelace",

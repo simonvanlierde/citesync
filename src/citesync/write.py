@@ -178,6 +178,8 @@ def init(
         cff, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key(config)
     )
     data.update((blank[term][0], value) for term, value in values.items())
+    if swhid := record.get("swhid"):  # CFF holds it in identifiers, as a typed entry
+        data["identifiers"] = [{"type": "swh", "value": swhid}]
     if not (root / ".zenodo.json").is_file() and ("license", "zenodo-license-list") in zenodo_gaps(data):
         del data["license"]
         skipped["license"] = ZENODO_GAPS["zenodo-license-list"]
