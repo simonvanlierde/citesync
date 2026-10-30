@@ -168,8 +168,11 @@ def version_behind_tag(source: Doc, tags: list[str]) -> list[Finding]:
     return [Finding(source.path, "version", "version-behind-tag", f"{version}, the newest tag is {newest}")]
 
 
-def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list[Finding]:
-    """Every finding for ``docs`` (the source first) as :func:`read_docs` gives them, sorted."""
+def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> set[Finding]:
+    """The findings for ``docs`` (the source first) as :func:`read_docs` gives them.
+
+    All but ``version-behind-tag``, which needs the repo's tags and which write never fixes: :func:`check` adds it.
+    """
     found: set[Finding] = set(unreadable)
     source = docs[0]
     for doc in docs:
@@ -190,7 +193,7 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list
             found.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
         found.update(compare_term(term, docs, kw_key=keyword_key(config)))
-    return sorted(found, key=Finding.sort_key)
+    return found
 
 
 _ZENODO_GAPS = {
