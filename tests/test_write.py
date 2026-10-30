@@ -292,6 +292,15 @@ CANNOT = [
         "a licence list can only say OR, not AND or WITH",
     ),
     (
+        "CITATION.cff",
+        '"Apache-2.0"',
+        '"Apache-2.0 WITH LLVM-exception"',
+        "codemeta.json",
+        "",
+        "",
+        "a licence list can only say OR, not AND or WITH",
+    ),
+    (
         "codemeta.json",
         '"https://spdx.org/licenses/Apache-2.0"',
         '"MIT AND Apache-2.0"',
@@ -396,21 +405,32 @@ def _doi(n: int) -> dict[str, str]:
     }
 
 
-@pytest.mark.parametrize("listed", [False, True])
-def test_a_property_value_doi_keeps_its_keys(
-    listed: bool,  # noqa: FBT001
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.parametrize("shape", ["alone", "after", "before", "record-url"])
+def test_a_property_value_doi_keeps_its_keys(shape: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Only the keys holding the DOI change: a url to the Zenodo record stays, as do the list's other entries."""
     root = _synthetic(tmp_path / "repo")
     swhid = {"@type": "PropertyValue", "propertyID": "SWHID", "value": "swh:1:dir:0"}
-    old = [swhid, _doi(1234567)] if listed else _doi(1234567)
+    record = {**_doi(1234567), "url": "https://zenodo.org/records/1234567"}
+    old = {
+        "alone": _doi(1234567),
+        "after": [swhid, _doi(1234567)],
+        "before": [_doi(1234567), swhid],
+        "record-url": record,
+    }[shape]
     _edit(root / "codemeta.json", '"https://doi.org/10.5281/zenodo.1234567"', json.dumps(old))
     _edit(root / "CITATION.cff", "zenodo.1234567", "zenodo.42")
 
     _run(capsys, "write", "--root", str(root))
     identifier = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["identifier"]
-    assert identifier == ([swhid, _doi(42)] if listed else _doi(42))
+    assert (
+        identifier
+        == {
+            "alone": _doi(42),
+            "after": [swhid, _doi(42)],
+            "before": [_doi(42), swhid],
+            "record-url": {**record, "value": "10.5281/zenodo.42"},
+        }[shape]
+    )
 
 
 @pytest.mark.parametrize("case_sensitive", [False, True])
@@ -565,7 +585,7 @@ def test_a_failed_write_changes_no_file(
     mkstemp, calls = tempfile.mkstemp, []
 
     def failing_mkstemp(*args: object, **kwargs: object) -> tuple[int, str]:
-        calls.append(args)
+        calls.append(kwargs)
         if len(calls) == 2:  # the second file
             raise OSError(28, "No space left on device")
         return mkstemp(*args, **kwargs)  # ty: ignore[no-matching-overload]
@@ -574,6 +594,8 @@ def test_a_failed_write_changes_no_file(
     code, _, err = _run(capsys, "write", "--root", str(root))
     assert (code, "No space left on device" in err) == (2, True)
     assert _snapshot(root) == before
+    # beside its file, so the move is a rename on one file system, and hidden
+    assert calls[0] == {"dir": root, "prefix": ".codemeta.json.", "suffix": ".tmp"}
 
 
 # Text edits that each plant one disagreement in the synthetic set, with the term it plants.
@@ -852,10 +874,19 @@ def test_cargo_keywords_keep_their_hyphens(source: str, tmp_path: Path, capsys: 
     for name in ("CITATION.cff", "codemeta.json", ".zenodo.json", "pyproject.toml", "package.json"):
         _edit(root / name, '"beta"', '"big data"')
     cargo = _edit(root / "Cargo.toml", '"beta"', '"big-data"')
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
 
     assert _run(capsys, "check", "-q", "--root", str(root))[0] == 0
     assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
     assert (root / "Cargo.toml").read_text(encoding="utf-8") == cargo
+
+    # one more word makes the files disagree, so write edits them; the hyphen and the space both stay
+    _edit(root / "Cargo.toml", '"delta"]', '"delta", "zeta"]')
+    _run(capsys, "write", "-q", "--root", str(root))
+    if source == "Cargo.toml":
+        assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff + '  - "zeta"\n'
+    else:
+        assert (root / "Cargo.toml").read_text(encoding="utf-8") == cargo
 
 
 def test_a_cff_entity_is_written_as_an_organization(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -930,7 +961,7 @@ CREATED = """{
 """
 
 
-@pytest.mark.parametrize("rel", ["codemeta.json", "docs/codemeta.json"])
+@pytest.mark.parametrize("rel", ["codemeta.json", "docs/codemeta.json", "docs/meta/codemeta.json"])
 def test_a_listed_codemeta_json_that_is_missing_is_created(
     rel: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -940,13 +971,13 @@ def test_a_listed_codemeta_json_that_is_missing_is_created(
     code, out, _ = _run(capsys, "check", "--root", str(root))
     assert code == 1
     assert f"{rel}: error[file-missing] listed under files" in out
-    umask = os.umask(0o027)
+    umask = os.umask(0o022)
     try:
         assert _run(capsys, "write", "--root", str(root))[1].startswith(f"wrote {rel}\n")
     finally:
         os.umask(umask)
     assert (root / rel).read_text(encoding="utf-8") == CREATED
-    assert stat.S_IMODE((root / rel).stat().st_mode) == 0o666 & ~0o027, "what open() would give a new file"
+    assert stat.S_IMODE((root / rel).stat().st_mode) == 0o644, "what open() would give a new file"
     assert _run(capsys, "check", "--root", str(root))[0] == 0
 
 
@@ -1052,5 +1083,456 @@ def test_a_new_zenodo_contributor_is_left_for_a_hand_edit(tmp_path: Path, capsys
     before = (root / ".zenodo.json").read_bytes()
     code, out, _ = _run(capsys, "write", "--root", str(root))
     assert code == 1
-    assert "Zenodo needs a type for each contributor" in out
+    assert "(edit it by hand: Zenodo needs a type for each contributor, which citesync doesn't choose)" in out
     assert (root / ".zenodo.json").read_bytes() == before
+
+
+def test_comments_above_a_document_start_survive(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    cff = _edit(root / "CITATION.cff", "cff-version", "\n---\n# under the marker\ncff-version")
+    _edit(root / "codemeta.json", '"1.2.3"', '"1.2.4"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"1.2.3"', '"1.2.4"')
+
+
+LONG = "A made-up package whose metadata files all agree, described at more length than a YAML line wraps at."
+CFF_LAYOUT = """cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "synthagree"
+abstract: "A made-up package whose metadata files all agree."
+version: "1.2.3"
+authors:
+{d}given-names: "Ada"
+{c}family-names: "Lovelace"
+{c}orcid: "https://orcid.org/0000-0002-1825-0097"
+{d}given-names: "Alan"
+{c}family-names: "Turing"
+preferred-citation:
+{m}type: software
+{m}title: "synthagree"
+{m}authors:
+{m}{d}name: "The Synth Team"
+"""
+
+
+@pytest.mark.parametrize(
+    ("dash", "under", "nest"),
+    [("  - ", "    ", "  "), ("- ", "  ", "  "), ("  -   ", "      ", "    "), ("-  ", "   ", "   ")],
+    ids=["indented", "flush", "wide", "three"],
+)
+def test_a_cff_keeps_its_indentation_and_long_lines(
+    dash: str, under: str, nest: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(
+        tmp_path / "repo", 'source = "codemeta.json"\nfiles = ["CITATION.cff", "codemeta.json"]\nmanifests = []\n'
+    )
+    cff = CFF_LAYOUT.format(d=dash, c=under, m=nest)
+    (root / "CITATION.cff").write_text(cff, encoding="utf-8")
+    _edit(root / "codemeta.json", '"1.2.3"', '"1.2.4"')
+    _edit(root / "codemeta.json", '"A made-up package whose metadata files all agree."', f'"{LONG}"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    expected = cff.replace('"1.2.3"', '"1.2.4"').replace("A made-up package whose metadata files all agree.", LONG)
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == expected
+
+
+def test_a_person_with_only_an_orcid_is_left_out_of_a_manifest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nwrite-manifests = "all"\n')
+    _edit(
+        root / "codemeta.json",
+        '"givenName": "Alan",\n      "familyName": "Turing"',
+        '"@id": "https://orcid.org/0000-0001-5109-3700"',
+    )
+    before = {name: (root / name).read_bytes() for name in ("Cargo.toml", "pyproject.toml")}
+
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert {name: (root / name).read_bytes() for name in before} == before
+    reason = "(edit it by hand: 0000-0001-5109-3700 has no name, and this file has no place for an ORCID)"
+    assert sorted(line.split(":")[0] for line in out.splitlines() if line.endswith(reason)) == list(before)
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+    assert (
+        '    orcid: "https://orcid.org/0000-0002-1825-0097"\n  - orcid: "https://orcid.org/0000-0001-5109-3700"\n'
+        in cff
+    )
+
+
+def test_a_package_json_gets_only_the_first_author(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A package.json has one author: with two in the source, the first is written and the second isn't added."""
+    root = _synthetic(tmp_path / "repo", 'write-manifests = "all"\n')
+    package = _edit(root / "package.json", '"author": "Ada Lovelace"', '"author": "Marie Curie"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "package.json").read_text(encoding="utf-8") == package.replace("Marie Curie", "Ada Lovelace")
+
+
+def test_a_package_json_source_moves_its_author_first_and_keeps_the_rest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "package.json"\nmanifests = ["package.json"]\n')
+    _edit(root / "package.json", '"author": "Ada Lovelace"', '"author": "Marie Curie <marie@example.org>"')
+    turing = '  - given-names: "Alan"\n    family-names: "Turing"\n    affiliation: "NPL"\n'
+    curie = '  - given-names: "Marie"\n    family-names: "Curie"\n'
+    cff = _edit(root / "CITATION.cff", '  - given-names: "Alan"\n    family-names: "Turing"\n', turing + curie)
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    expected = cff.replace(turing + curie, turing).replace("authors:\n", "authors:\n" + curie)
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == expected
+
+
+def test_a_three_word_name_splits_at_the_last_space(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "package.json"\nmanifests = ["package.json"]\n')
+    _edit(root / "package.json", '"Ada Lovelace"', '"Marie Skłodowska Curie"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+    assert 'authors:\n  - given-names: "Marie Skłodowska"\n    family-names: "Curie"\n  - given-names: "Ada"\n' in cff
+    zenodo = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))
+    assert zenodo["creators"][0] == {"name": "Curie, Marie Skłodowska"}
+
+
+def test_a_name_only_codemeta_entry_is_renamed_in_its_one_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Its ORCID keeps its spelling, and a name-only entry the source dropped goes without a complaint."""
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    codemeta = _edit(
+        root / "codemeta.json",
+        '"@id": "https://orcid.org/0000-0002-1825-0097",\n      "givenName": "Ada",\n      "familyName": "Lovelace"',
+        '"@id": "http://orcid.org/0000-0002-1825-0097",\n      "name": "Ada Lovelace"',
+    )
+    codemeta = _edit(
+        root / "codemeta.json", '"givenName": "Alan",\n      "familyName": "Turing"', '"name": "Alan Turing"'
+    )
+    _edit(root / "CITATION.cff", '"Lovelace"', '"Byron"')
+    _edit(root / "CITATION.cff", '  - given-names: "Alan"\n    family-names: "Turing"\n', "")
+
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    alan = ',\n    {\n      "@type": "Person",\n      "name": "Alan Turing"\n    }'
+    expected = codemeta.replace('"name": "Ada Lovelace"', '"name": "Ada Byron"').replace(alan, "")
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == expected
+
+
+def test_a_changed_orcid_is_written_in_each_files_form(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Zenodo takes a bare ORCID, CITATION.cff a URL in the quotes it had."""
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    _edit(root / "codemeta.json", "0000-0002-1825-0097", "0000-0001-5109-3700")
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+    zenodo = (root / ".zenodo.json").read_text(encoding="utf-8")
+
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace(
+        "0000-0002-1825-0097", "0000-0001-5109-3700"
+    )
+    assert (root / ".zenodo.json").read_text(encoding="utf-8") == zenodo.replace(
+        '"orcid": "0000-0002-1825-0097"', '"orcid": "0000-0001-5109-3700"'
+    )
+
+
+OLD_ADA = '  - given-names: "Ada"\n    name-particle: "de"\n    family-names: "Lovelace"\n    name-suffix: "II"\n'
+
+
+@pytest.mark.parametrize(
+    ("codemeta_ada", "cff_ada"),
+    [
+        ('"givenName": "Ada",\n      "familyName": "Byron"', '  - given-names: "Ada"\n    family-names: "Byron"\n'),
+        ('"familyName": "de Lovelace II"', OLD_ADA.replace('given-names: "Ada"\n    ', "")),
+    ],
+    ids=["new-family-name", "no-given-name"],
+)
+def test_a_cff_rename_by_orcid_rewrites_the_name_parts(
+    codemeta_ada: str, cff_ada: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A new family name replaces the particle and suffix; the same one with no given name only drops given-names."""
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    _edit(root / "CITATION.cff", '  - given-names: "Ada"\n    family-names: "Lovelace"\n', OLD_ADA)
+    cff = _edit(
+        root / "CITATION.cff",
+        '  - given-names: "Alan"\n    family-names: "Turing"\n',
+        '  - family-names: "Tu"\n    orcid: "http://orcid.org/0000-0001-5109-3700"\n',  # a match keeps its spelling
+    )
+    _edit(root / "codemeta.json", '"givenName": "Ada",\n      "familyName": "Lovelace"', codemeta_ada)
+    _edit(
+        root / "codemeta.json",
+        '"givenName": "Alan",\n      "familyName": "Turing"',
+        '"@id": "https://orcid.org/0000-0001-5109-3700",\n      "familyName": "Tu Youyou"',
+    )
+
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    expected = cff.replace(OLD_ADA, cff_ada).replace('"Tu"', '"Tu Youyou"')
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == expected
+
+
+# given, family, ORCID: a small pool, so the draws share people, ORCIDs and names
+POOL = [
+    ("Ada", "Lovelace", "0000-0002-1825-0097"),
+    ("Alan", "Turing", "0000-0001-5109-3700"),
+    ("Marie", "Curie", "0000-0002-9079-593X"),
+    ("Grace", "Hopper", "0000-0003-1419-2405"),
+    ("Youyou", "Tu", None),
+]
+Drawn = list[tuple[int, bool, bool]]
+PEOPLE = st.lists(st.tuples(st.sampled_from(range(len(POOL))), st.booleans(), st.booleans()), min_size=1, max_size=4)
+
+
+def _cff_authors(people: Drawn) -> str:
+    lines = []
+    for i, orcid, extra in people:
+        given, family, number = POOL[i]
+        lines += [f'  - given-names: "{given}"', f'    family-names: "{family}"']
+        lines += [f'    orcid: "https://orcid.org/{number}"'] if orcid and number else []
+        lines += ['    affiliation: "Example Lab"'] if extra else []
+    return "\n".join(lines) + "\n"
+
+
+def _codemeta_authors(people: Drawn) -> list[dict[str, str]]:
+    out = []
+    for i, orcid, extra in people:
+        given, family, number = POOL[i]
+        out.append(
+            {"@type": "Person"}
+            | ({"@id": f"https://orcid.org/{number}"} if orcid and number else {})
+            | {"givenName": given, "familyName": family}
+            | ({"email": f"{given.lower()}@example.org"} if extra else {})
+        )
+    return out
+
+
+def _zenodo_creators(people: Drawn) -> list[dict[str, str]]:
+    out = []
+    for i, orcid, extra in people:
+        given, family, number = POOL[i]
+        out.append(
+            {"name": f"{family}, {given}"}
+            | ({"orcid": number} if orcid and number else {})
+            | ({"affiliation": "Example Lab"} if extra else {})
+        )
+    return out
+
+
+@settings(max_examples=40, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(source=PEOPLE, codemeta=PEOPLE, zenodo=PEOPLE)
+def test_write_settles_any_author_lists(
+    source: Drawn, codemeta: Drawn, zenodo: Drawn, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """After write, every author finding left is one write gave a reason for, and a second write changes nothing."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _synthetic(Path(tmp) / "repo", "manifests = []\n")
+        cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+        start, end = cff.index("authors:\n") + len("authors:\n"), cff.index("doi:")
+        (root / "CITATION.cff").write_text(cff[:start] + _cff_authors(source) + cff[end:], encoding="utf-8")
+        for name, key, people in (
+            ("codemeta.json", "author", _codemeta_authors(codemeta)),
+            (".zenodo.json", "creators", _zenodo_creators(zenodo)),
+        ):
+            data = json.loads((root / name).read_text(encoding="utf-8"))
+            data[key] = people
+            (root / name).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+        _, out, err = _run(capsys, "write", "--root", str(root))
+        assert err == ""
+        left = [line for line in out.splitlines() if ": error[" in line]
+        assert all("(edit it by hand: " in line for line in left), out
+        after = _snapshot(root)
+        _run(capsys, "write", "--root", str(root))
+        assert _snapshot(root) == after
+
+
+def test_a_cff_author_list_led_by_a_bare_string_still_grows(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A string isn't a CFF person: it goes to the end, and the new entry takes no quotes from it."""
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    cff = _edit(root / "CITATION.cff", "authors:\n", 'authors:\n  - "The Synth Team"\n')
+    _edit(
+        root / "codemeta.json",
+        '"familyName": "Turing"\n    }',
+        '"familyName": "Turing"\n    },\n    {"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}',
+    )
+    _run(capsys, "write", "-q", "--root", str(root))
+    turing = '    family-names: "Turing"\n'
+    expected = cff.replace('  - "The Synth Team"\n', "").replace(
+        turing, turing + '  - given-names: Grace\n    family-names: Hopper\n  - "The Synth Team"\n'
+    )
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == expected
+
+
+def test_a_dropped_author_may_have_name_parts(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    turing = '    family-names: "Turing"\n'
+    cff = _edit(
+        root / "CITATION.cff",
+        turing,
+        turing
+        + '  - given-names: "Marie"\n    name-particle: "de"\n    family-names: "Curie"\n    name-suffix: "II"\n',
+    )
+    assert cff != SYNTHETIC.joinpath("CITATION.cff").read_text(encoding="utf-8")
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "CITATION.cff").read_bytes() == (SYNTHETIC / "CITATION.cff").read_bytes()
+
+
+def test_a_dropped_entry_with_only_an_orcid_and_more_is_named_by_what_it_holds(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    data = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    extra = {"@type": "Person", "@id": "https://orcid.org/0000-0002-9079-593X", "email": "someone@example.org"}
+    data["author"].append(extra)
+    (root / "codemeta.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert f"(edit it by hand: renaming would drop the email of {extra!r})" in out
+
+
+def test_a_second_person_of_the_same_name_is_a_new_entry(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    turing = '    family-names: "Turing"\n'
+    _edit(root / "CITATION.cff", turing, turing + '  - given-names: "Alan"\n' + turing)
+    codemeta = _edit(
+        root / "codemeta.json", '"familyName": "Turing"', '"familyName": "Turing",\n      "email": "alan@example.org"'
+    )
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    alan = '\n    {\n      "@type": "Person",\n      "givenName": "Alan",\n      "familyName": "Turing"\n    }'
+    with_email = '"email": "alan@example.org"\n    }'
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == codemeta.replace(with_email, with_email + "," + alan)
+
+
+@pytest.mark.parametrize("authors", [1, 2])
+def test_a_single_codemeta_author_node_stays_one_node_while_it_can(
+    authors: int, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """JSON-LD allows one node for a list of one; a second author makes it a list."""
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    data = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    ada, alan = data["author"]
+    data["author"] = ada
+    (root / "codemeta.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    _edit(root / "CITATION.cff", '"Lovelace"', '"Byron"')
+    if authors == 1:
+        _edit(root / "CITATION.cff", '  - given-names: "Alan"\n    family-names: "Turing"\n', "")
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    byron = {**ada, "familyName": "Byron"}
+    assert json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["author"] == (
+        byron if authors == 1 else [byron, alan]
+    )
+
+
+def test_a_manifest_source_only_adds_keywords_to_the_citation_files(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A manifest's keywords need only be among a citation file's, so the citation files keep their extras."""
+    root = _synthetic(tmp_path / "repo", 'source = "pyproject.toml"\nmanifests = ["pyproject.toml"]\n')
+    _edit(root / "pyproject.toml", '"alpha", "beta", "gamma", "delta"', '"alpha", "beta", "zeta"')
+    codemeta = (root / "codemeta.json").read_text(encoding="utf-8")
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == codemeta.replace('"delta"]', '"delta", "zeta"]')
+
+
+def test_a_near_miss_beside_its_own_spelling_is_dropped_not_doubled(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    _edit(root / "CITATION.cff", '  - "beta"\n', '  - "beta"\n  - "foo bar"\n')
+    codemeta = _edit(
+        root / "codemeta.json", '"alpha", "beta", "gamma", "delta"', '"alpha", "foo-bar", "beta", "foo bar"'
+    )
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    expected = codemeta.replace('"alpha", "foo-bar", "beta", "foo bar"', '"alpha", "beta", "foo bar", "gamma", "delta"')
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == expected
+
+
+def test_a_near_miss_in_cff_keeps_its_quotes(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    _edit(root / "codemeta.json", '"beta"', '"big data"')
+    cff = _edit(root / "CITATION.cff", '"beta"', '"big-data"')
+    _run(capsys, "write", "-q", "--root", str(root))
+    assert (root / "CITATION.cff").read_text(encoding="utf-8") == cff.replace('"big-data"', '"big data"')
+
+
+def test_a_codemeta_keyword_string_becomes_a_list(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    codemeta = _edit(root / "codemeta.json", '["alpha", "beta", "gamma", "delta"]', '"alpha, beta, gamma"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    expected = codemeta.replace('"alpha, beta, gamma"', '["alpha", "beta", "gamma", "delta"]')
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == expected
+
+
+def test_a_legacy_licence_table_is_edited_in_place(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'write-manifests = ["license"]\n')
+    pyproject = _edit(root / "pyproject.toml", 'license = "Apache-2.0"', 'license = { text = "MIT" }')
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
+    assert (root / "pyproject.toml").read_text(encoding="utf-8") == pyproject.replace('"MIT"', '"Apache-2.0"')
+
+
+def test_a_codemeta_licence_list_keeps_its_url_form(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    codemeta = _edit(
+        root / "codemeta.json", '"https://spdx.org/licenses/Apache-2.0"', '["https://spdx.org/licenses/MIT"]'
+    )
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    expected = codemeta.replace('["https://spdx.org/licenses/MIT"]', '["https://spdx.org/licenses/Apache-2.0"]')
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == expected
+
+
+@pytest.mark.parametrize("listed", [False, True])
+def test_codemeta_version_sets_the_context(
+    listed: bool,  # noqa: FBT001
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'codemeta-version = "3.0"\nmanifests = []\n')
+    old = ["https://w3id.org/codemeta/3.1", "https://schema.org"] if listed else "https://w3id.org/codemeta/3.1"
+    codemeta = _edit(root / "codemeta.json", '"https://w3id.org/codemeta/3.0"', json.dumps(old))
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == codemeta.replace("codemeta/3.1", "codemeta/3.0")
+
+
+def test_a_value_left_for_a_hand_edit_still_lets_the_next_be_written(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", "manifests = []\n")
+    _edit(root / "CITATION.cff", 'license: "Apache-2.0"', 'license: "MIT OR Apache-2.0"')
+    _edit(root / "CITATION.cff", '  - "delta"\n', '  - "delta"\n  - "epsilon"\n')
+    zenodo = (root / ".zenodo.json").read_text(encoding="utf-8")
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert ".zenodo.json:21:3: error[license-mismatch]" in out
+    assert (root / ".zenodo.json").read_text(encoding="utf-8") == zenodo.replace('"delta"]', '"delta", "epsilon"]')
+
+
+def test_a_cargo_member_writes_its_own_keys_past_an_inherited_one(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "jsonvet"
+    shutil.copytree(FIXTURES / "jsonvet", root)
+    member = "crates/jsonvet/Cargo.toml"
+    (root / "citesync.toml").write_text(f'manifests = ["{member}"]\nwrite-manifests = "all"\n', encoding="utf-8")
+    _edit(root / "CITATION.cff", 'license: "MIT"', 'license: "Apache-2.0"')
+    cargo = _edit(root / member, "keywords.workspace = true", 'keywords = ["json", "zeta"]')
+    assert _run(capsys, "write", "-q", "--root", str(root))[0] == 1
+    assert (root / member).read_text(encoding="utf-8") == cargo.replace('["json", "zeta"]', '["json"]')
+
+
+def test_reasons_from_an_edited_and_a_created_file_are_all_reported(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json", ".zenodo.json"]\nmanifests = []\n')
+    (root / "codemeta.json").unlink()
+    _edit(root / "CITATION.cff", 'license: "Apache-2.0"', 'license: "MIT AND Apache-2.0"')
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert (
+        out.splitlines()[0]
+        == "wrote codemeta.json, leaving out license: a licence list can only say OR, not AND or WITH"
+    )
+    assert any(line.endswith("(edit it by hand: Zenodo takes one licence id)") for line in out.splitlines())
+
+
+def test_a_created_codemeta_json_takes_contributors_and_non_ascii_names(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(
+        tmp_path / "repo", 'source = ".zenodo.json"\nfiles = ["codemeta.json", ".zenodo.json"]\nmanifests = []\n'
+    )
+    (root / "codemeta.json").unlink()
+    _edit(root / ".zenodo.json", '"Turing, Alan"', '"Skłodowska Curie, Marie"')
+    assert _run(capsys, "write", "-q", "--root", str(root)) == (0, "", "")
+    text = (root / "codemeta.json").read_text(encoding="utf-8")
+    assert '"familyName": "Skłodowska Curie"' in text
+    assert json.loads(text)["contributor"] == [{"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}]

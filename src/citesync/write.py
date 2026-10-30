@@ -257,7 +257,8 @@ def _rewrite(
         skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
         out = io.StringIO()
         yaml.dump(data, out)
-        return out.getvalue(), skipped
+        head = re.match(r"(?:[ \t]*(?:#.*)?\n)*(?=---)", text)  # ruamel drops the comments above a ---
+        return (head[0] if head else "") + out.getvalue(), skipped
     if doc.path.endswith(".toml"):
         data = tomlkit.parse(text)
         skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
@@ -480,6 +481,11 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
     used = {i for i in matches if i is not None}
     if fmt == "zenodo" and term == "contributor" and None in matches:
         msg = "Zenodo needs a type for each contributor, which citesync doesn't choose"
+        raise CannotWrite(msg)
+    if mapping[fmt, f"{term}.@id"] is None and (
+        nameless := next((p for p, i in zip(people, matches, strict=True) if i is None and not p.name), None)
+    ):
+        msg = f"{nameless.orcid} has no name, and this file has no place for an ORCID"
         raise CannotWrite(msg)
     kept = {matches[0]} if npm and fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
     for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was

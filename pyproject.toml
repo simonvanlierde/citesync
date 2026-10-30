@@ -111,7 +111,7 @@ testpaths = ["tests"]
 # Mutation testing (`just mutation`, not in CI) covers the comparison code only.
 [tool.mutmut]
 source_paths = ["src/citesync"]
-only_mutate = ["src/citesync/check.py", "src/citesync/codecs.py"]
+only_mutate = ["src/citesync/check.py", "src/citesync/codecs.py", "src/citesync/write.py", "src/citesync/jsonsplice.py"]
 pytest_add_cli_args_test_selection = ["tests"]
 also_copy = ["docs", ".pre-commit-hooks.yaml"]
 
