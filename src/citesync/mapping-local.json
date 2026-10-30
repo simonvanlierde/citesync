@@ -3,7 +3,7 @@
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "rows": [
     {
@@ -34,7 +34,8 @@
       "format": "cff-1.2.0",
       "term": "author.familyName",
       "path": "authors[].family-names",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "comment": "CFF keeps a name particle and suffix apart: the family name is name-particle, family-names and name-suffix joined by spaces, so Antonie van Leeuwenhoek has family-names Leeuwenhoek and name-particle van, and a family name of van Leeuwenhoek."
     },
     {
       "format": "cff-1.2.0",
