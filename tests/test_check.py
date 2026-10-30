@@ -1,7 +1,9 @@
 """`citesync check` on the fixtures, against the findings in each cases.json, plus the D2 table and exit codes."""
 
 import json
+import os
 import shutil
+import subprocess
 from importlib.metadata import version
 from pathlib import Path
 
@@ -879,3 +881,54 @@ def test_what_zenodo_reads_from_cff_alone(
     found = [(f["rule"], f["severity"], f["term"]) for f in _split(report)[0] if f["rule"].startswith("zenodo-")]
     assert found == ([] if zenodo else expected)
     assert all(f["file"] == "CITATION.cff" for f in report["findings"] if f["rule"].startswith("zenodo-"))
+
+
+def _git(root: Path, *args: str) -> None:
+    env = {"PATH": os.environ["PATH"], "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True, env=env)  # noqa: S603, S607 - test repos only
+
+
+@pytest.mark.parametrize(
+    ("version", "tags", "pack", "expected"),
+    [
+        ("0.1.0", ["v0.1.0", "v0.2.0", "latest"], False, "0.1.0, the newest tag is v0.2.0"),
+        ("0.1.0", ["v0.1.0", "v0.2.0rc1"], True, "0.1.0, the newest tag is v0.2.0rc1"),
+        ("0.2.0", ["v0.1.0", "0.2.0"], False, None),
+        ("0.1.0", ["latest"], False, None),
+        ("0.1.0", [], False, None),
+    ],
+)
+def test_version_behind_the_newest_tag_warns(
+    version: str,
+    tags: list[str],
+    pack: bool,  # noqa: FBT001
+    expected: str | None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "CITATION.cff").write_text(CFF + f"version: {version}\n", encoding="utf-8")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t.test", "commit", "-qm", "x")
+    for tag in tags:
+        _git(tmp_path, "tag", tag)
+    if pack:
+        _git(tmp_path, "pack-refs", "--all")
+    report = _check_json(tmp_path, capsys, {})
+    found = [(f["file"], f["severity"], f["message"]) for f in report["findings"] if f["rule"] == "version-behind-tag"]
+    assert found == ([("CITATION.cff", "warning", expected)] if expected else [])
+
+
+def test_a_linked_worktree_reads_the_clone_tags(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    clone = tmp_path / "clone"
+    clone.mkdir()
+    _git(clone, "init", "-q")
+    (clone / "CITATION.cff").write_text(CFF + "version: 0.1.0\n", encoding="utf-8")
+    _git(clone, "add", "-A")
+    _git(clone, "-c", "user.name=t", "-c", "user.email=t@t.test", "commit", "-qm", "x")
+    _git(clone, "tag", "v1.0.0")
+    _git(clone, "worktree", "add", "-q", str(tmp_path / "wt"))
+    report = _check_json(tmp_path / "wt", capsys, {})
+    assert [f["message"] for f in report["findings"] if f["rule"] == "version-behind-tag"] == [
+        "0.1.0, the newest tag is v1.0.0"
+    ]
