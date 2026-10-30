@@ -31,7 +31,8 @@
         "research software",
         "Quarto",
         "MyST"
-      ]
+      ],
+      "datePublished": "2026-10-13"
     }
   },
   "codemeta.json": {
@@ -66,7 +67,8 @@
         "research software",
         "Quarto",
         "MyST"
-      ]
+      ],
+      "datePublished": "2026-10-13"
     }
   },
   "package.json": {

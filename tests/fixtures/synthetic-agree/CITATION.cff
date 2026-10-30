@@ -1,10 +1,11 @@
-# Synthetic fixture: every file below states the same eight fields in its own spelling.
+# Synthetic fixture: every file below states the same nine fields in its own spelling.
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "synthagree"
 abstract: "A made-up package whose metadata files all agree."
 version: "1.2.3"
+date-released: 2026-01-15
 authors:
   - given-names: "Ada"
     family-names: "Lovelace"

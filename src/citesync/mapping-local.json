@@ -1,9 +1,9 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "rows": [
     {
@@ -44,6 +44,30 @@
     },
     {
       "format": "cff-1.2.0",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+    },
+    {
+      "format": "cff-1.2.0",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+    },
+    {
+      "format": "cff-1.2.0",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+    },
+    {
+      "format": "cff-1.2.0",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+    },
+    {
+      "format": "cff-1.2.0",
       "term": "license",
       "path": "license",
       "source": "curated:the cell lists license / license-url; license-url holds a licence URL, not an SPDX id"
@@ -70,6 +94,12 @@
       "format": "cff-1.2.0",
       "term": "keywords",
       "path": "keywords",
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+    },
+    {
+      "format": "cff-1.2.0",
+      "term": "datePublished",
+      "path": "date-released",
       "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
     },
     {
@@ -110,6 +140,30 @@
     },
     {
       "format": "codemeta",
+      "term": "contributor",
+      "path": "contributor[]",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "contributor.givenName",
+      "path": "contributor[].givenName",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "contributor.familyName",
+      "path": "contributor[].familyName",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "contributor.@id",
+      "path": "contributor[].@id",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
       "term": "license",
       "path": "license",
       "source": "curated:codemeta's own term"
@@ -136,6 +190,12 @@
       "format": "codemeta",
       "term": "keywords",
       "path": "keywords",
+      "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "datePublished",
+      "path": "datePublished",
       "source": "curated:codemeta's own term"
     },
     {
@@ -176,6 +236,30 @@
     },
     {
       "format": "zenodo",
+      "term": "contributor",
+      "path": "contributors[]",
+      "source": "curated:no cell; .zenodo.json lists contributors under contributors, each with a name, a type and an optional orcid"
+    },
+    {
+      "format": "zenodo",
+      "term": "contributor.givenName",
+      "path": "contributors[].name",
+      "source": "curated:no cell; Zenodo keeps one name string per contributor, written 'Family, Given'"
+    },
+    {
+      "format": "zenodo",
+      "term": "contributor.familyName",
+      "path": "contributors[].name",
+      "source": "curated:no cell; Zenodo keeps one name string per contributor, written 'Family, Given'"
+    },
+    {
+      "format": "zenodo",
+      "term": "contributor.@id",
+      "path": "contributors[].orcid",
+      "source": "curated:the cell says ORCID; the .zenodo.json key is orcid"
+    },
+    {
+      "format": "zenodo",
       "term": "license",
       "path": "license",
       "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
@@ -203,6 +287,12 @@
       "format": "zenodo",
       "term": "keywords",
       "path": "keywords",
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+    },
+    {
+      "format": "zenodo",
+      "term": "datePublished",
+      "path": "publication_date",
       "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
     },
     {
@@ -243,6 +333,30 @@
     },
     {
       "format": "pep621",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has authors and maintainers, no contributors"
+    },
+    {
+      "format": "pep621",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors"
+    },
+    {
+      "format": "pep621",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors"
+    },
+    {
+      "format": "pep621",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors"
+    },
+    {
+      "format": "pep621",
       "term": "license",
       "path": "project.license",
       "source": "curated:no PEP 621 crosswalk upstream",
@@ -271,6 +385,12 @@
       "term": "keywords",
       "path": "project.keywords",
       "source": "curated:no PEP 621 crosswalk upstream"
+    },
+    {
+      "format": "pep621",
+      "term": "datePublished",
+      "path": null,
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no release date"
     },
     {
       "format": "cargo",
@@ -310,6 +430,30 @@
     },
     {
       "format": "cargo",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:the cell says package.authors, which holds the authors; Cargo has no contributor list"
+    },
+    {
+      "format": "cargo",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no cell; Cargo has no contributor list"
+    },
+    {
+      "format": "cargo",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no cell; Cargo has no contributor list"
+    },
+    {
+      "format": "cargo",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no cell; Cargo has no contributor list"
+    },
+    {
+      "format": "cargo",
       "term": "license",
       "path": "package.license",
       "source": "crosswalk:crosswalks/Cargo.csv@3.1"
@@ -337,6 +481,12 @@
       "term": "keywords",
       "path": "package.keywords",
       "source": "curated:the cell says package.keyword; Cargo's key is package.keywords"
+    },
+    {
+      "format": "cargo",
+      "term": "datePublished",
+      "path": null,
+      "source": "curated:no cell; Cargo.toml has no release date"
     },
     {
       "format": "npm",
@@ -376,6 +526,30 @@
     },
     {
       "format": "npm",
+      "term": "contributor",
+      "path": "contributors[]",
+      "source": "curated:the cell says contributors; package.json keeps a list of people there"
+    },
+    {
+      "format": "npm",
+      "term": "contributor.givenName",
+      "path": "contributors[].name",
+      "source": "curated:no cell; package.json keeps one name string per person, as for author"
+    },
+    {
+      "format": "npm",
+      "term": "contributor.familyName",
+      "path": "contributors[].name",
+      "source": "curated:no cell; package.json keeps one name string per person, as for author"
+    },
+    {
+      "format": "npm",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no cell; package.json has no person identifier"
+    },
+    {
+      "format": "npm",
       "term": "license",
       "path": "license",
       "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
@@ -403,6 +577,12 @@
       "term": "keywords",
       "path": "keywords",
       "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+    },
+    {
+      "format": "npm",
+      "term": "datePublished",
+      "path": null,
+      "source": "curated:no cell; package.json has no release date"
     }
   ]
 }

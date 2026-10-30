@@ -28,7 +28,8 @@
         "beta",
         "gamma",
         "delta"
-      ]
+      ],
+      "datePublished": "2026-01-15"
     }
   },
   "codemeta.json": {
@@ -60,7 +61,8 @@
         "beta",
         "gamma",
         "delta"
-      ]
+      ],
+      "datePublished": "2026-01-15"
     }
   },
   ".zenodo.json": {
@@ -90,7 +92,8 @@
         "beta",
         "gamma",
         "delta"
-      ]
+      ],
+      "datePublished": "2026-01-15"
     }
   },
   "pyproject.toml": {

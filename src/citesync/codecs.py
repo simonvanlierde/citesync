@@ -33,6 +33,7 @@ _REF_TAIL = {
     "bitbucket.org": re.compile(_OWNER_REPO_TAIL.format("src")),
 }
 _CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}(?:$|T)")
 _SEMVER_TAG = {"a": "alpha", "b": "beta", "rc": "rc"}
 
 
@@ -218,6 +219,12 @@ def version_decode(raw: object) -> str | None:
         return None
     text = str(raw).strip()
     return text or None
+
+
+def date_decode(raw: object) -> str | None:
+    """The date as ``YYYY-MM-DD``; a time after it is dropped. Anything else is kept as written."""
+    text = version_decode(raw)
+    return text[:10] if text and _ISO_DATE.match(text) else text
 
 
 def version_key(version: str) -> "Version | str":

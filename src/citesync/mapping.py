@@ -15,7 +15,17 @@ from citesync.errors import CheckError
 
 SCHEMA_MAJOR = "1"
 FORMATS = ("cff-1.2.0", "codemeta", "zenodo", "pep621", "cargo", "npm")
-TERMS = ("name", "version", "author", "license", "identifier", "codeRepository", "description", "keywords")
+TERMS = (
+    "name",
+    "version",
+    "author",
+    "license",
+    "identifier",
+    "codeRepository",
+    "description",
+    "keywords",
+    "datePublished",
+)
 PERSON_TERMS = ("author.givenName", "author.familyName", "author.@id")
 
 _STEP = re.compile(r"^(@?[A-Za-z_][A-Za-z0-9_-]*)(?:\[\]|\[(@?[A-Za-z_][A-Za-z0-9_-]*)=([A-Za-z0-9_.-]+)\])?$")

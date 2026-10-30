@@ -313,7 +313,7 @@ def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, capsys: pytes
     ]
     assert [(f["file"], f["term"]) for f in info] == [("CITATION.cff", term) for term in sorted(TERMS)]
     assert {f["message"] for f in info} == {"not compared with the source: it can't be read"}
-    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 8}
+    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 9}
 
 
 def test_unexpected_error_is_exit_2(
@@ -785,7 +785,7 @@ def test_not_checked_detail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
 
 def test_json_keeps_info_under_quiet(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     report = _check_json(tmp_path, capsys, {"CITATION.cff": CFF}, "-q")
-    assert report["summary"]["info"] == len(_split(report)[1]) == 7
+    assert report["summary"]["info"] == len(_split(report)[1]) == 8
 
 
 def test_schema_lets_a_minor_release_add_rules_and_fields(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -850,7 +850,7 @@ def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pyt
     (tmp_path / "citesync.toml").write_text('ignore = ["name-mismatch", "doi-mismatch"]\n', encoding="utf-8")
     code, out, err = _run(capsys, "check", "--root", str(tmp_path), "--json")
     assert (code, err) == (0, "citesync: warning: ignore entry 'doi-mismatch' matched no finding\n")
-    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 7
+    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 8
 
 
 @pytest.mark.parametrize("zenodo", [False, True])
@@ -881,6 +881,18 @@ def test_what_zenodo_reads_from_cff_alone(
     found = [(f["rule"], f["severity"], f["term"]) for f in _split(report)[0] if f["rule"].startswith("zenodo-")]
     assert found == ([] if zenodo else expected)
     assert all(f["file"] == "CITATION.cff" for f in report["findings"] if f["rule"].startswith("zenodo-"))
+
+
+def test_release_dates_compare_by_day(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = {
+        "CITATION.cff": CFF + "date-released: 2026-01-15\n",
+        "codemeta.json": _codemeta(datePublished="2026-01-15T09:00:00Z"),
+        ".zenodo.json": json.dumps({"title": "x", "publication_date": "2026-01-16"}),
+    }
+    report = _check_json(tmp_path, capsys, files)
+    assert [(f["rule"], f["file"], f["message"]) for f in _split(report)[0]] == [
+        ("date-mismatch", ".zenodo.json", "'2026-01-16', CITATION.cff has '2026-01-15'")
+    ]
 
 
 def _git(root: Path, *args: str) -> None:

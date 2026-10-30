@@ -93,6 +93,14 @@ _FIELDS = {
             " checked by `keywords-not-subset` instead." + _SEPARATORS
         ),
     ),
+    "datePublished": (
+        "date-mismatch",
+        "The release date differs from the source's.",
+        (
+            "CFF `date-released`, CodeMeta `datePublished` and Zenodo `publication_date` compare as `YYYY-MM-DD`;"
+            " a time after the date is ignored. Manifests have no release date."
+        ),
+    ),
 }
 MISMATCH = {term: rule for term, (rule, _, _) in _FIELDS.items()}
 

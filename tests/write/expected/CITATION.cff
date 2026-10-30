@@ -5,6 +5,7 @@ type: software
 title: "synthagree"
 abstract: "A made-up package whose metadata files all agree."
 version: "1.2.3"
+date-released: 2026-01-15
 # Planted: the comments in this file must survive a write.
 authors:
   - given-names: "Ada"

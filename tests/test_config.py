@@ -88,7 +88,7 @@ def test_keywords_case_sensitive(tmp_path: Path, capsys: pytest.CaptureFixture[s
 
 def test_write_manifests_all_expands(tmp_path: Path) -> None:
     (tmp_path / "citesync.toml").write_text('write-manifests = "all"\n', encoding="utf-8")
-    assert len(load_config(tmp_path).write_manifests) == 8
+    assert len(load_config(tmp_path).write_manifests) == 9
 
 
 @pytest.mark.parametrize(

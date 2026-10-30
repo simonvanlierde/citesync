@@ -238,7 +238,7 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
         if not both_citation:
             return _keywords_subset(ref, doc, kw_key)
         equal = set(map(kw_key, a)) == set(map(kw_key, b))
-    else:  # name, description
+    else:  # name, description, datePublished: only citation files have a release date
         if not both_citation:
             return None  # a manifest name is a package id, a description a one-line summary
         equal = a == b

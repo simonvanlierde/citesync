@@ -19,7 +19,14 @@
           "why": "[workspace.package] keywords include 'lint' is not in the CFF keywords (CFF has 'linter')"
         }
       ],
-      "info": []
+      "info": [
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "datePublished",
+          "why": "no file holds a release date"
+        }
+      ]
     },
     {
       "name": "maturin-pyproject",
@@ -38,6 +45,12 @@
         }
       ],
       "info": [
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "datePublished",
+          "why": "no file holds a release date"
+        },
         {
           "rule": "not-checked",
           "file": null,

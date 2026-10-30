@@ -15,7 +15,7 @@ Software citation metadata: citesync checks that CITATION.cff, codemeta.json, .z
 
 ## What works now
 
-`citesync check` compares eight fields with one file, the source (CITATION.cff by default): title/name, version, authors with ORCID, licence, DOI, repository URL, description and keywords. `citesync write` rewrites the other files to agree with it.
+`citesync check` compares nine fields with one file, the source (CITATION.cff by default): title/name, version, authors with ORCID, licence, DOI, repository URL, description, keywords and release date. `citesync write` rewrites the other files to agree with it.
 
 ```sh
 uv tool install citesync            # or run it once with uvx citesync check
