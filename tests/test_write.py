@@ -48,7 +48,8 @@ def test_planted_disagreement_is_written_as_expected(
     name: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     source = "codemeta.json" if name == "CITATION.cff" else "CITATION.cff"
-    root = _synthetic(tmp_path / "repo", f'source = "{source}"\nwrite-manifests = "all"\n')
+    config = f'source = "{source}"\nwrite-manifests = "all"\ncodemeta-version = "3.0"\n'
+    root = _synthetic(tmp_path / "repo", config)
     shutil.copy(PLANTED / name, root / name)
     before = _snapshot(root)
 
@@ -222,7 +223,9 @@ def test_write_reports_as_check_does(tmp_path: Path, capsys: pytest.CaptureFixtu
 
 
 def test_an_ignored_finding_is_not_written(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    root = _synthetic(tmp_path / "repo", 'ignore = ["version-mismatch", "context-mismatch"]\n')
+    root = _synthetic(
+        tmp_path / "repo", 'ignore = ["version-mismatch", "context-mismatch"]\ncodemeta-version = "3.0"\n'
+    )
     codemeta = root / "codemeta.json"
     text = codemeta.read_text(encoding="utf-8").replace('"1.2.3"', '"2.0.0"').replace("codemeta/3.0", "codemeta/3.1")
     codemeta.write_text(text, encoding="utf-8")
@@ -459,7 +462,7 @@ def test_a_non_ascii_name_is_written_as_is(
 
 
 def test_a_symlink_target_is_written(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    root = _synthetic(tmp_path / "repo")
+    root = _synthetic(tmp_path / "repo", 'codemeta-version = "3.0"\n')
     (root / "real").mkdir()
     shutil.copy(PLANTED / "codemeta.json", root / "real" / "codemeta.json")
     (root / "codemeta.json").unlink()
@@ -803,6 +806,26 @@ def test_a_listed_codemeta_json_that_is_missing_is_created(tmp_path: Path, capsy
     assert json.loads(created) == expected
     assert (root / "codemeta.json").stat().st_mode & 0o044, "readable by others, as a new file normally is"
     assert _run(capsys, "check", "--root", str(root))[0] == 0
+
+
+@pytest.mark.parametrize(("config", "context"), [("", "3.0"), ('codemeta-version = "4.0"\n', "4.0")])
+def test_a_created_codemeta_json_takes_the_configured_version_else_3_0(
+    config: str, context: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", f'files = ["codemeta.json"]\n{config}')
+    (root / "codemeta.json").unlink()
+    _run(capsys, "write", "--root", str(root))
+    created = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    assert created["@context"] == f"https://w3id.org/codemeta/{context}"
+
+
+def test_any_codemeta_version_passes_and_stays_when_unset(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    _edit(root / "codemeta.json", "codemeta/3.0", "codemeta/4.0")
+    before = _snapshot(root)
+    assert "context-mismatch" not in _run(capsys, "check", "--root", str(root))[1]
+    _run(capsys, "write", "--root", str(root))
+    assert (root / "codemeta.json").read_bytes() == before["codemeta.json"]
 
 
 def test_a_missing_zenodo_json_is_reported_not_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

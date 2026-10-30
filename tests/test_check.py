@@ -176,6 +176,7 @@ def test_findings_are_sorted_and_text_matches_codemeta_drift(
         encoding="utf-8",
     )
     (tmp_path / ".zenodo.json").write_text(json.dumps({"title": "z", "license": "apache-2.0"}), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('codemeta-version = "3.0"\n', encoding="utf-8")
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
     assert code == 1
     assert _run(capsys, "check", "--root", str(tmp_path), "--quiet")[1] == out.rsplit("5 errors", 1)[0]
@@ -760,6 +761,7 @@ def test_one_planted_disagreement(
 ) -> None:
     root = tmp_path / "repo"
     shutil.copytree(SYNTHETIC, root)
+    (root / "citesync.toml").write_text('codemeta-version = "3.0"\n', encoding="utf-8")
     text = (root / name).read_text(encoding="utf-8")
     assert text.count(old) == 1
     (root / name).write_text(text.replace(old, new), encoding="utf-8")

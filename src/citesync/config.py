@@ -14,10 +14,13 @@ from citesync.rules import RULES
 
 @dataclass(frozen=True)
 class Config:
-    """The settings a check runs with. ``None`` for files or manifests means the default discovery."""
+    """The settings a check runs with. ``None`` for files or manifests means the default discovery.
+
+    ``codemeta_version`` None means any CodeMeta version citesync reads passes.
+    """
 
     source: str = "CITATION.cff"
-    codemeta_version: str = "3.0"
+    codemeta_version: str | None = None
     files: tuple[str, ...] | None = None
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
@@ -156,7 +159,9 @@ def render(config: Config) -> str:
     lines = [
         f"# from {config.origin}",
         f"source = {json.dumps(config.source)}",
-        f"codemeta-version = {json.dumps(config.codemeta_version)}",
+        f"codemeta-version = {json.dumps(config.codemeta_version)}"
+        if config.codemeta_version is not None
+        else "# codemeta-version: not set, so any supported @context passes",
         f"files = {json.dumps(list(config.files))}"
         if config.files is not None
         else "# files: not set, so every citation file present",

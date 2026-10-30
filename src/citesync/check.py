@@ -160,8 +160,9 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list
     found: set[Finding] = set(unreadable)
     source = docs[0]
     for doc in docs:
-        if doc.readable and doc.format == "codemeta" and doc.version != config.codemeta_version:
-            detail = f"{doc.version}, configured {config.codemeta_version}"
+        configured = config.codemeta_version
+        if configured and doc.readable and doc.format == "codemeta" and doc.version != configured:
+            detail = f"{doc.version}, configured {configured}"
             found.add(Finding(doc.path, "@context", "context-mismatch", detail))
         for key in dict.fromkeys(key for key, _ in doc.dangling_roles):
             orcids = ", ".join(orcid for k, orcid in doc.dangling_roles if k == key)

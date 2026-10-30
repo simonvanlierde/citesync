@@ -126,7 +126,8 @@ RULES = {
         "error",
         "codemeta.json's `@context` is not the configured CodeMeta version.",
         "Change the `@context` to the configured version, or set `codemeta-version` in the config.",
-        "The configured version is `codemeta-version`, 3.0 by default. citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.",
+        "The configured version is `codemeta-version`. With it unset, the rule is silent: any version citesync"
+        " reads passes, and citesync reads CodeMeta 2.0, 3.0, 3.1 and 4.0.",
     ),
     "role-dangling": Rule(
         "warning",
@@ -168,7 +169,7 @@ RULES = {
         " `files`.",
         "Only for a citation file named in the `files` setting: without that setting, citesync checks the citation"
         " files that are there. `citesync write` creates codemeta.json from the source, with the configured"
-        " `codemeta-version`. It doesn't create a .zenodo.json, which a repo needs only for what CITATION.cff"
+        " `codemeta-version`, else 3.0. It doesn't create a .zenodo.json, which a repo needs only for what CITATION.cff"
         " can't hold, or a CITATION.cff.",
     ),
     "unreadable": Rule(

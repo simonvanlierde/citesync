@@ -42,6 +42,10 @@ from citesync.formats import (
 )
 from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
 
+# The @context of a codemeta.json write creates when codemeta-version is unset: the version
+# the project template renders and Software Heritage reads.
+NEW_CODEMETA_VERSION = "3.0"
+
 
 def write(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
@@ -89,7 +93,7 @@ def write(
         if new != old:
             texts[doc.path] = new
     if "file-missing" not in config.ignore and "codemeta.json" in missing(root, config):
-        texts["codemeta.json"] = _new_codemeta(source, config.codemeta_version, mapping, key)
+        texts["codemeta.json"] = _new_codemeta(source, config.codemeta_version or NEW_CODEMETA_VERSION, mapping, key)
     if not dry_run:
         _replace({root / rel: text for rel, text in texts.items()})
     return dict(sorted(texts.items())), skipped
