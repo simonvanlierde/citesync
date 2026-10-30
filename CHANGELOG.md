@@ -19,6 +19,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `citesync write` writes a new CITATION.cff entity (an author with only `name`) to codemeta.json as an `Organization`; it was a `Person` with that name as `familyName`.
+- When `citesync write` adds authors to a JSON list, the entries already there keep their layout; a list of one-line entries was rewritten with each entry over several lines.
 - `python -m citesync` runs the command line, as `citesync` does. It failed with "No module named citesync.__main__".
 
 ## [0.1.0] - 2026-10-29

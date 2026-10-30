@@ -749,3 +749,41 @@ def test_cargo_keywords_keep_their_hyphens(source: str, tmp_path: Path, capsys: 
     assert _run(capsys, "check", "-q", "--root", str(root))[0] == 0
     assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
     assert (root / "Cargo.toml").read_text(encoding="utf-8") == cargo
+
+
+def test_a_cff_entity_is_written_as_an_organization(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'write-manifests = "all"\n')
+    _edit(
+        root / "CITATION.cff", '    family-names: "Turing"\n', '    family-names: "Turing"\n  - name: "Example Lab"\n'
+    )
+
+    _run(capsys, "write", "--root", str(root))
+    codemeta = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    assert codemeta["author"][-1] == {"@type": "Organization", "name": "Example Lab"}
+    zenodo = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))
+    assert zenodo["creators"][-1] == {"name": "Example Lab"}
+    assert _run(capsys, "check", "--root", str(root))[0] == 0
+
+
+def test_a_grown_json_array_keeps_its_one_line_elements(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo")
+    one_line = (
+        '  "author": [\n'
+        '    {"@type": "Person", "@id": "https://orcid.org/0000-0002-1825-0097", '
+        '"givenName": "Ada", "familyName": "Lovelace"},\n'
+        '    {"@type": "Person", "givenName": "Alan", "familyName": "Turing"}\n'
+        "  ],\n"
+    )
+    text = (root / "codemeta.json").read_text(encoding="utf-8")
+    multi = text[text.index('  "author": [') : text.index('  "keywords"')]
+    codemeta = _edit(root / "codemeta.json", multi, one_line)
+    _edit(
+        root / "CITATION.cff",
+        '    family-names: "Turing"\n',
+        '    family-names: "Turing"\n  - given-names: "Grace"\n    family-names: "Hopper"\n',
+    )
+
+    _run(capsys, "write", "--root", str(root))
+    turing = '{"@type": "Person", "givenName": "Alan", "familyName": "Turing"}'
+    hopper = '{"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}'
+    assert (root / "codemeta.json").read_text(encoding="utf-8") == codemeta.replace(turing, f"{turing},\n    {hopper}")

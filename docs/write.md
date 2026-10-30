@@ -21,7 +21,7 @@ A value the file can't spell is left as it was, and its finding says why:
 
 ## Authors
 
-An author with only a name, such as an organization (`name` in CITATION.cff and codemeta.json), counts as a family name and keeps it. An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation; anyone else gets a new entry. When that would drop an old entry holding more than a name and ORCID, such as after a renaming in a manifest, write leaves that file's authors for you to edit. A Cargo field inherited with `.workspace = true` is left as it is: change it in the workspace's `[workspace.package]`.
+An author with only a name, such as an organization (`name` in CITATION.cff and codemeta.json), counts as a family name and keeps it; a new one is written to codemeta.json as an `Organization`, not a `Person`. An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation; anyone else gets a new entry. When that would drop an old entry holding more than a name and ORCID, such as after a renaming in a manifest, write leaves that file's authors for you to edit. A Cargo field inherited with `.workspace = true` is left as it is: change it in the workspace's `[workspace.package]`.
 
 ## Output and exit codes
 
@@ -29,6 +29,6 @@ It prints `wrote <file>` for each file it changed (to stderr with `--format json
 
 ## Safety
 
-Every file is written to a temporary file beside it before any is moved into place, so a failure leaves the files as they were, unless a move itself fails, which leaves the files moved before it written. A symlinked file is written through the link, CRLF line ends stay CRLF, and a file that would not change is not touched.
+Every file is written to a temporary file beside it before any is moved into place, so a failure leaves the files as they were, unless a move itself fails, which leaves the files moved before it written. A symlinked file is written through the link, CRLF line ends stay CRLF (a file that mixes LF and CRLF comes back all CRLF), and a file that would not change is not touched.
 
 Known limits of the CITATION.cff round trip: an end-of-line comment aligned with spaces after a value (`title:    x   # c`) is reflowed, a second sequence indented differently from the first is reindented to match it, and a closing `...` and a byte-order mark are dropped.
