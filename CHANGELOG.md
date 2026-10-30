@@ -9,45 +9,44 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 To upgrade from 0.1.0:
 
-- `citesync check` can fail on rules 0.1.0 didn't have: `contributor-mismatch`, `date-mismatch`, `zenodo-license-list` and `file-missing`. To keep 0.1.0's results for now, list the ones you don't want under `ignore`.
-- `codemeta-version` no longer defaults to 3.0. To keep checking codemeta.json's `@context` as 0.1.0 did, set `codemeta-version = "3.0"`.
-- Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
+- `citesync check` has four new error rules: `contributor-mismatch`, `date-mismatch`, `zenodo-license-list` and `file-missing`. To turn any of them off for now, list it under `ignore`. [docs/rules.md](docs/rules.md) describes each rule.
+- `codemeta-version` no longer defaults to 3.0. To keep checking codemeta.json's `@context` as before, set `codemeta-version = "3.0"`.
+- Use citesync through its command line or the pre-commit hook. Its Python modules are internal and may change in any release.
 
 ### Added
 
-- Contributors are compared as authors are: codemeta.json `contributor`, .zenodo.json `contributors` and package.json `contributors`. CITATION.cff has no contributor list, so with it as the source those files must agree with each other. Only the people count, never a CodeMeta Role or a Zenodo contributor `type`. A difference is a `contributor-mismatch` error. `citesync write` renames and reorders contributors, but leaves a new Zenodo contributor for a hand edit, since Zenodo needs a type for each one.
-- The release date is compared: CFF `date-released`, CodeMeta `datePublished` and Zenodo `publication_date`, by day, so a time after the date doesn't count. A difference is a `date-mismatch` error, and `citesync write` fixes it as `YYYY-MM-DD`.
-- `version-behind-tag` warns when the source's version is older than the repo's newest git tag, as after a release tagged without bumping CITATION.cff. citesync reads the tags from `.git` itself, so it runs no `git`, and finds it from a root in a subdirectory too.
-- `citesync check --format sarif` (and `write`) prints a SARIF 2.1.0 log that GitHub code scanning can upload with `github/codeql-action/upload-sarif`. Each file is named by its path in the repo, and a finding on no file is left out, since it has nowhere to point.
-- `citesync write` creates codemeta.json when the `files` setting lists it, at the root or in a subdirectory, and it doesn't exist yet. It takes the configured `codemeta-version`, else 3.0, and leaves out a field codemeta.json can't spell, such as a licence with `AND`, saying why on its `wrote` line. It creates nothing from a source it can't read, and `write --diff` shows the new file as a diff from `/dev/null`.
-- `citesync --help` and `citesync check --help` give the exit codes, where config is read from and a link to the docs. `citesync` with no command prints the help and exits 2.
-- When a repo has no .zenodo.json, Zenodo reads CITATION.cff, so two rules check it. `zenodo-license-list` is an error for a `license` list, which Zenodo refuses. `zenodo-drops-field` warns about `identifiers` and `references`, which Zenodo leaves out of the record; a Zenodo DOI among the identifiers is fine.
-- A keyword that differs from another file's only in hyphens, underscores or spaces is named in the finding, as in `industrial-ecology (CITATION.cff has 'industrial ecology': differs only in separators)`. `citesync write` gives it the source's spelling where it stands, instead of dropping it.
-- `keywords-ignore-separators = true` treats such keywords as equal. Against Cargo.toml they always are, since crates.io refuses a keyword with a space.
+- Contributors are compared across codemeta.json, .zenodo.json and package.json, the same way as authors (`contributor-mismatch`).
+- Release dates are compared across CITATION.cff, codemeta.json and .zenodo.json (`date-mismatch`).
+- `version-behind-tag` warns when the source's version is older than the repo's newest git tag.
+- `--format sarif` prints a SARIF log that GitHub code scanning can upload.
+- `citesync write` creates codemeta.json when the `files` setting lists it and it doesn't exist yet.
+- `citesync --help` lists the exit codes and where config is read from. `citesync` with no command prints the help.
+- Two rules for repos where Zenodo reads CITATION.cff: `zenodo-license-list` and `zenodo-drops-field`.
+- A keyword that differs from another file's only in hyphens, underscores or spaces is named as such, and `citesync write` gives it the source's spelling. `keywords-ignore-separators = true` treats such keywords as equal.
 
 ### Changed
 
-- **Breaking:** `codemeta-version` has no default. Unset, any CodeMeta version citesync reads (2.0, 3.0, 3.1, 4.0) passes and `citesync write` leaves `@context` alone; in 0.1.0 anything but 3.0 was a `context-mismatch` error.
-- **Breaking:** a citation file the `files` setting lists that doesn't exist is a `file-missing` error. 0.1.0 skipped it.
-- The field mapping is vendored from codemeta-drift 0.2.0, which adds the contributor and release-date rows; it was 0.1.0.
-- `citesync check` starts about a third faster: it no longer loads what only `write`, `--version` or `--json` need.
+- **Breaking:** `codemeta-version` has no default. When it's unset, any CodeMeta version passes and `citesync write` leaves `@context` alone.
+- **Breaking:** a file listed in the `files` setting that doesn't exist is a `file-missing` error. 0.1.0 skipped it.
+- The field mapping comes from codemeta-drift 0.2.0, which adds contributors and release dates.
+- `citesync check` starts about a third faster.
 
 ### Fixed
 
-- `citesync write` writes a new CITATION.cff entity (an author with only `name`) to codemeta.json as an `Organization`; it was a `Person` with that name as `familyName`.
-- When `citesync write` adds authors to a JSON list, the entries already there keep their layout; a list of one-line entries was rewritten with each entry over several lines.
-- `python -m citesync` runs the command line, as `citesync` does. It failed with "No module named `citesync.__main__`".
-- A blank value no longer hides the field's value in its next place: with CITATION.cff's `doi: ""`, the DOI under `identifiers` was never read, so a different DOI in codemeta.json passed.
-- codemeta.json entries written with `type` and `id`, which CodeMeta 3's context makes aliases of `@type` and `@id`, are read: a credit-matrix `Role` whose person is missing now gives `role-dangling`, and an `Organization` is written to CITATION.cff as an entity.
-- Titles and descriptions compare in Unicode NFC, as names do. The same title typed with a composed and a decomposed accent was a `name-mismatch` whose two values looked identical.
-- `citesync write` keeps a CITATION.cff author's `name-particle` and `name-suffix` when only the given name changes. It folded them into `family-names`.
-- From a root in a subdirectory of the git repo, GitHub annotations name each file by its path in the repo, so they attach to the file.
-- codemeta.json keywords given as one string are split on full-width (`，`) and ideographic (`、`) commas too.
-- A pyproject.toml, Cargo.toml, package.json or .zenodo.json that starts with a byte order mark is `unreadable` with a message that says so, not the parser's.
-- A file reached through a symlink that points out of the repo is `unreadable`: `check` no longer prints its fields and `write` no longer rewrites it. `write` won't create a file through a dangling link out of the repo either.
-- Control characters in a file, such as an escape sequence in a keyword, are printed as `\xNN` in text and GitHub output, so they can't retitle the terminal or hide lines.
-- On a stdout that isn't UTF-8, such as a Windows pipe, findings print as UTF-8; a CJK title made the check crash with exit 1.
-- Input that could take minutes now takes well under a second: an npm or Cargo author string with a long run of spaces, an ORCID with one inside it, a CITATION.cff licence or DOI list that nests YAML aliases, and keyword lists thousands long.
+- `citesync write` wrote a CITATION.cff entity (an author with only a name) to codemeta.json as a `Person`. It's now an `Organization`.
+- `citesync write` reformatted the existing entries of a JSON author list when it added an author.
+- `python -m citesync` failed with "No module named `citesync.__main__`".
+- With `doi: ""` in CITATION.cff, the DOI under `identifiers` was ignored.
+- codemeta.json entries written with `type` and `id` instead of `@type` and `@id` were ignored.
+- A title with an accent typed two different ways didn't match itself.
+- `citesync write` folded an author's `name-particle` and `name-suffix` into `family-names` when it changed the given name.
+- GitHub annotations didn't attach to their files when the root was a subdirectory of the git repo.
+- codemeta.json keywords given as one string weren't split on full-width (`，`) or ideographic (`、`) commas.
+- A manifest or .zenodo.json that starts with a byte order mark gave a confusing parser error.
+- A file behind a symlink that points out of the repo was read, and `write` could change it. It's now `unreadable`.
+- Control characters in a file could retitle the terminal or hide lines. They now print as `\xNN`.
+- Printing non-ASCII text to a stdout that isn't UTF-8, such as a Windows pipe, crashed.
+- Some inputs made `citesync check` run for minutes, such as an author string with a long run of spaces or a keyword list thousands long.
 
 ## [0.1.0] - 2026-10-29
 
