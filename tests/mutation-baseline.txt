@@ -57,6 +57,7 @@ citesync.write.x__apply__mutmut_26  write passes only terms read_doc found, and 
 citesync.write.x__apply__mutmut_80  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__encode__mutmut_41  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__encode__mutmut_45  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__identifier__mutmut_24  a PropertyValue's value or url is a string, and spelling a string never calls decode
 citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__people__mutmut_56  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_59  matches has one entry per person, so strict never fires
