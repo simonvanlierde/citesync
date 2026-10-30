@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
+from ruamel.yaml import YAML
 
 from citesync.cli import main
 from citesync.formats import dangling_roles
@@ -459,6 +460,20 @@ def test_a_zenodo_swhid_without_a_scheme_keeps_its_shape(tmp_path: Path, run: "R
         "relation": "isIdenticalTo",
         "identifier": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
     }
+
+
+def test_a_qualified_swhid_reaches_cff_as_its_core_and_zenodo_lowercased(tmp_path: Path, run: "Run") -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    origin = ";origin=https://github.com/example/synthagree"
+    old = ["https://doi.org/10.5281/zenodo.1234567", REV[:10] + REV[10:].upper() + origin]
+    _edit(root / "codemeta.json", '"https://doi.org/10.5281/zenodo.1234567"', json.dumps(old))
+
+    assert run("write", "--root", str(root))[0] == 0
+    cff = YAML(typ="safe").load((root / "CITATION.cff").read_text(encoding="utf-8"))
+    assert cff["identifiers"] == [{"type": "swh", "value": REV}]  # CFF 1.2.0 takes no qualifiers
+    related = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))["related_identifiers"]
+    assert {"identifier": REV + origin, "scheme": "swh"}.items() <= related[2].items()  # Zenodo takes lowercase hex
+    assert run("check", "-q", "--root", str(root)) == (0, "", "")
 
 
 @pytest.mark.parametrize("case_sensitive", [False, True])
