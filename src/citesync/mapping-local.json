@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
@@ -77,6 +77,12 @@
       "term": "identifier",
       "path": "doi | identifiers[type=doi].value",
       "source": "curated:the cell lists identifiers / person.orcid / doi; the software DOI is doi, or the doi entry of identifiers"
+    },
+    {
+      "format": "cff-1.2.0",
+      "term": "swhid",
+      "path": "identifiers[type=swh].value",
+      "source": "curated:the cell lists identifiers / person.orcid / doi; a SWHID is the swh entry of identifiers"
     },
     {
       "format": "cff-1.2.0",
@@ -173,6 +179,12 @@
       "term": "identifier",
       "path": "identifier",
       "source": "curated:codemeta's own term"
+    },
+    {
+      "format": "codemeta",
+      "term": "swhid",
+      "path": "identifier",
+      "source": "curated:CodeMeta has no SWHID term; a SWHID sits in identifier, as a PropertyValue with propertyID swhid or a swh:1: string, beside the DOI"
     },
     {
       "format": "codemeta",
@@ -273,6 +285,12 @@
     },
     {
       "format": "zenodo",
+      "term": "swhid",
+      "path": "related_identifiers[scheme=swh].identifier",
+      "source": "curated:the cell says id, the Zenodo record id; a SWHID is the identifier of the related_identifiers entry with scheme swh"
+    },
+    {
+      "format": "zenodo",
       "term": "codeRepository",
       "path": "related_identifiers[relation=isSupplementTo].identifier",
       "source": "curated:the cell says related_identifiers.isSupplementTo, a relation, not a key; the URL is the identifier of the entry with that relation"
@@ -367,6 +385,12 @@
       "term": "identifier",
       "path": null,
       "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no DOI field"
+    },
+    {
+      "format": "pep621",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no SWHID field"
     },
     {
       "format": "pep621",
@@ -466,6 +490,12 @@
     },
     {
       "format": "cargo",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:no cell; Cargo has no SWHID field"
+    },
+    {
+      "format": "cargo",
       "term": "codeRepository",
       "path": "package.repository",
       "source": "crosswalk:crosswalks/Cargo.csv@3.1"
@@ -559,6 +589,12 @@
       "term": "identifier",
       "path": null,
       "source": "curated:the cell says name, the package name; package.json has no DOI field"
+    },
+    {
+      "format": "npm",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:the cell says name, the package name; package.json has no SWHID field"
     },
     {
       "format": "npm",

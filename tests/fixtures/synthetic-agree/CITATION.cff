@@ -1,4 +1,4 @@
-# Synthetic fixture: every file below states the same nine fields in its own spelling.
+# Synthetic fixture: every file below states the same ten fields in its own spelling.
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
@@ -13,6 +13,9 @@ authors:
   - given-names: "Alan"
     family-names: "Turing"
 doi: "10.5281/zenodo.1234567"
+identifiers:
+  - type: swh
+    value: "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
 repository-code: "https://github.com/example/synthagree"
 license: "Apache-2.0"
 keywords:

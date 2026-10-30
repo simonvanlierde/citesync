@@ -21,7 +21,7 @@ keywords-ignore-separators = true           # default false: big-data and big da
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 
-`write-manifests` takes the fields a manifest holds, by their CodeMeta term: `version`, `author`, `contributor`, `license`, `codeRepository` and `keywords`. `"all"` means those six. This is the `term` in the JSON output. Rule ids use the plainer `repository`, but `write-manifests` takes only the term, and says which one to use. Write never changes the other compared fields, `name`, `description`, `identifier` (the DOI) and `datePublished`, in a manifest.
+`write-manifests` takes the fields a manifest holds, by their CodeMeta term: `version`, `author`, `contributor`, `license`, `codeRepository` and `keywords`. `"all"` means those six. This is the `term` in the JSON output. Rule ids use the plainer `repository`, but `write-manifests` takes only the term, and says which one to use. Write never changes the other compared fields, `name`, `description`, `identifier` (the DOI), `swhid` (the Software Heritage identifier) and `datePublished`, in a manifest.
 
 Quote `codemeta-version`: `3.0` without quotes is a TOML number. With `codemeta-version` unset, `check` accepts CodeMeta 2.0, 3.0, 3.1 and 4.0, and `write` leaves `@context` alone. Once it's set, any other `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes.
 

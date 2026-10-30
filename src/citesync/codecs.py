@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING
 from citesync.errors import CannotWrite
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from packaging.version import Version
 
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
@@ -19,6 +21,7 @@ _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
 _LEADING_SLASHES_AND_SPACE = re.compile(r"^[\s/]+")
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
 _DOI = re.compile(r"^10\.\d+/\S+$")
+_SWHID = re.compile(r"^swh:1:(?:cnt|dir|rev|rel|snp):[0-9a-fA-F]{40}(?:;\S*)?$")
 _NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
 _NPM_SHORTHAND = re.compile(r"^(?P<host>github|gitlab|bitbucket):(?P<path>[\w.-]+/[\w.-]+)$")
 _SSH = re.compile(r"^(?:ssh://)?git@(?P<host>[^:/]+)[:/](?P<path>.+)$")
@@ -117,11 +120,16 @@ def doi_decode(raw: object) -> str | None:
     in it counts. A PropertyValue holds a DOI in its ``value`` or ``url`` (``propertyID`` ``DOI``);
     any other, such as a SWHID or ROR id, is ignored. A list is read one level deep, as :func:`license_decode` is.
     """
+    return _first(raw, _doi)
+
+
+def _first(raw: object, decode: "Callable[[object], str | None]") -> str | None:
+    """The first value ``decode`` accepts in a string, a PropertyValue's ``value`` or ``url``, or a list of those."""
     if isinstance(raw, list):
-        return next(filter(None, (doi_decode(item) for item in raw if isinstance(item, (str, dict)))), None)
+        return next(filter(None, (_first(item, decode) for item in raw if isinstance(item, (str, dict)))), None)
     if isinstance(raw, dict):
-        return next(filter(None, (_doi(raw.get(key)) for key in ("value", "url"))), None)
-    return _doi(raw)
+        return next(filter(None, (decode(raw.get(key)) for key in ("value", "url"))), None)
+    return decode(raw)
 
 
 def _doi(raw: object) -> str | None:
@@ -129,6 +137,24 @@ def _doi(raw: object) -> str | None:
         return None
     doi = _DOI_PREFIX.sub("", raw.strip())
     return doi if _DOI.match(doi) else None
+
+
+# SWHID: the Software Heritage identifier, swh:1:<type>:<hash>, with optional ;qualifiers.
+
+
+def swhid_decode(raw: object) -> str | None:
+    """The SWHID, or None for a value that isn't one; codemeta's ``identifier`` is read as for a DOI."""
+    return _first(raw, _swhid)
+
+
+def _swhid(raw: object) -> str | None:
+    return raw.strip() if isinstance(raw, str) and _SWHID.match(raw.strip()) else None
+
+
+def swhid_key(swhid: str) -> str:
+    """The hash compares case-insensitively; the qualifiers after ``;`` as written, since an origin URL may not."""
+    core, sep, qualifiers = swhid.partition(";")
+    return core.lower() + sep + qualifiers
 
 
 def doi_encode(doi: str, form: str) -> str:

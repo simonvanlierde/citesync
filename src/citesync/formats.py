@@ -289,7 +289,7 @@ def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:
     A blank value (null, ``""``, ``[]``) counts as none, so CFF's ``doi: ""`` gives way to ``identifiers``.
     Shared by the reader and the writer, so both pick the same value. A Cargo virtual workspace
     holds its fields in ``[workspace.package]``; a PEP 621 url label matches as packaging normalises
-    it, the exact label first; Zenodo's isSupplementTo also lists papers by DOI, which are skipped.
+    it, the exact label first; Zenodo's isSupplementTo also lists papers by DOI and SWHIDs, which are skipped.
     """
     if fmt == "cargo" and "package" not in data:
         data = {"package": data.get("workspace", {}).get("package", {})}
@@ -302,7 +302,7 @@ def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:
             label = key if key in node else next((k for k in node if url_label(k) == key), None)
             if label is None or node[label] in (None, "", []):
                 continue
-            if term == "codeRepository" and codecs.doi_decode(node[label]):
+            if term == "codeRepository" and (codecs.doi_decode(node[label]) or codecs.swhid_decode(node[label])):
                 continue
             return node, label
     return None
@@ -399,6 +399,7 @@ _DECODE = {
     "version": codecs.version_decode,
     "license": codecs.license_decode,
     "identifier": codecs.doi_decode,
+    "swhid": codecs.swhid_decode,
     "codeRepository": codecs.repo_decode,
     "datePublished": codecs.date_decode,
 }

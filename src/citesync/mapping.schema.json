@@ -41,7 +41,7 @@
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9.]+)*$"
         },
         "term": {
-          "description": "A CodeMeta term (name, version, author, contributor, license, identifier, codeRepository, description, keywords, datePublished), or a person sub-term qualified by the term it sits under: author.givenName, author.familyName, author.@id (ORCID), and the same three under contributor.",
+          "description": "A CodeMeta term (name, version, author, contributor, license, identifier, codeRepository, description, keywords, datePublished), swhid (the Software Heritage identifier, which codemeta.json holds in identifier), or a person sub-term qualified by the term it sits under: author.givenName, author.familyName, author.@id (ORCID), and the same three under contributor.",
           "type": "string",
           "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.@?[A-Za-z][A-Za-z0-9]*)?$"
         },

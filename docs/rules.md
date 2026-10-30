@@ -4,7 +4,7 @@
 
 `citesync rules` lists these rules, and `citesync explain <id>` prints one section.
 
-The ten rules from `name-mismatch` to `date-mismatch` compare a field with the source. When the source doesn't hold the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+The eleven rules from `name-mismatch` to `date-mismatch` compare a field with the source. When the source doesn't hold the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
 
 ## name-mismatch
 
@@ -51,6 +51,14 @@ To fix: Make the file agree with the source, or the other way round if the sourc
 The DOI differs from the source's. Severity: error.
 
 DOIs compare case-insensitively, with or without `https://doi.org/`. Manifests have no DOI.
+
+To fix: Make the file agree with the source, or the other way round if the source is wrong.
+
+## swhid-mismatch
+
+The Software Heritage identifier (SWHID) differs from the source's. Severity: error.
+
+CFF `identifiers` of type `swh`, Zenodo `related_identifiers` with scheme `swh`, and a SWHID in CodeMeta `identifier`, as a string or a PropertyValue beside the DOI. The hash compares case-insensitively, qualifiers after `;` as written. Manifests have no SWHID.
 
 To fix: Make the file agree with the source, or the other way round if the source is wrong.
 

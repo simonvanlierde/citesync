@@ -30,6 +30,11 @@
       "relation": "isSupplementTo",
       "identifier": "https://github.com/example/other",
       "scheme": "url"
+    },
+    {
+      "relation": "isIdenticalTo",
+      "identifier": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
+      "scheme": "swh"
     }
   ],
   "keywords": ["alpha", "beta", "gamma", "delta"]
