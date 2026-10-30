@@ -73,6 +73,12 @@ def find_root(start: Path) -> Path:
     return start
 
 
+def git_top(start: Path) -> Path | None:
+    """The nearest directory from ``start`` up that holds ``.git``: the top of its repo, or None outside one."""
+    start = start.resolve()
+    return next((directory for directory in (start, *start.parents) if (directory / ".git").exists()), None)
+
+
 def load_config(root: Path, source: str | None = None) -> Config:
     """The config in use under ``root``, with ``source`` from the command line on top.
 

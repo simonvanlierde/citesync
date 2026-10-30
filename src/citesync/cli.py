@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from citesync.check import Finding, check
-from citesync.config import Config, find_root, load_config, render
+from citesync.config import Config, find_root, git_top, load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain
 
@@ -193,13 +193,16 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         findings = [f for f in findings if f.severity == "error"]
     elif not args.verbose:
         findings = [f for f in findings if f.severity != "info"]
+    # Code scanning and annotations place a file by its path in the repo, not under citesync's root.
+    top, root = git_top(args.root), args.root.resolve()
+    prefix = f"{root.relative_to(top).as_posix()}/" if top and top != root else ""
     if args.format == "sarif":
-        print(json.dumps(_sarif(findings), indent=2))
+        print(json.dumps(_sarif(findings, prefix), indent=2))
         return
     total = f"{_count(counts['error'], 'error')}, {_count(counts['warning'], 'warning')} in {_count(files, 'file')}"
     if args.format == "github":
         for f in findings:
-            where = f"file={_escape(f.file, property_=True)}," if f.file else ""
+            where = f"file={_escape(prefix + f.file, property_=True)}," if f.file else ""
             where += f"line={f.line},col={f.column}," if f.line else ""
             message = _escape(f"{f.term}: {f.message}" if f.term else f.message)
             print(f"::{_GITHUB_LEVEL[f.severity]} {where}title=citesync {f.rule}::{message}")
@@ -215,8 +218,11 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
         print(total)
 
 
-def _sarif(findings: list[Finding]) -> dict[str, Any]:
-    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding."""
+def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
+    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding.
+
+    ``prefix`` is the root's path in its git repo, ending in ``/``, or empty at the repo's top.
+    """
     results = []
     for f in findings:
         result: dict[str, Any] = {
@@ -225,7 +231,7 @@ def _sarif(findings: list[Finding]) -> dict[str, Any]:
             "message": {"text": f"{f.term}: {f.message}" if f.term else f.message},
         }
         if f.file:
-            location: dict[str, Any] = {"artifactLocation": {"uri": f.file}}
+            location: dict[str, Any] = {"artifactLocation": {"uri": prefix + f.file}}
             if f.line:
                 location["region"] = {"startLine": f.line, "startColumn": f.column or 1}
             result["locations"] = [{"physicalLocation": location}]

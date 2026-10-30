@@ -112,7 +112,7 @@ To fix: Add the person back, point the Role at their ORCID, or remove the Role.
 
 The source's version is older than the repo's newest git tag. Severity: warning.
 
-Tags are read from the repo's `.git` directory, and those that read as a PEP 440 version count, with or without a leading `v`, so `v0.2.0` is newer than `0.1.0`. Outside a git repository, or when no tag reads as a version, the rule is silent. A warning, so `write` never changes the version for it.
+Tags are read from the `.git` directory of the repo holding the root, found by walking up from it, and those that read as a PEP 440 version count, with or without a leading `v`, so `v0.2.0` is newer than `0.1.0`. Outside a git repository, or when no tag reads as a version, the rule is silent. A warning, so `write` never changes the version for it.
 
 To fix: Bump the version in the source and run `citesync write`, so the next release isn't cited as the last one.
 

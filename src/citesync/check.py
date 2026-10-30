@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from citesync import codecs
-from citesync.config import Config
+from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, slots
 from citesync.mapping import FORMATS, PEOPLE, TERMS, Mapping, load_mapping
@@ -111,14 +111,17 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int]:
 
 
 def git_tags(root: Path) -> list[str]:
-    """The tag names of the git repository at ``root``, read from its files; none when it isn't one.
+    """The tag names of the git repository holding ``root``, read from its files; none outside one.
 
     Reads loose refs and ``packed-refs`` in the common git dir, so a linked worktree sees the
     clone's tags. Running ``git`` would cost a process per check.
     """
-    git = root / ".git"
+    top = git_top(root)
+    if top is None:
+        return []
+    git = top / ".git"
     if git.is_file():  # a linked worktree: "gitdir: <path>", whose commondir file points at the clone's .git
-        git = (root / git.read_text(encoding="utf-8").removeprefix("gitdir:").strip()).resolve()
+        git = (top / git.read_text(encoding="utf-8").removeprefix("gitdir:").strip()).resolve()
         if (git / "commondir").is_file():
             git = (git / (git / "commondir").read_text(encoding="utf-8").strip()).resolve()
     tags = [p.relative_to(git / "refs/tags").as_posix() for p in (git / "refs/tags").rglob("*") if p.is_file()]

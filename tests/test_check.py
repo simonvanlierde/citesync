@@ -226,7 +226,8 @@ def test_sarif_levels_and_region() -> None:
             Finding("a.json", "name", "name-mismatch", "m", line=3, column=5),
             Finding("a.json", "author", "role-dangling", "m"),
             Finding("a.json", "x", "not-checked", "m"),
-        ]
+        ],
+        "",
     )
     run = log["runs"][0]
     assert [r["level"] for r in run["results"]] == ["error", "warning", "note"]
@@ -237,7 +238,7 @@ def test_sarif_levels_and_region() -> None:
 
 def test_sarif_finding_without_a_file_has_no_locations() -> None:
 
-    log = _sarif([Finding(file=None, term="version", rule="not-checked", message="no file holds it")])
+    log = _sarif([Finding(file=None, term="version", rule="not-checked", message="no file holds it")], "")
     assert "locations" not in log["runs"][0]["results"][0]
 
 
@@ -977,6 +978,26 @@ def test_a_linked_worktree_reads_the_clone_tags(tmp_path: Path, capsys: pytest.C
     assert [f["message"] for f in report["findings"] if f["rule"] == "version-behind-tag"] == [
         "0.1.0, the newest tag is v1.0.0"
     ]
+
+
+def test_a_subdirectory_root_reads_the_repo_tags_and_reports_repo_paths(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "CITATION.cff").write_text(CFF + "version: 1.0.0\n", encoding="utf-8")
+    (pkg / ".zenodo.json").write_text(json.dumps({"title": "y"}), encoding="utf-8")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t.test", "commit", "-qm", "x")
+    _git(tmp_path, "tag", "v3.0.0")
+
+    _, out, _ = _run(capsys, "check", "--root", str(pkg), "--format", "sarif")
+    results = json.loads(out)["runs"][0]["results"]
+    uris = [(r["ruleId"], r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]) for r in results]
+    assert uris == [("name-mismatch", "pkg/.zenodo.json"), ("version-behind-tag", "pkg/CITATION.cff")]
+    _, out, _ = _run(capsys, "check", "--root", str(pkg), "--format", "github")
+    assert out.startswith("::error file=pkg/.zenodo.json,title=citesync name-mismatch::")
 
 
 ROLE = {"@type": "Role", "schema:author": {"@id": f"https://orcid.org/{ORCID_A}"}, "roleName": "Software"}
