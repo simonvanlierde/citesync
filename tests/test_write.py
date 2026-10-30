@@ -917,7 +917,6 @@ def test_a_listed_codemeta_json_that_is_missing_is_created(
 ) -> None:
     root = _synthetic(tmp_path / "repo", f'files = ["{rel}", ".zenodo.json"]\n')
     (root / "codemeta.json").unlink()
-    (root / "docs").mkdir()
 
     code, out, _ = _run(capsys, "check", "--root", str(root))
     assert code == 1
