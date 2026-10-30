@@ -1,7 +1,7 @@
 [project]
 name = "citesync"
-version = "0.1.0"
-description = "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks"
+version = "0.2.0"
+description = "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, rewrite them to match one source file, and start a CITATION.cff from them, using the CodeMeta crosswalks"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Simon van Lierde", email = "code@duinlab.nl" }]
