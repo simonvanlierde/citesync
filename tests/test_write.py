@@ -749,3 +749,27 @@ def test_cargo_keywords_keep_their_hyphens(source: str, tmp_path: Path, capsys: 
     assert _run(capsys, "check", "-q", "--root", str(root))[0] == 0
     assert _run(capsys, "write", "-q", "--root", str(root))[0] == 0
     assert (root / "Cargo.toml").read_text(encoding="utf-8") == cargo
+
+
+def test_a_listed_codemeta_json_that_is_missing_is_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json", ".zenodo.json"]\n')
+    (root / "codemeta.json").unlink()
+
+    code, out, _ = _run(capsys, "check", "--root", str(root))
+    assert code == 1
+    assert "codemeta.json: error[file-missing]" in out
+    _run(capsys, "write", "--root", str(root))
+    created = (root / "codemeta.json").read_text(encoding="utf-8")
+    assert json.loads(created) == json.loads((SYNTHETIC / "codemeta.json").read_text(encoding="utf-8"))
+    assert (root / "codemeta.json").stat().st_mode & 0o044, "readable by others, as a new file normally is"
+    assert _run(capsys, "check", "--root", str(root))[0] == 0
+
+
+def test_a_missing_zenodo_json_is_reported_not_created(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json", ".zenodo.json"]\n')
+    (root / ".zenodo.json").unlink()
+
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert ".zenodo.json: error[file-missing]" in out
+    assert not (root / ".zenodo.json").exists()
