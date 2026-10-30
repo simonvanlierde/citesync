@@ -78,10 +78,6 @@ just hooks       # the git hooks, as the checks workflow runs them
 
 uv locks only releases at least a week old. If `just check` fails on a newer security fix, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`, and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 
-## Releasing
-
-See [docs/releasing.md](https://github.com/simonvanlierde/citesync/blob/main/docs/releasing.md).
-
 ## Licence
 
 See [LICENSE](https://github.com/simonvanlierde/citesync/blob/main/LICENSE).

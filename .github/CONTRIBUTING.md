@@ -60,6 +60,8 @@ The `dco` workflow checks every pull request from a fork and fails on a commit w
 
 Simon van Lierde maintains citesync: reviews pull requests, merges them and
 makes releases. The repository belongs to [simonvanlierde](https://github.com/simonvanlierde)
-on GitHub. Only maintainers can merge to `main`. A new maintainer is added by an existing one, by name in this section.
+on GitHub. A release sets the version in pyproject.toml, adds a `## [X.Y.Z]` section to CHANGELOG.md and pushes the tag `vX.Y.Z`;
+the [release workflow](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#release-workflows) does the rest.
+Only maintainers can merge to `main`. A new maintainer is added by an existing one, by name in this section.
 If no maintainer can continue, the repository is archived with a note in the README,
 and anyone may fork it under its license.
