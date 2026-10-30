@@ -663,12 +663,30 @@ def test_keywords_that_differ_only_in_separators(
 
 
 def test_many_keywords_compare_in_linear_time() -> None:
-    words = [f"w{i}" for i in range(20_000)]
-    ref = Doc("CITATION.cff", "cff-1.2.0", {"keywords": (*words, "big data")}, frozenset(), "1.2.0", release=True)
-    doc = Doc("codemeta.json", "codemeta", {"keywords": (*words, "big-data", "x")}, frozenset(), "3.0", release=True)
-    start = time.perf_counter()
-    finding = compare("keywords", ref, doc, kw_key=codecs.name_key)
-    assert time.perf_counter() - start < 1
+    """Four times the keywords take about four times as long, not sixteen.
+
+    A ratio, not a time limit, so a loaded machine slows both runs alike; each is the best of three.
+    """
+
+    def docs(n: int) -> tuple[Doc, Doc]:
+        words = [f"w{i}" for i in range(n)]
+        ref = Doc("CITATION.cff", "cff-1.2.0", {"keywords": (*words, "big data")}, frozenset(), "1.2.0", release=True)
+        doc = Doc(
+            "codemeta.json", "codemeta", {"keywords": (*words, "big-data", "x")}, frozenset(), "3.0", release=True
+        )
+        return ref, doc
+
+    def best(n: int) -> float:
+        ref, doc = docs(n)
+        times = []
+        for _ in range(3):
+            start = time.perf_counter()
+            compare("keywords", ref, doc, kw_key=codecs.name_key)
+            times.append(time.perf_counter() - start)
+        return min(times)
+
+    assert best(20_000) / best(5_000) < 8
+    finding = compare("keywords", *docs(20_000), kw_key=codecs.name_key)
     assert finding is not None
     assert (
         finding.message == "extra x; 'big-data' differs from 'big data' only in separators (compared with CITATION.cff)"
