@@ -7,7 +7,7 @@ from pathlib import Path
 from citesync import codecs
 from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
-from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, slots
+from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, same_name, slots
 from citesync.mapping import FORMATS, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import MISMATCH, RULES, url
 
@@ -337,10 +337,10 @@ def _same_people(ref: Doc, doc: Doc, term: str, *, names: bool) -> bool:
     if names and len(a) != len(b):
         return False
     for p, q in zip(a, b, strict=False):
-        same_name = codecs.name_key(p.name or "") == codecs.name_key(q.name or "")
-        if names and not same_name:
+        named = same_name(p, q)
+        if names and not named:
             return False
-        if same_name and p.orcid and q.orcid and p.orcid != q.orcid:
+        if named and p.orcid and q.orcid and p.orcid != q.orcid:
             return False
     return True
 

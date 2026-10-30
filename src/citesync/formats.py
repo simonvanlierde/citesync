@@ -49,6 +49,21 @@ class Person:
     organization: bool = field(default=False, compare=False)
 
 
+def same_name(p: Person, q: Person) -> bool:
+    """Equal names; a one-string name also matches the other's ``"Family Given"`` or ``"FamilyGiven"``.
+
+    Two split names in the opposite order still differ: there the parts say which is the family name.
+    """
+    a, b = codecs.name_key(p.name or ""), codecs.name_key(q.name or "")
+    if a == b:
+        return True
+    p_split, q_split = bool(p.given and p.family), bool(q.given and q.family)
+    if p_split == q_split:
+        return False
+    split, one = (p, b) if p_split else (q, a)
+    return one in {codecs.name_key(f"{split.family}{sep}{split.given}") for sep in (" ", "")}
+
+
 @dataclass(frozen=True)
 class Doc:
     """One file as citesync sees it.

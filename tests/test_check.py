@@ -671,6 +671,29 @@ def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixt
     assert _split(_check_json(tmp_path, capsys, files))[0] == []
 
 
+MISMATCHED = [("author-mismatch", "codemeta.json", "author")]
+
+
+@pytest.mark.parametrize(
+    ("given", "family", "other", "expected"),
+    [
+        pytest.param("呦呦", "屠", {"name": "屠呦呦"}, [], id="one-name-family-first-no-space"),
+        pytest.param("Youyou", "Tu", {"name": "Tu Youyou"}, [], id="one-name-family-first"),
+        pytest.param("Youyou", "Tu", {"name": "Youyou Tu"}, [], id="one-name-given-first"),
+        pytest.param("Simon", "Lierde", {"givenName": "Lierde", "familyName": "Simon"}, MISMATCHED, id="split-swapped"),
+        pytest.param("Youyou", "Tu", {"name": "Tu You"}, MISMATCHED, id="one-name-differs"),
+    ],
+)
+def test_family_first_names_match_only_against_one_name(
+    given: str, family: str, other: dict, expected: list, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    files = {
+        "CITATION.cff": CFF + f"authors:\n  - {{given-names: {given}, family-names: {family}}}\n",
+        "codemeta.json": _codemeta(author=[other]),
+    }
+    assert _triples(_split(_check_json(tmp_path, capsys, files))[0]) == expected
+
+
 @pytest.mark.parametrize(
     ("orcid", "expected"), [(ORCID_A, []), (ORCID_B, [f"'? ({ORCID_B})', CITATION.cff has '? ({ORCID_A})'"])]
 )
