@@ -131,7 +131,8 @@ def _yaml_keys(text: str) -> Keys:
 def _toml_keys(text: str) -> Keys:
     """A line scan of the keys and table headers: tomllib keeps no positions, and tomlkit costs 10 ms to import.
 
-    shortcut: a key inside a multi-line array of inline tables isn't seen; findings stop at the array's key anyway.
+    shortcut: a key inside a multi-line array of inline tables isn't seen, and an array's last ``["a"]`` with no
+    comma reads as a header; findings stop at the array's key anyway.
     """
     keys: Keys = {}
     table: tuple[str, ...] = ()
@@ -144,7 +145,8 @@ def _toml_keys(text: str) -> Keys:
         if body.startswith("["):
             bracket = "]]" if body.startswith("[[") else "]"
             found = _dotted_key(line, len(line) - len(body) + len(bracket))
-            if found and line.startswith(bracket, found[1]):
+            rest = line[found[1] + len(bracket) :].lstrip(" \t") if found else ""
+            if found and line.startswith(bracket, found[1]) and rest[:1] in {"", "#"}:  # not `["a"],` in an array
                 table = tuple(name for name, _ in found[0])
                 _record(keys, (), found[0], n)
             continue

@@ -75,6 +75,14 @@ def test_toml_keys_inside_a_multiline_string_or_a_comment_are_not_keys(tmp_path:
     assert ("version",) not in keys
 
 
+def test_an_array_of_arrays_is_not_read_as_table_headers(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nmatrix = [\n  ["a"],\n  ["b"],\n]\nversion = "1.0"\n', "utf-8")
+    keys = key_positions(tmp_path / "pyproject.toml")
+    assert keys[("project", "version")] == (6, 1)
+    assert ("a",) not in keys
+    assert ("b",) not in keys
+
+
 def test_cargo_dotted_and_workspace_keys(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text(
         '[workspace.package]\nlicense = "MIT"\n\n[package]\nname = "x"\nversion.workspace = true\n', "utf-8"
