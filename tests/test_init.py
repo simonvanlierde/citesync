@@ -120,6 +120,19 @@ def test_init_diff_writes_nothing(tmp_path: Path, run: "Run") -> None:
     assert not (tmp_path / "CITATION.cff").exists()
 
 
+def test_init_diff_names_split_names_and_left_out_fields_on_stderr(tmp_path: Path, run: "Run") -> None:
+    pyproject = PYPROJECT.replace('"MIT"', '"MIT AND Apache-2.0"')
+    (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
+    code, out, err = run("init", "--diff", "--root", str(tmp_path))
+    assert code == 0
+    assert out.startswith("--- /dev/null\n")
+    assert err.splitlines() == [
+        "leaving out license: a licence list can only say OR, not AND or WITH",
+        "check the name split: 'Marie Curie' became given 'Marie', family 'Curie'",
+        "check the name split: 'Tu Youyou' became given 'Tu', family 'Youyou'",
+    ]
+
+
 @pytest.mark.parametrize(
     ("pyproject", "message"),
     [
@@ -271,5 +284,15 @@ def test_init_then_check_passes(files: dict[str, str], left: str, tmp_path: Path
         (tmp_path / name).write_text(text, encoding="utf-8")
     code, out, _ = run("init", "--root", str(tmp_path))
     assert (code, out.startswith(f"wrote CITATION.cff{left}\n")) == (0, True), out
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 0, out
+
+
+def test_init_keeps_a_licence_list_when_zenodo_license_list_is_ignored(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "Cargo.toml").write_text(CARGO, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('ignore = ["zenodo-license-list"]\n', encoding="utf-8")
+    code, out, _ = run("init", "--root", str(tmp_path))
+    assert (code, out.splitlines()[0]) == (0, "wrote CITATION.cff")
+    assert _cff(tmp_path)["license"] == ["MIT", "Apache-2.0"]
     code, out, _ = run("check", "--root", str(tmp_path))
     assert code == 0, out

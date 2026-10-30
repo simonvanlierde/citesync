@@ -17,7 +17,7 @@ To upgrade from 0.1.0:
 
 ### Added
 
-- `citesync init` writes a CITATION.cff from codemeta.json, .zenodo.json and the package manifests when a repo has none, so `citesync check` passes from the start ([docs/init.md](docs/init.md)).
+- `citesync init` writes a CITATION.cff from codemeta.json, .zenodo.json and the package manifests when a repo has none. It passes `citesync check` when those files already agree, and `citesync write` fixes the rest ([docs/init.md](docs/init.md)).
 - Contributors are compared across codemeta.json, .zenodo.json and package.json, the same way as authors (`contributor-mismatch`).
 - Release dates are compared across CITATION.cff, codemeta.json and .zenodo.json (`date-mismatch`).
 - Software Heritage identifiers (SWHIDs) are compared across CITATION.cff, codemeta.json and .zenodo.json, and `citesync write` fixes them (`swhid-mismatch`, [docs/check.md](docs/check.md#how-values-compare)).
