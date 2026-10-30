@@ -92,12 +92,12 @@ def write(
         if not terms and not context:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
-        crlf = "\r\n" in old  # edited with LF line ends, which the YAML and JSON writers add
-        new, reasons = _rewrite(doc, source, terms, old.replace("\r\n", "\n") if crlf else old, mapping, context, key)
-        new = new.replace("\n", "\r\n") if crlf else new
+        lf = old.replace("\r\n", "\n")  # edited with LF line ends, which the YAML and JSON writers add
+        new, reasons = _rewrite(doc, source, terms, lf, mapping, context, key)
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
-        if new != old:
-            texts[doc.path] = new
+        if new != lf:
+            crlf = old.count("\r\n") * 2 > old.count("\n")  # a file with both gets the more common one
+            texts[doc.path] = new.replace("\n", "\r\n") if crlf else new
             changed = [*terms, "@context"] if context else terms
             done |= {(doc.path, t) for t in changed if t not in reasons}
     version = config.codemeta_version or NEW_CODEMETA_VERSION

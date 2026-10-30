@@ -575,6 +575,32 @@ def test_crlf_line_ends_stay(name: str, tmp_path: Path, capsys: pytest.CaptureFi
         assert written == _expected(name).replace(b"\n", b"\r\n")
 
 
+@pytest.mark.parametrize("crlf_lines", [1, 12, 13])  # of 24 lines: a tie keeps LF
+def test_mixed_line_ends_take_the_more_common_one(
+    crlf_lines: int, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    lines = (PLANTED / "CITATION.cff").read_bytes().splitlines(keepends=True)
+    mixed = [line.replace(b"\n", b"\r\n") for line in lines[:crlf_lines]] + lines[crlf_lines:]
+    (root / "CITATION.cff").write_bytes(b"".join(mixed))
+
+    assert _run(capsys, "write", "--root", str(root))[0] == 0
+    expected = _expected("CITATION.cff")
+    assert (root / "CITATION.cff").read_bytes() == (expected.replace(b"\n", b"\r\n") if crlf_lines > 12 else expected)
+
+
+def test_a_mixed_file_write_leaves_alone_keeps_its_line_ends(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    _edit(root / "codemeta.json", '"https://spdx.org/licenses/Apache-2.0"', '"MIT AND Apache-2.0"')
+    cff = root / "CITATION.cff"
+    cff.write_bytes(cff.read_bytes().replace(b"\n", b"\r\n", 1))
+    before = cff.read_bytes()
+    assert _run(capsys, "write", "--root", str(root))[0] == 1
+    assert cff.read_bytes() == before
+
+
 def test_a_failed_write_changes_no_file(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
