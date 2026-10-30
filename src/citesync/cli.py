@@ -7,6 +7,7 @@ unless moving a written file into place failed: files moved before it stay writt
 """
 
 import argparse
+import io
 import json
 import os
 import re
@@ -112,6 +113,7 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """Run the command line and return its exit code."""
+    _utf8_streams()
     parser = _parser()
     args = parser.parse_args(argv)
     if getattr(args, "diff", False) and args.format != "text":
@@ -150,6 +152,13 @@ def main(argv: list[str] | None = None) -> int:
         ]
     _report(findings, files, args)
     return 1 if any(f.severity == "error" for f in findings) else 0
+
+
+def _utf8_streams() -> None:
+    """Print UTF-8 whatever the streams were opened with: a Windows pipe is cp1252, which can't print most names."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper) and stream.encoding.lower().replace("-", "") != "utf8":
+            stream.reconfigure(encoding="utf-8")
 
 
 def _write(root: Path, config: Config) -> tuple[dict[str, str], dict[tuple[str, str], str]]:

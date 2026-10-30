@@ -1,10 +1,12 @@
 """`citesync check` on the fixtures, against the findings in each cases.json, plus the D2 table and exit codes."""
 
+import io
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 from importlib.metadata import version
 from pathlib import Path
@@ -903,6 +905,17 @@ def test_control_characters_are_escaped(fmt: str, tmp_path: Path, capsys: pytest
     assert code == 1
     assert not re.search("[\x00-\x09\x0b-\x1f\x7f-\x9f]", out)
     assert "\\x1b]0;x\\x07\\x9b" in out
+
+
+def test_a_non_utf8_stdout_prints_utf8(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Windows pipe is cp1252, which can't encode a CJK title: printing it must not fail the check."""
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="\u6bdb\u6cfd\u4e1c"), encoding="utf-8")
+    raw = io.BytesIO()
+    monkeypatch.setattr("sys.stdout", io.TextIOWrapper(raw, encoding="cp1252"))
+    assert main(["check", "--root", str(tmp_path)]) == 1
+    sys.stdout.flush()
+    assert "\u6bdb\u6cfd\u4e1c" in raw.getvalue().decode("utf-8")
 
 
 def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
