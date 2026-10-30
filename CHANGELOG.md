@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `citesync check --format sarif` (and `write`) prints a SARIF 2.1.0 log that GitHub code scanning can upload with `github/codeql-action/upload-sarif`.
 - `citesync write` creates codemeta.json when the `files` setting lists it and it doesn't exist yet. A missing listed file is a new `file-missing` error in `citesync check`.
 - When a repo has no .zenodo.json, Zenodo reads CITATION.cff, so two rules check it. `zenodo-license-list` is an error for a `license` list, which Zenodo refuses. `zenodo-drops-field` warns about `identifiers` and `references`, which Zenodo leaves out of the record; a Zenodo DOI among the identifiers is fine.
 - A keyword that differs from another file's only in hyphens, underscores or spaces is named in the finding, as in `industrial-ecology (CITATION.cff has 'industrial ecology': differs only in separators)`. `citesync write` gives it the source's spelling where it stands, instead of dropping it.
