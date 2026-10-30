@@ -1,6 +1,14 @@
 # Configuration
 
-citesync reads one config: the first of these it finds, in this order: `citesync.toml`, `.citesync.toml`, `[tool.citesync]` in pyproject.toml, `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml, or `"citesync"` in package.json. The others are ignored, not merged. `citesync config` prints the config in use and the file it came from.
+citesync reads the first config it finds, in this order:
+
+1. `citesync.toml`
+2. `.citesync.toml`
+3. `[tool.citesync]` in pyproject.toml
+4. `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml
+5. `"citesync"` in package.json
+
+It ignores the others and doesn't merge them. `citesync config` prints the config in use and the file it came from.
 
 ```toml
 source = "CITATION.cff"                  # any of the six files
@@ -13,8 +21,8 @@ keywords-ignore-separators = true           # default false: big-data and big da
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 
-`write-manifests` names fields by their CodeMeta term, as the JSON `term` does: `name`, `version`, `author`, `contributor`, `license`, `identifier` (the DOI), `codeRepository`, `description`, `keywords` and `datePublished`. Rule ids use the plainer `doi`, `repository` and `date`. Manifests have no release date, so `datePublished` there changes nothing.
+`write-manifests` names fields by their CodeMeta term: `name`, `version`, `author`, `contributor`, `license`, `identifier` (the DOI), `codeRepository`, `description`, `keywords` and `datePublished`. This is the `term` in the JSON output. Rule ids use the plainer `doi`, `repository` and `date`.
 
-`codemeta-version` has no default. Unset, `check` accepts any CodeMeta version it reads (2.0, 3.0, 3.1, 4.0) and `write` leaves `@context` alone. Set, a codemeta.json with another `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes. A codemeta.json that `write` creates gets the configured version, else 3.0, the version Software Heritage reads.
+With `codemeta-version` unset, `check` accepts CodeMeta 2.0, 3.0, 3.1 and 4.0, and `write` leaves `@context` alone. Once it's set, any other `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes.
 
-An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error, and `unreadable` can't be ignored.
+An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error. You can't ignore `unreadable`.
