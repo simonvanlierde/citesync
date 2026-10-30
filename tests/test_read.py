@@ -1,6 +1,7 @@
 """Every fixture file reads into the record written by hand in its directory's record.json."""
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -31,8 +32,12 @@ def _plain(doc: Doc) -> dict[str, object]:
 
 
 @pytest.mark.parametrize(("repo", "rel", "expected"), CASES, ids=[f"{r}/{p}" for r, p, _ in CASES])
-def test_reads_fixture(repo: str, rel: str, expected: dict[str, object]) -> None:
-    assert _plain(read_doc(FIXTURES / repo, rel, load_mapping())) == expected
+def test_reads_fixture(repo: str, rel: str, expected: dict[str, object], update_expected: Callable[..., bool]) -> None:
+    actual = _plain(read_doc(FIXTURES / repo, rel, load_mapping()))
+    # Equal records stay as written, so a changed key order doesn't show up as a diff.
+    if actual != expected and update_expected(FIXTURES / repo / "record.json", lambda d: d.__setitem__(rel, actual)):
+        return
+    assert actual == expected
 
 
 def test_every_fixture_file_has_a_record() -> None:

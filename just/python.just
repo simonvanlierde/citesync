@@ -2,13 +2,14 @@
 py-sync:
     uv sync
 
-# What CI runs: lint, format check, types, tests, dependency audit.
+# What CI runs: lint, format check, types, tests, dependency audit, citesync on this repo.
 py-check:
     uv run ruff check
     uv run ruff format --check
     uv run ty check
     uv run pytest
     uv audit --locked --preview-features audit-command
+    uv run citesync check --format github
 
 # Fix what ruff can fix, then format.
 py-fmt:
