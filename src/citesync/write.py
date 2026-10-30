@@ -178,8 +178,8 @@ def init(
         cff, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key(config)
     )
     data.update((blank[term][0], value) for term, value in values.items())
-    if swhid := record.get("swhid"):  # CFF holds it in identifiers, as a typed entry
-        data["identifiers"] = [{"type": "swh", "value": swhid}]
+    if swhid := record.get("swhid"):  # CFF holds it in identifiers, as a typed entry, with no qualifiers
+        data["identifiers"] = [{"type": "swh", "value": codecs.swhid_key(swhid)}]
     if (
         not (root / ".zenodo.json").is_file()
         and "zenodo-license-list" not in config.ignore
@@ -325,7 +325,7 @@ def _new_codemeta(
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
     values, skipped = _encode_terms(doc, source, blank, mapping, keyword_key)
     if swhid := source.record.get("swhid"):  # codemeta holds it in identifier, beside the DOI
-        value = {"@type": "PropertyValue", "propertyID": "SWHID", "value": swhid}
+        value = {"@type": "PropertyValue", "propertyID": "SWHID", "value": codecs.swhid_encode(swhid)}
         values["identifier"] = [values["identifier"], value] if "identifier" in values else value
     return json.dumps(data | values, indent=2, ensure_ascii=False) + "\n", skipped
 
@@ -413,7 +413,8 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     if term == "identifier":
         return _identifier(value, old, codecs.doi_decode, _doi_form)
     if term == "swhid":
-        return _identifier(value, old, codecs.swhid_decode, lambda swhid, _: swhid)
+        spell = codecs.swhid_key if fmt == "cff-1.2.0" else codecs.swhid_encode  # CFF 1.2.0 takes no qualifiers
+        return _identifier(value, old, codecs.swhid_decode, lambda swhid, _: spell(swhid))
     if term == "codeRepository":
         if isinstance(old, dict):  # npm's {type, url}
             old["url"] = _encode(doc, source, term, value, old["url"], keyword_key)

@@ -21,7 +21,7 @@ _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
 _LEADING_SLASHES_AND_SPACE = re.compile(r"^[\s/]+")
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
 _DOI = re.compile(r"^10\.\d+/\S+$")
-_SWHID = re.compile(r"^swh:1:(?:cnt|dir|rev|rel|snp):[0-9a-fA-F]{40}(?:;\S*)?$")
+_SWHID = re.compile(r"^swh:1:(?:cnt|dir|rev|rel|snp):[0-9a-fA-F]{40}(?:;[^;\s]+)*$")
 _NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
 _NPM_SHORTHAND = re.compile(r"^(?P<host>github|gitlab|bitbucket):(?P<path>[\w.-]+/[\w.-]+)$")
 _SSH = re.compile(r"^(?:ssh://)?git@(?P<host>[^:/]+)[:/](?P<path>.+)$")
@@ -152,7 +152,15 @@ def _swhid(raw: object) -> str | None:
 
 
 def swhid_key(swhid: str) -> str:
-    """The hash compares case-insensitively; the qualifiers after ``;`` as written, since an origin URL may not."""
+    """The core, ``swh:1:<type>:<hash>`` with the hash lowercased: the qualifiers after ``;`` don't compare.
+
+    CFF 1.2.0 takes no qualifiers, so a qualified SWHID elsewhere must still agree with its core there.
+    """
+    return swhid.partition(";")[0].lower()
+
+
+def swhid_encode(swhid: str) -> str:
+    """``swhid`` with its hash lowercased, as Zenodo requires, and its qualifiers kept."""
     core, sep, qualifiers = swhid.partition(";")
     return core.lower() + sep + qualifiers
 

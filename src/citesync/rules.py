@@ -82,8 +82,9 @@ _FIELDS = {
         "The Software Heritage identifier (SWHID) differs from the source's.",
         (
             "CFF `identifiers` of type `swh`, Zenodo `related_identifiers` with scheme `swh` (or no scheme),"
-            " and a SWHID in CodeMeta `identifier`, as a string or a PropertyValue beside the DOI. The hash"
-            " compares case-insensitively, qualifiers after `;` as written. Manifests have no SWHID."
+            " and a SWHID in CodeMeta `identifier`, as a string or a PropertyValue beside the DOI. Only the core,"
+            " `swh:1:<type>:<hash>`, compares, with the hash in any case: qualifiers after `;` are ignored, since"
+            " CFF 1.2.0 takes none. Manifests have no SWHID."
         ),
     ),
     "codeRepository": (

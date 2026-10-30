@@ -58,6 +58,19 @@ def test_init_from_every_file_passes_check(tmp_path: Path, run: "Run") -> None:
     assert code == 0, out
 
 
+def test_init_writes_a_qualified_swhid_as_its_core(tmp_path: Path, run: "Run") -> None:
+    root = tmp_path / "repo"
+    shutil.copytree(SYNTHETIC, root)
+    (root / "CITATION.cff").unlink()
+    zenodo = root / ".zenodo.json"
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    zenodo.write_text(zenodo.read_text(encoding="utf-8").replace(swhid, swhid + ";origin=https://x.org/r"), "utf-8")
+    assert run("init", "--root", str(root))[0] == 0
+    assert _cff(root)["identifiers"] == [{"type": "swh", "value": swhid}]  # CFF 1.2.0 takes no qualifiers
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 0, out
+
+
 def test_init_says_to_check_a_split_name(tmp_path: Path, run: "Run") -> None:
     pyproject = PYPROJECT.replace('{ name = "Tu Youyou" }', '{ name = "Antonie van Leeuwenhoek" }')
     (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
