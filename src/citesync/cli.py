@@ -150,16 +150,16 @@ def main(argv: list[str] | None = None) -> int:
 def _write(root: Path, config: Config) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
     from citesync.write import write  # noqa: PLC0415
 
-    return write(root, config)
+    written, skipped, _ = write(root, config)
+    return written, skipped
 
 
 def _write_diff(root: Path, config: Config) -> int:
     """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
     from citesync.write import write  # noqa: PLC0415
 
-    texts, _ = write(root, config, dry_run=True)
+    texts, _, unreadable = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
-    unreadable = [f for f in check(root, config)[0] if f.rule == "unreadable"]
     for f in unreadable:  # the diff can't show a file write never touches, so say so
         where = f"{f.file}:{f.line}:{f.column}" if f.line else f.file
         print(f"{where}: error[unreadable] {f.message}", file=sys.stderr)
@@ -249,16 +249,19 @@ def _sarif(findings: list[Finding]) -> dict[str, Any]:
 
 
 def _diff(root: Path, texts: dict[str, str]) -> str:
-    """The unified diff from each file to its new text, with git's ``a/`` and ``b/`` prefixes."""
+    """The unified diff from each file to its new text, with git's ``a/`` and ``b/`` prefixes.
+
+    A file write would create is diffed from ``/dev/null``, as git shows a new file.
+    """
     import difflib  # noqa: PLC0415
 
     return "".join(
         line
         for rel, new in texts.items()
         for line in difflib.unified_diff(
-            (root / rel).read_bytes().decode("utf-8").splitlines(keepends=True),
+            (root / rel).read_bytes().decode("utf-8").splitlines(keepends=True) if (root / rel).exists() else [],
             new.splitlines(keepends=True),
-            f"a/{rel}",
+            f"a/{rel}" if (root / rel).exists() else "/dev/null",
             f"b/{rel}",
         )
     )

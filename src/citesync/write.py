@@ -49,8 +49,8 @@ NEW_CODEMETA_VERSION = "3.0"
 
 def write(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
-) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
-    """Write every finding write may fix; return the new text of each path it changed, and why it skipped a field.
+) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding]]:
+    """Write every finding write may fix; return what it wrote, why it skipped a field, and what it couldn't read.
 
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
@@ -59,6 +59,10 @@ def write(
     spell without losing something is left as it was, its (path, term) mapped to the reason.
     Every new text is made before any file is replaced, so an error leaves the files as they were.
     With ``dry_run``, nothing is replaced.
+
+    Returns:
+        The new text of each path it changed, the reason for each (path, term) it left as it was, and the
+        ``unreadable`` findings.
 
     Raises:
         CheckError: as :func:`citesync.check.check` does.
@@ -96,7 +100,7 @@ def write(
         texts["codemeta.json"] = _new_codemeta(source, config.codemeta_version or NEW_CODEMETA_VERSION, mapping, key)
     if not dry_run:
         _replace({root / rel: text for rel, text in texts.items()})
-    return dict(sorted(texts.items())), skipped
+    return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"]
 
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:

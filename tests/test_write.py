@@ -695,6 +695,16 @@ def test_diff_prints_the_edit_and_writes_nothing(tmp_path: Path, capsys: pytest.
     )  # manifest errors remain, nothing to write
 
 
+def test_diff_shows_a_codemeta_json_write_would_create(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["codemeta.json"]\n')
+    (root / "codemeta.json").unlink()
+
+    code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
+    assert (code, err) == (1, "")
+    assert out.splitlines()[:2] == ["--- /dev/null", "+++ b/codemeta.json"]
+    assert not (root / "codemeta.json").exists()
+
+
 def test_diff_takes_no_format(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["write", "--diff", "--format", "json"])
