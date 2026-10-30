@@ -108,9 +108,7 @@ def write(
             if not inside(root, rel):
                 msg = f"{rel}: resolves outside the repo root, so write won't write it"
                 raise CheckError(msg)
-            (root / rel).parent.mkdir(
-                parents=True, exist_ok=True
-            )  # a listed docs/codemeta.json may be the first file there
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)  # a listed docs/codemeta.json may be the first there
         _replace({root / rel: text for rel, text in texts.items()})
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"]
 
