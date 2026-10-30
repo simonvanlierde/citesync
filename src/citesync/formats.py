@@ -31,6 +31,7 @@ _NPM_BARE_REPO = re.compile(r"^[\w.-]+/[\w.-]+$")
 _URL_LABELS = {"source": "Source", "sourcecode": "Source", "repository": "Repository", "homepage": "Homepage"}
 _TOML_AT = re.compile(r" \(at (?:line (\d+), column (\d+)|end of document)\)$")
 _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
+_KEYWORD_COMMAS = re.compile("[,\uff0c\u3001]")  # ASCII, full-width and ideographic commas
 
 
 @dataclass(frozen=True)
@@ -364,7 +365,11 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
     raw = slot[0][slot[1]]
     if term == "keywords":
         items = (
-            raw if isinstance(raw, list) else raw.split(",") if fmt == "codemeta" and isinstance(raw, str) else [raw]
+            raw
+            if isinstance(raw, list)
+            else _KEYWORD_COMMAS.split(raw)
+            if fmt == "codemeta" and isinstance(raw, str)
+            else [raw]
         )
         words = tuple(codecs.clean(w) for w in items if isinstance(w, str) and w.strip())
         return words or None
