@@ -43,12 +43,12 @@ Manifests are compared on version, authors' names (and npm contributors' names),
 
 ## Findings and exit codes
 
-Each finding is a line, `file: severity[rule] field: message`, with a `help:` line under it that says what to do. A line after them counts them. When check fails, a last line counts the errors `citesync write` would fix:
+Each finding is a line, `file:line:column: severity[rule] field: message`, with a `help:` line under it that says what to do. The line and column point at the key the finding is about; a finding with no such key, such as a file citesync can't read at all, names the file alone. A line after the findings counts them. When check fails, a last line counts the errors `citesync write` would fix:
 
 ```text
 .zenodo.json:2:1: error[unreadable] Expecting property name enclosed in double quotes
   help: Fix the file so its parser accepts it.
-codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
+codemeta.json:3:3: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'
   help: Make the file agree with the source, or the other way round if the source is wrong.
 2 errors, 0 warnings in 3 files
 1 fixable with `citesync write`

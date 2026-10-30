@@ -133,7 +133,7 @@ def test_root_is_found_from_a_subdirectory(
     (tmp_path / "src" / "pkg").mkdir(parents=True)
     monkeypatch.chdir(tmp_path / "src" / "pkg")
     assert main(["check"]) == 1
-    assert capsys.readouterr().out.startswith("codemeta.json: error[name-mismatch]")
+    assert capsys.readouterr().out.startswith("codemeta.json:1:47: error[name-mismatch]")
 
 
 @pytest.mark.parametrize(("marker", "content"), [(origin, text) for origin, _, text in LOCATIONS[::2]])
