@@ -237,10 +237,15 @@ def test_sarif_levels_and_region() -> None:
     assert "region" not in run["results"][1]["locations"][0]["physicalLocation"]
 
 
-def test_sarif_finding_without_a_file_has_no_locations() -> None:
-
-    log = _sarif([Finding(file=None, term="version", rule="not-checked", message="no file holds it")], "")
-    assert "locations" not in log["runs"][0]["results"][0]
+def test_every_sarif_result_has_a_location(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A finding on no file, a not-checked term no file holds, has nowhere to point, so SARIF leaves it out."""
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
+    _, out, _ = _run(capsys, "check", "-v", "--root", str(tmp_path), "--format", "sarif")
+    run = json.loads(out)["runs"][0]
+    assert [r["ruleId"] for r in run["results"]] == ["name-mismatch"]
+    assert all(r["locations"] for r in run["results"])
+    assert [r["id"] for r in run["tool"]["driver"]["rules"]] == ["name-mismatch"]
 
 
 @pytest.mark.parametrize(

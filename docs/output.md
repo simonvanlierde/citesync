@@ -37,7 +37,7 @@ Findings are sorted by file, rule and field, and positions count from 1. A value
 
 ## SARIF
 
-`--format sarif` writes one SARIF 2.1.0 log: a `citesync` driver with its version and a `rules` entry (with `helpUri`) for each rule that appears, and a result per finding with `ruleId`, `level` (`error`, `warning`, or `note` for info), the text format's message, and the repo-relative file as `uri`, plus a `region` when the finding has a position. A finding on no file has no location. Like the text format, it leaves out info findings unless you pass `-v`. Exit codes are the same as for the other formats.
+`--format sarif` writes one SARIF 2.1.0 log: a `citesync` driver with its version and a `rules` entry (with `helpUri`) for each rule that appears, and a result per finding with `ruleId`, `level` (`error`, `warning`, or `note` for info), the text format's message, and the repo-relative file as `uri`, plus a `region` when the finding has a position. A finding on no file (a field no file holds, under `-v`) has nowhere to point, so SARIF leaves it out. Like the text format, it leaves out info findings unless you pass `-v`. Exit codes are the same as for the other formats.
 
 GitHub code scanning takes it through `github/codeql-action/upload-sarif`:
 

@@ -219,10 +219,11 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
 
 
 def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
-    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding.
+    """One SARIF 2.1.0 log: a rule entry for each rule that appears, a result for each finding on a file.
 
     ``prefix`` is the root's path in its git repo, ending in ``/``, or empty at the repo's top.
     """
+    findings = [f for f in findings if f.file]  # code scanning may refuse a result with no location
     results = []
     for f in findings:
         result: dict[str, Any] = {
@@ -230,11 +231,10 @@ def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
             "level": _SARIF_LEVEL[f.severity],
             "message": {"text": f"{f.term}: {f.message}" if f.term else f.message},
         }
-        if f.file:
-            location: dict[str, Any] = {"artifactLocation": {"uri": prefix + f.file}}
-            if f.line:
-                location["region"] = {"startLine": f.line, "startColumn": f.column or 1}
-            result["locations"] = [{"physicalLocation": location}]
+        location: dict[str, Any] = {"artifactLocation": {"uri": f"{prefix}{f.file}"}}
+        if f.line:
+            location["region"] = {"startLine": f.line, "startColumn": f.column or 1}
+        result["locations"] = [{"physicalLocation": location}]
         results.append(result)
     driver = {
         "name": "citesync",
