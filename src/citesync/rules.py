@@ -136,6 +136,16 @@ RULES = {
         " DOI comes from the release and the version and date from the tag. Checked only when no .zenodo.json"
         " sits beside CITATION.cff.",
     ),
+    "file-missing": Rule(
+        "error",
+        "A file listed under `files` doesn't exist.",
+        "Run `citesync write`, which creates a missing codemeta.json; create any other file by hand, or take it off"
+        " `files`.",
+        "Only for a citation file named in the `files` setting: without that setting, citesync checks the citation"
+        " files that are there. `citesync write` creates codemeta.json from the source, with the configured"
+        " `codemeta-version`. It doesn't create a .zenodo.json, which a repo needs only for what CITATION.cff"
+        " can't hold, or a CITATION.cff.",
+    ),
     "unreadable": Rule(
         "error",
         "citesync could not read the file.",
