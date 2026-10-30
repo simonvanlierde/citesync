@@ -25,7 +25,10 @@ def test_vendored_files_match_mapping_source() -> None:
     pinned = {line.split()[2]: line.split()[1] for line in lines if line.startswith("sha256 ")}
     assert set(pinned) == {"mapping-local.json", "mapping.schema.json"}
     for name, digest in pinned.items():
-        assert hashlib.sha256(PACKAGE.joinpath(name).read_bytes()).hexdigest() == digest, name
+        assert hashlib.sha256(PACKAGE.joinpath(name).read_bytes()).hexdigest() == digest, (
+            f"{name} differs from MAPPING_SOURCE: after vendoring a new codemeta-drift tag, set the tag, commit and"
+            f" the line's hash from `sha256sum src/citesync/{name}`"
+        )
 
 
 def test_mapping_validates_against_vendored_schema() -> None:

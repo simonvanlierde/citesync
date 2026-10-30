@@ -99,8 +99,8 @@ def _strip_slashes(text: str) -> str:
 
     The end is stripped as the reversed text's start, as searching for ``[\s/]+$`` is quadratic in a run of spaces.
     """
-    text = _LEADING_SLASHES_AND_SPACE.sub("", text, count=1)
-    return _LEADING_SLASHES_AND_SPACE.sub("", text[::-1], count=1)[::-1]
+    text = _LEADING_SLASHES_AND_SPACE.sub("", text)
+    return _LEADING_SLASHES_AND_SPACE.sub("", text[::-1])[::-1]
 
 
 def orcid_encode(orcid: str, form: str) -> str:

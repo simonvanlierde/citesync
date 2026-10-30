@@ -150,6 +150,7 @@ def test_repo_key_path_case() -> None:
     ("decode", "raw", "expected"),
     [
         (codecs.orcid_decode, "https://orcid.org/0000-0002-1825-009x/", "0000-0002-1825-009X"),
+        (codecs.orcid_decode, "/ 0000-0002-1825-0097", "0000-0002-1825-0097"),
         (codecs.repo_decode, "https://github.com/o/BOX/", "https://github.com/o/BOX"),
         (codecs.zenodo_name_decode, None, None),
         (codecs.zenodo_name_decode, "  ", None),

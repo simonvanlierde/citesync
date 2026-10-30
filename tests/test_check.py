@@ -1010,6 +1010,8 @@ def _git(root: Path, *args: str) -> None:
     [
         ("0.1.0", ["v0.1.0", "v0.2.0", "latest"], False, "0.1.0, the newest tag is v0.2.0"),
         ("0.1.0", ["v0.1.0", "v0.2.0rc1"], True, "0.1.0, the newest tag is v0.2.0rc1"),
+        ("0.9.5", ["v0.10.0", "v0.9.0"], False, "0.9.5, the newest tag is v0.10.0"),  # by version, not as text
+        ("", ["v0.2.0"], False, None),
         ("0.2.0", ["v0.1.0", "0.2.0"], False, None),
         ("0.1.0", ["latest"], False, None),
         ("0.1.0", [], False, None),
@@ -1032,8 +1034,26 @@ def test_version_behind_the_newest_tag_warns(
     if pack:
         _git(tmp_path, "pack-refs", "--all")
     report = _check_json(tmp_path, capsys, {})
-    found = [(f["file"], f["severity"], f["message"]) for f in report["findings"] if f["rule"] == "version-behind-tag"]
-    assert found == ([("CITATION.cff", "warning", expected)] if expected else [])
+    found = [
+        (f["file"], f["term"], f["severity"], f["message"])
+        for f in report["findings"]
+        if f["rule"] == "version-behind-tag"
+    ]
+    assert found == ([("CITATION.cff", "version", "warning", expected)] if expected else [])
+
+
+def test_loose_and_packed_tags_both_count(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "CITATION.cff").write_text(CFF + "version: 0.1.0\n", encoding="utf-8")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@t.test", "commit", "-qm", "x")
+    _git(tmp_path, "tag", "v0.1.0")
+    _git(tmp_path, "pack-refs", "--all")
+    _git(tmp_path, "tag", "v0.2.0")  # loose, beside the packed one
+    report = _check_json(tmp_path, capsys, {})
+    assert [f["message"] for f in report["findings"] if f["rule"] == "version-behind-tag"] == [
+        "0.1.0, the newest tag is v0.2.0"
+    ]
 
 
 def test_a_linked_worktree_reads_the_clone_tags(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
