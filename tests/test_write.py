@@ -1492,7 +1492,7 @@ def test_a_value_left_for_a_hand_edit_still_lets_the_next_be_written(
     zenodo = (root / ".zenodo.json").read_text(encoding="utf-8")
     code, out, _ = _run(capsys, "write", "--root", str(root))
     assert code == 1
-    assert ".zenodo.json: error[license-mismatch]" in out
+    assert ".zenodo.json:21:3: error[license-mismatch]" in out
     assert (root / ".zenodo.json").read_text(encoding="utf-8") == zenodo.replace('"delta"]', '"delta", "epsilon"]')
 
 
