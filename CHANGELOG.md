@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Contributors are compared as authors are: codemeta.json `contributor`, .zenodo.json `contributors` and package.json `contributors`. CITATION.cff has no contributor list, so with it as the source those files must agree with each other. Only the people count, never a CodeMeta Role or a Zenodo contributor `type`. A difference is a `contributor-mismatch` error. `citesync write` renames and reorders contributors, but leaves a new Zenodo contributor for a hand edit, since Zenodo needs a type for each one.
 - The release date is compared: CFF `date-released`, CodeMeta `datePublished` and Zenodo `publication_date`, by day, so a time after the date doesn't count. A difference is a `date-mismatch` error, and `citesync write` fixes it as `YYYY-MM-DD`.
 - `version-behind-tag` warns when the source's version is older than the repo's newest git tag, as after a release tagged without bumping CITATION.cff. citesync reads the tags from `.git` itself, so it runs no `git`.
 - `citesync check --format sarif` (and `write`) prints a SARIF 2.1.0 log that GitHub code scanning can upload with `github/codeql-action/upload-sarif`.

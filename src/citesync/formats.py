@@ -17,7 +17,7 @@ from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
 from citesync.errors import CheckError, UnreadableError
-from citesync.mapping import PERSON_TERMS, TERMS, Mapping, relative, resolve
+from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {"pyproject.toml": "pep621", "Cargo.toml": "cargo", "package.json": "npm"}
@@ -245,17 +245,13 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
     if fmt == "cff-1.2.0" and isinstance(data.get("authors"), list):
         return {**data, "authors": [cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
     if fmt == "npm":
+        return _adapt_npm(data)
+    if fmt == "codemeta":
         data = dict(data)
-        if isinstance(data.get("author"), str):
-            data["author"] = {"name": data["author"]}
-        if isinstance(data.get("repository"), dict):
-            data["repository"] = data["repository"].get("url")
-        if isinstance(data.get("repository"), str) and _NPM_BARE_REPO.match(data["repository"]):
-            data["repository"] = f"github:{data['repository']}"  # npm reads a bare owner/repo as GitHub
-        return data
-    if fmt == "codemeta" and isinstance(authors := data.get("author"), (dict, list)):
-        authors = authors if isinstance(authors, list) else [authors]  # JSON-LD allows one node for a list of one
-        return {**data, "author": [codemeta_person(a) for a in authors]}
+        for key in PEOPLE:
+            if isinstance(people := data.get(key), (dict, list)):
+                people = people if isinstance(people, list) else [people]  # JSON-LD allows one node for a list of one
+                data[key] = [codemeta_person(p) for p in people]
     return data
 
 
@@ -308,6 +304,20 @@ def codemeta_person(author: object) -> object:
     return author
 
 
+def _adapt_npm(data: dict[str, Any]) -> dict[str, Any]:
+    """Read npm's ``Name <email>`` person strings as ``{name}`` and a repository object or shorthand as a URL."""
+    data = dict(data)
+    if isinstance(data.get("author"), str):
+        data["author"] = {"name": data["author"]}
+    if isinstance(data.get("contributors"), list):
+        data["contributors"] = [{"name": c} if isinstance(c, str) else c for c in data["contributors"]]
+    if isinstance(data.get("repository"), dict):
+        data["repository"] = data["repository"].get("url")
+    if isinstance(data.get("repository"), str) and _NPM_BARE_REPO.match(data["repository"]):
+        data["repository"] = f"github:{data['repository']}"  # npm reads a bare owner/repo as GitHub
+    return data
+
+
 def _adapt_cargo(data: dict[str, Any], root: Path, rel: str) -> dict[str, Any]:
     """Present a crate or a virtual workspace as ``package``, with ``.workspace = true`` keys resolved."""
     workspace = data if "workspace" in data else _find_workspace(root, rel)
@@ -336,8 +346,8 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
 
 
 def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Mapping) -> Any:  # noqa: ANN401
-    if term == "author":
-        people = tuple(p for p in (person(fmt, el, path, mapping) for el in resolve(data, path)) if p)
+    if term in PEOPLE:
+        people = tuple(p for p in (person(fmt, el, path, mapping, term) for el in resolve(data, path)) if p)
         return people or None
     slot = locate(fmt, term, data, path)
     if slot is None:
@@ -363,8 +373,9 @@ _DECODE = {
 }
 
 
-def person(fmt: str, element: object, parent: str, mapping: Mapping) -> Person | None:
-    """The author in ``element``, one entry of the list at ``parent``; None when it has no name or ORCID."""
+def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str = "author") -> Person | None:
+    """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID."""
+    given_term, family_term, orcid_term = person_terms(term)
 
     def sub(term: str) -> object:
         path = mapping[fmt, term]
@@ -377,17 +388,17 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping) -> Person |
     def text(value: object) -> str | None:
         return (codecs.clean(value) or None) if isinstance(value, str) else None
 
-    orcid = codecs.orcid_decode(sub("author.@id"))
+    orcid = codecs.orcid_decode(sub(orcid_term))
     given, family = None, None
-    if mapping[fmt, "author.givenName"] == mapping[fmt, "author.familyName"]:
-        raw = sub("author.givenName")
+    if mapping[fmt, given_term] == mapping[fmt, family_term]:
+        raw = sub(given_term)
         if fmt == "zenodo":
             given, family = codecs.zenodo_name_decode(raw) or (None, None)
             name = codecs.display_name(given, family)
         else:
             name = codecs.contact_name_decode(raw)
     else:
-        given, family = text(sub("author.givenName")), text(sub("author.familyName"))
+        given, family = text(sub(given_term)), text(sub(family_term))
         name = codecs.display_name(given, family)
     if name is None and orcid is None:
         return None

@@ -21,5 +21,12 @@
       "familyName": "Turing"
     }
   ],
+  "contributor": [
+    {
+      "@type": "Person",
+      "givenName": "Grace",
+      "familyName": "Hopper"
+    }
+  ],
   "keywords": ["alpha", "beta", "gamma", "delta"]
 }

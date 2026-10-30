@@ -40,7 +40,7 @@ from citesync.formats import (
     locate,
     person,
 )
-from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative
+from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
 
 
 def write(
@@ -174,6 +174,7 @@ def _new_codemeta(source: Doc, version: str, mapping: Mapping, keyword_key: Call
         "codeRepository": "",
         "license": "https://spdx.org/licenses/",
         "author": [],
+        "contributor": [],
         "keywords": [],
     }
     terms = [t for t in blank if t in source.record]
@@ -221,8 +222,8 @@ def _apply(
         if isinstance(old, dict) and old.get("workspace") is True:
             continue  # Cargo inherits it from [workspace.package]: edit it there by hand
         try:
-            if term == "author":
-                new = _people(doc.format, old, source, path, mapping)
+            if term in PEOPLE:
+                new = _people(doc.format, old, source, path, mapping, term)
             else:
                 new = _encode(doc, source, term, source.record[term], old, keyword_key)
         except CannotWrite as err:
@@ -340,8 +341,8 @@ def _keywords(old: Any, value: tuple[str, ...], key: Callable[[str], str], *, ad
     return items
 
 
-def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping) -> Any:  # noqa: ANN401
-    """The author list for ``fmt``, with the source's people in the source's order.
+def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: str) -> Any:  # noqa: ANN401
+    """``term``'s list for ``fmt``, with the source's people in the source's order.
 
     An existing entry is kept, with its other fields, when its name or ORCID
     matches; it is renamed on an ORCID match and gets the source's ORCID where
@@ -350,36 +351,36 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping) -> Any
     end. npm keeps one author, so only the first is set and the rest stay.
 
     Raises:
-        CannotWrite: when an entry it would drop holds more than a name and ORCID.
+        CannotWrite: when an entry it would drop holds more than a name and ORCID, or when a
+            Zenodo contributor would be added, since Zenodo needs a contributor type.
     """
     items = list(old) if isinstance(old, list) else [old]
-    decoded = [_decode(fmt, el, path, mapping) for el in items]
-    npm = "npm" in {fmt, source.format}
-    people: tuple[Person, ...] = source.record["author"][:1] if npm else source.record["author"]
-    used: set[int] = set()
-    matches = []
-    for p in people:
-        matches.append(i := _match(decoded, used, p))
-        if i is not None:
-            used.add(i)
-    kept = {matches[0]} if fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
+    decoded = [_decode(fmt, el, path, mapping, term) for el in items]
+    npm = term == "author" and "npm" in {fmt, source.format}
+    people: tuple[Person, ...] = source.record[term][:1] if npm else source.record[term]
+    matches = _matches(decoded, people)
+    used = {i for i in matches if i is not None}
+    if fmt == "zenodo" and term == "contributor" and None in matches:
+        msg = "Zenodo needs a type for each contributor, which citesync doesn't choose"
+        raise CannotWrite(msg)
+    kept = {matches[0]} if npm and fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
     for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was
-        if i not in kept and (extra := _extra(fmt, el, path, mapping)):
+        if i not in kept and (extra := _extra(fmt, el, path, mapping, term)):
             q = decoded[i]
             msg = f"renaming would drop the {extra} of {(q.name if q and q.name else el)!r}"
             raise CannotWrite(msg)
     out = []
     for p, i in zip(people, matches, strict=True):
         if i is None:
-            out.append(_new_person(fmt, p, path, mapping, items[0] if items else None))
+            out.append(_new_person(fmt, p, path, mapping, items[0] if items else None, term))
             continue
         q = decoded[i]
         assert q is not None  # noqa: S101 - _match skips entries that read as no one
         if codecs.name_key(q.name or "") != codecs.name_key(p.name or ""):
-            _rename(fmt, items[i], p, path, mapping)
+            _rename(fmt, items[i], p, path, mapping, term)
         if q.orcid and p.orcid and q.orcid != p.orcid:
-            okey = relative(str(mapping[fmt, "author.@id"]), path)
-            items[i][okey] = _styled(_fields(fmt, p, path, mapping)[okey], items[i][okey])
+            okey = relative(str(mapping[fmt, f"{term}.@id"]), path)
+            items[i][okey] = _styled(_fields(fmt, p, path, mapping, term)[okey], items[i][okey])
         out.append(items[i])
     out += [el for i, el in enumerate(items) if i not in used and (npm or decoded[i] is None)]
     if not isinstance(old, list):
@@ -388,13 +389,13 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping) -> Any
     return old
 
 
-def _extra(fmt: str, element: Any, path: str, mapping: Mapping) -> str | None:  # noqa: ANN401
+def _extra(fmt: str, element: Any, path: str, mapping: Mapping, term: str) -> str | None:  # noqa: ANN401
     """What an author entry holds besides a name and ORCID: a key, or an npm or Cargo string's email or url."""
     if isinstance(element, str):
         return "email" if "<" in element else "url" if "(" in element else None
     if not isinstance(element, dict):
         return None
-    names = {relative(at, path) for t in PERSON_TERMS if (at := mapping[fmt, t])}
+    names = {relative(at, path) for t in person_terms(term) if (at := mapping[fmt, t])}
     return next((str(k) for k in element if k not in names | {"@type", "name", "name-particle", "name-suffix"}), None)
 
 
@@ -414,14 +415,25 @@ def _relist(old: list[Any], new: list[Any]) -> None:
         old.extend(new)
 
 
-def _decode(fmt: str, element: Any, path: str, mapping: Mapping) -> Person | None:  # noqa: ANN401
+def _decode(fmt: str, element: Any, path: str, mapping: Mapping, term: str) -> Person | None:  # noqa: ANN401
     if fmt == "cff-1.2.0" and isinstance(element, dict):
         element = cff_person(element)
     elif fmt == "codemeta":
         element = codemeta_person(element)
     elif fmt == "npm" and isinstance(element, str):
         element = {"name": element}
-    return person(fmt, element, path, mapping)
+    return person(fmt, element, path, mapping, term)
+
+
+def _matches(decoded: list[Person | None], people: tuple[Person, ...]) -> list[int | None]:
+    """For each of ``people`` in turn, the entry of ``decoded`` it matches, each entry used once."""
+    used: set[int] = set()
+    matches = []
+    for p in people:
+        matches.append(i := _match(decoded, used, p))
+        if i is not None:
+            used.add(i)
+    return matches
 
 
 def _match(decoded: list[Person | None], used: set[int], p: Person) -> int | None:
@@ -432,9 +444,9 @@ def _match(decoded: list[Person | None], used: set[int], p: Person) -> int | Non
     return next(by_name, next(by_orcid, None))
 
 
-def _fields(fmt: str, p: Person, path: str, mapping: Mapping) -> dict[str, str]:
+def _fields(fmt: str, p: Person, path: str, mapping: Mapping, term: str) -> dict[str, str]:
     """A person's name and ORCID under the keys ``fmt`` keeps them in."""
-    gkey, fkey, okey = (relative(at, path) if (at := mapping[fmt, t]) else None for t in PERSON_TERMS)
+    gkey, fkey, okey = (relative(at, path) if (at := mapping[fmt, t]) else None for t in person_terms(term))
     given, family = p.given, p.family
     if family is None:  # shortcut: from a one-string name the last word is the family name; fix by hand if not
         rest, _, family = (p.name or "").rpartition(" ")
@@ -448,8 +460,8 @@ def _fields(fmt: str, p: Person, path: str, mapping: Mapping) -> dict[str, str]:
     return {str(k): v for k, v in fields.items() if v}
 
 
-def _new_person(fmt: str, p: Person, path: str, mapping: Mapping, like: Any) -> Any:  # noqa: ANN401
-    fields = _fields(fmt, p, path, mapping)
+def _new_person(fmt: str, p: Person, path: str, mapping: Mapping, like: Any, term: str) -> Any:  # noqa: ANN401
+    fields = _fields(fmt, p, path, mapping, term)
     if fmt == "cargo" or (fmt == "npm" and not isinstance(like, dict)):
         return p.name or ""
     if fmt == "pep621":
@@ -465,16 +477,16 @@ def _new_person(fmt: str, p: Person, path: str, mapping: Mapping, like: Any) -> 
     return fields
 
 
-def _rename(fmt: str, element: Any, p: Person, path: str, mapping: Mapping) -> None:  # noqa: ANN401
+def _rename(fmt: str, element: Any, p: Person, path: str, mapping: Mapping, term: str) -> None:  # noqa: ANN401
     """Set the name of an entry matched by ORCID, in place; only the citation files have ORCIDs."""
-    fields = _fields(fmt, p, path, mapping)
+    fields = _fields(fmt, p, path, mapping, term)
     if fmt == "codemeta" and codemeta_person(element) is not element:  # a name-only entry keeps its one name
         element["name"] = p.name
         return
     if fmt == "cff-1.2.0":
         for key in ("name-particle", "name-suffix"):
             element.pop(key, None)  # folded into family-names by now
-    for key in {relative(str(mapping[fmt, t]), path) for t in PERSON_TERMS[:2]}:
+    for key in {relative(str(mapping[fmt, t]), path) for t in person_terms(term)[:2]}:
         if key in fields:
             element[key] = _styled(fields[key], element.get(key))
         else:

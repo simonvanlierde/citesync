@@ -57,7 +57,7 @@
     }
   ],
   "settled": [
-    "2026-10-29: npm's single `author` is compared with the first author only, and `contributors` is ignored. package.json lists Grace Hopper as a contributor, whom no other file names, to show that.",
+    "2026-10-29: npm's single `author` is compared with the first author only. Updated 2026-10-30: `contributors` is compared like the authors, so codemeta.json, .zenodo.json and package.json all list Grace Hopper; CITATION.cff has no contributor list.",
     "2026-10-29: keywords between a manifest and a citation file: the manifest's are a subset of the citation file's, whatever the source. The sets here are equal, so both directions hold."
   ]
 }

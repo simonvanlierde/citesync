@@ -61,6 +61,20 @@
         "research data",
         "citizen science",
         "computer vision"
+      ],
+      "contributor": [
+        {
+          "name": "Franco Donati",
+          "givenName": "Franco",
+          "familyName": "Donati",
+          "@id": "0000-0002-8287-2413"
+        },
+        {
+          "name": "Marin Visscher",
+          "givenName": "Marin",
+          "familyName": "Visscher",
+          "@id": "0000-0002-1847-5181"
+        }
       ]
     }
   },
@@ -90,6 +104,20 @@
         "research data",
         "citizen science",
         "computer vision"
+      ],
+      "contributor": [
+        {
+          "name": "Franco Donati",
+          "givenName": "Franco",
+          "familyName": "Donati",
+          "@id": "0000-0002-8287-2413"
+        },
+        {
+          "name": "Marin Visscher",
+          "givenName": "Marin",
+          "familyName": "Visscher",
+          "@id": "0000-0002-1847-5181"
+        }
       ]
     }
   },

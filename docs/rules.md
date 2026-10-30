@@ -28,6 +28,14 @@ Citation files must list the same people in the same order, with equal ORCIDs wh
 
 To fix: Make the file agree with the source, or the other way round if the source is wrong.
 
+## contributor-mismatch
+
+The contributors differ from the source's. Severity: error.
+
+Compared as authors are: the same people in the same order, with equal ORCIDs where both have one. Only the people count, never a CodeMeta Role or a Zenodo contributor `type`. CITATION.cff, pyproject.toml and Cargo.toml have no contributor list, and npm's `contributors` is compared on names. When the source has no place or no value for the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+
+To fix: Make the file agree with the source, or the other way round if the source is wrong.
+
 ## license-mismatch
 
 The licence differs from the source's. Severity: error.

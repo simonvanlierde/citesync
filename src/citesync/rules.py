@@ -56,6 +56,15 @@ _FIELDS = {
             " one `author` with the first author."
         ),
     ),
+    "contributor": (
+        "contributor-mismatch",
+        "The contributors differ from the source's.",
+        (
+            "Compared as authors are: the same people in the same order, with equal ORCIDs where both have one."
+            " Only the people count, never a CodeMeta Role or a Zenodo contributor `type`. CITATION.cff,"
+            " pyproject.toml and Cargo.toml have no contributor list, and npm's `contributors` is compared on names."
+        ),
+    ),
     "license": (
         "license-mismatch",
         "The licence differs from the source's.",

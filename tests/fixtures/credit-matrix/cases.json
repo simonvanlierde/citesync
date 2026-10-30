@@ -24,7 +24,14 @@
           "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
         }
       ],
-      "info": []
+      "info": [
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "contributor",
+          "why": "no file holds a contributor"
+        }
+      ]
     },
     {
       "name": "npm-core-package",
@@ -48,7 +55,14 @@
           "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
         }
       ],
-      "info": []
+      "info": [
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "contributor",
+          "why": "no file holds a contributor"
+        }
+      ]
     }
   ]
 }

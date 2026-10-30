@@ -12,6 +12,12 @@
       "name": "Turing, Alan"
     }
   ],
+  "contributors": [
+    {
+      "name": "Hopper, Grace",
+      "type": "Other"
+    }
+  ],
   "license": "apache-2.0",
   "publication_date": "2026-01-15",
   "related_identifiers": [

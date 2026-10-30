@@ -12,6 +12,12 @@
       "orcid": "0000-0002-1825-0097"
     }
   ],
+  "contributors": [
+    {
+      "name": "Hopper, Grace",
+      "type": "Other"
+    }
+  ],
   "license": "mit",
   "publication_date": "2025-12-01",
   "related_identifiers": [

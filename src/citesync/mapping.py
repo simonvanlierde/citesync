@@ -19,6 +19,7 @@ TERMS = (
     "name",
     "version",
     "author",
+    "contributor",
     "license",
     "identifier",
     "codeRepository",
@@ -26,7 +27,16 @@ TERMS = (
     "keywords",
     "datePublished",
 )
-PERSON_TERMS = ("author.givenName", "author.familyName", "author.@id")
+PEOPLE = ("author", "contributor")
+"""The terms that hold a list of people."""
+
+
+def person_terms(term: str) -> tuple[str, str, str]:
+    """The given name, family name and ORCID sub-terms of ``term``, one of :data:`PEOPLE`."""
+    return f"{term}.givenName", f"{term}.familyName", f"{term}.@id"
+
+
+PERSON_TERMS = tuple(sub for term in PEOPLE for sub in person_terms(term))
 
 _STEP = re.compile(r"^(@?[A-Za-z_][A-Za-z0-9_-]*)(?:\[\]|\[(@?[A-Za-z_][A-Za-z0-9_-]*)=([A-Za-z0-9_.-]+)\])?$")
 
@@ -69,8 +79,9 @@ def check_mapping(data: dict[str, Any], name: str) -> Mapping:
     for (fmt, term), path in rows.items():
         if path is not None and fmt in FORMATS:
             _parse(path)  # fail on load, not on the first file that uses the row
-        if term in PERSON_TERMS and path is not None and rows.get((fmt, "author")) is None:
-            msg = f"{name}: {fmt} {term} has a path but {fmt} author has none"
+        parent = term.partition(".")[0]
+        if term in PERSON_TERMS and path is not None and rows.get((fmt, parent)) is None:
+            msg = f"{name}: {fmt} {term} has a path but {fmt} {parent} has none"
             raise CheckError(msg)
     return rows
 
