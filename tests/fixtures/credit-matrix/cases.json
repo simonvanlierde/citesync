@@ -15,13 +15,17 @@
           "rule": "zenodo-drops-field",
           "file": "CITATION.cff",
           "term": "references",
-          "why": "no .zenodo.json, and Zenodo leaves CFF references out of the record"
+          "why": "no .zenodo.json, and Zenodo leaves CFF references out of the record",
+          "line": 31,
+          "column": 1
         },
         {
           "rule": "name-mismatch",
           "file": "codemeta.json",
           "term": "name",
-          "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
+          "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'",
+          "line": 4,
+          "column": 3
         }
       ],
       "info": [
@@ -52,13 +56,17 @@
           "rule": "zenodo-drops-field",
           "file": "CITATION.cff",
           "term": "references",
-          "why": "no .zenodo.json, and Zenodo leaves CFF references out of the record"
+          "why": "no .zenodo.json, and Zenodo leaves CFF references out of the record",
+          "line": 31,
+          "column": 1
         },
         {
           "rule": "name-mismatch",
           "file": "codemeta.json",
           "term": "name",
-          "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'"
+          "why": "codemeta name 'CRediT Matrix' differs from CFF title 'CRediT Matrix: drafting CRediT contribution statements with co-authors'",
+          "line": 4,
+          "column": 3
         }
       ],
       "info": [

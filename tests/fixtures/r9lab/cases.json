@@ -35,7 +35,9 @@
           "rule": "context-mismatch",
           "file": "codemeta.json",
           "term": "@context",
-          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version is 3.0"
+          "why": "@context is https://w3id.org/codemeta/4.0 but codemeta-version is 3.0",
+          "line": 2,
+          "column": 3
         }
       ],
       "info": [
