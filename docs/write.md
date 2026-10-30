@@ -39,4 +39,4 @@ Write prints `wrote <file>` for each file it changed, to stderr with `--format j
 
 Write puts every file in a temporary file beside it before it moves any into place, so a failure leaves your files as they were. Only a failed move can leave some files written and others not. It writes through a symlink that points inside the repo. It doesn't touch a file that wouldn't change, and CRLF line ends stay CRLF. A file with both LF and CRLF line ends gets the more common one, or LF on a tie.
 
-In CITATION.cff, write may reflow an end-of-line comment aligned with spaces, reindent a sequence to match the first one, and drop a closing `...` or a byte-order mark.
+In CITATION.cff, write may change a few things around what it edits. A list item it replaces loses its end-of-line comment. A sequence indented differently from the first one is reindented to match it. A closing `...` line and a byte order mark are dropped.
