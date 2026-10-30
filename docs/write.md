@@ -17,7 +17,7 @@ When `files` lists a codemeta.json that doesn't exist, write creates it from the
 
 ## How it spells values
 
-Write keeps each file's layout: comments, key order, quoting and indentation. It spells each value the way that file does, such as Zenodo's `"Family, Given"` and lowercase licence ids, or semver in Cargo.toml and package.json.
+Write keeps each file's layout: comments, key order, quoting and indentation. Two things in a CITATION.cff it rewrites don't survive: a sequence indented differently from the file's first one takes that one's indentation, and a `...` that ends the document is dropped. It spells each value the way that file does, such as Zenodo's `"Family, Given"` and lowercase licence ids, or semver in Cargo.toml and package.json.
 
 Some values a file can't hold, such as a licence with `AND` in CITATION.cff, or a post-release version in Cargo.toml. Write leaves those as they were, and the finding says why.
 
@@ -38,6 +38,6 @@ Write prints `wrote <file>` for each file it changed, to stderr with `--format j
 
 ## Safety
 
-Write puts every file in a temporary file beside it before it moves any into place, so a failure leaves your files as they were. Only a failed move can leave some files written and others not. It writes through a symlink that points inside the repo. It doesn't touch a file that wouldn't change, and CRLF line ends stay CRLF. A file with both LF and CRLF line ends gets the more common one, or LF on a tie.
+Write puts every file in a temporary file beside it before it moves any into place, so a failure leaves your files as they were. Only a failed move can leave some files written and others not. It writes through a symlink that points inside the repo. It doesn't touch a file that wouldn't change, and CRLF line ends stay CRLF, and so does a CITATION.cff's byte order mark. A file with both LF and CRLF line ends gets the more common one, or LF on a tie.
 
 In CITATION.cff, write may change a few things around what it edits. A list item it replaces loses its end-of-line comment. A sequence indented differently from the first one is reindented to match it. A closing `...` line and a byte order mark are dropped.
