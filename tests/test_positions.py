@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from citesync.check import Finding
+from citesync import positions
+from citesync.check import Finding, check
+from citesync.config import load_config
 from citesync.formats import Doc
 from citesync.mapping import load_mapping
 from citesync.positions import key_positions, place
@@ -103,3 +105,15 @@ def test_place_points_at_the_term_and_falls_back_to_its_table(tmp_path: Path) ->
 def test_an_unparsable_file_gets_no_positions(tmp_path: Path) -> None:
     (tmp_path / "CITATION.cff").write_text("title: [x\n", encoding="utf-8")
     assert key_positions(tmp_path / "CITATION.cff") == {}
+
+
+def test_a_check_with_nothing_to_point_at_reads_no_file_twice(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / "CITATION.cff").write_text("cff-version: 1.2.0\nmessage: m\ntitle: x\n", encoding="utf-8")
+
+    def fail(*_: object) -> None:
+        raise AssertionError
+
+    monkeypatch.setattr(positions, "place", fail)
+    found, _, _ = check(tmp_path, load_config(tmp_path, None))
+    assert found
+    assert all(f.file is None for f in found)  # not-checked: a term, but no file
