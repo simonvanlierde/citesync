@@ -73,7 +73,8 @@ def discover(root: Path, config: Config) -> list[str]:
         CheckError: when the source or a listed manifest is missing.
     """
     if not (root / config.source).is_file():
-        msg = f"{config.source}: the source file is missing"
+        msg = f"{config.source}: the source file is missing from {root}"
+        msg += "; name another with --source, or the repo with --root"
         raise CheckError(msg)
     citation = config.files if config.files is not None else tuple(CITATION_FILES)
     paths = [config.source, *(p for p in citation if (root / p).is_file())]
@@ -98,7 +99,8 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
 
     The source comes first, then the others in a fixed order (citation files, then
     manifests, by format), so which file a finding names never depends on config order.
-    A file that can't be read gives an ``unreadable`` finding and an empty doc in its place.
+    A file that can't be read gives an ``unreadable`` finding and an empty doc in its place,
+    and a manifest left out a ``manifest-skipped`` one.
     """
     docs, unreadable = [], [Finding(p, None, "file-missing", "listed under files") for p in missing(root, config)]
     for path in discover(root, config):
@@ -109,15 +111,25 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
             fmt = format_of(path)
             docs.append(Doc(path, fmt, {}, slots(fmt, mapping), None, release=True, readable=False))
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
-        docs = [d for d in docs if d.release or d.is_citation or d.path == config.source]
+        kept = [d for d in docs if d.release or d.is_citation or d.path == config.source]
+        unreadable += [
+            Finding(d.path, None, "manifest-skipped", _NOT_RELEASED[d.format]) for d in docs if d not in kept
+        ]
+        docs = kept
     return docs[:1] + sorted(docs[1:], key=lambda d: (FORMATS.index(d.format), d.path)), unreadable
 
 
-def check(root: Path, config: Config) -> tuple[list[Finding], int]:
-    """Every finding for the repo at ``root``, sorted, and the number of files checked."""
-    docs, unreadable = read_docs(root, config, load_mapping())
-    behind = version_behind_tag(docs[0], git_tags(root))
-    return sorted([*findings(docs, unreadable, config), *behind], key=Finding.sort_key), len(docs)
+_NOT_RELEASED = {
+    "pep621": "no [build-system], so it isn't a package",
+    "npm": '"private": true, so it is never published',
+}
+
+
+def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
+    """Every finding for the repo at ``root``, sorted, the number of files checked, and the unused ignore entries."""
+    docs, read = read_docs(root, config, load_mapping())
+    found, unused = findings(docs, [*read, *version_behind_tag(docs[0], git_tags(root))], config)
+    return sorted(found, key=Finding.sort_key), len(docs), unused
 
 
 def git_tags(root: Path) -> list[str]:
@@ -168,12 +180,13 @@ def version_behind_tag(source: Doc, tags: list[str]) -> list[Finding]:
     return [Finding(source.path, "version", "version-behind-tag", f"{version}, the newest tag is {newest}")]
 
 
-def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> set[Finding]:
-    """The findings for ``docs`` (the source first) as :func:`read_docs` gives them.
+def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set[Finding], list[str]]:
+    """The findings for ``docs`` and ``extra`` less the rules ``ignore`` lists, and the entries that matched none.
 
-    All but ``version-behind-tag``, which needs the repo's tags and which write never fixes: :func:`check` adds it.
+    ``docs`` (the source first) and ``extra`` are as :func:`read_docs` gives them. :func:`check` adds
+    ``version-behind-tag`` to ``extra``: it needs the repo's tags, and write never fixes it.
     """
-    found: set[Finding] = set(unreadable)
+    found: set[Finding] = set(extra)
     source = docs[0]
     for doc in docs:
         configured = config.codemeta_version
@@ -193,7 +206,8 @@ def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> set[
             found.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
         found.update(compare_term(term, docs, kw_key=keyword_key(config)))
-    return found
+    unused = [rule for rule in config.ignore if not any(f.rule == rule for f in found)]
+    return {f for f in found if f.rule not in config.ignore}, unused
 
 
 _ZENODO_GAPS = {
@@ -252,21 +266,14 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
         a, b = _show_people(a), _show_people(b)
     elif term == "keywords":
         kw_key = cargo_keyword_key(kw_key, ref, doc)
-        if not both_citation:
-            return _keywords_subset(ref, doc, kw_key)
-        equal = set(map(kw_key, a)) == set(map(kw_key, b))
+        return _keywords_differ(ref, doc, kw_key) if both_citation else _keywords_subset(ref, doc, kw_key)
     else:  # name, description, datePublished: only citation files have a release date
         if not both_citation:
             return None  # a manifest name is a package id, a description a one-line summary
         equal = a == b
     if equal:
         return None
-    detail = f"{_show(b)}, {ref.path} has {_show(a)}"
-    if term == "keywords":
-        near_miss = near_misses(a, kw_key)
-        misses = [f"{k!r} differs from {near!r}" for k in b if (near := near_miss(k))]
-        detail += f" ({', '.join(misses)} only in separators)" if misses else ""
-    return Finding(doc.path, term, MISMATCH[term], detail)
+    return Finding(doc.path, term, MISMATCH[term], f"{_show(b)}, {ref.path} has {_show(a)}")
 
 
 _KEY = {
@@ -296,15 +303,31 @@ def _ignore_separators(key: Callable[[str], str]) -> Callable[[str], str]:
 
 
 def near_misses(others: Iterable[str], key: Callable[[str], str]) -> Callable[[str], str | None]:
-    """For a keyword, the first of ``others`` it misses only by separators, when it isn't among them as it is.
+    """For a keyword, the first of ``others`` it matches with separators read as spaces.
 
+    That is the keyword itself when it is among ``others``, so callers skip a near miss already present.
     The keys of ``others`` are made once here, not once per keyword: a long list would take quadratic time.
     """
-    exact, spaced = set(), {}
+    spaced: dict[str, str] = {}
     for other in others:
-        exact.add(key(other))
         spaced.setdefault(key(codecs.spaced(other)), other)
-    return lambda keyword: None if key(keyword) in exact else spaced.get(key(codecs.spaced(keyword)))
+    return lambda keyword: spaced.get(key(codecs.spaced(keyword)))
+
+
+def _keywords_differ(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
+    """Between citation files: the keywords ``doc`` lacks, those it has beyond ``ref``'s, and the near misses."""
+    a, b = ref.record["keywords"], doc.record["keywords"]
+    a_keys, b_keys = set(map(key, a)), set(map(key, b))
+    near_miss = near_misses(a, key)
+    pairs = {k: near for k in b if (near := near_miss(k)) and key(near) not in b_keys}
+    missing = [k for k in a if key(k) not in b_keys and k not in pairs.values()]
+    extra = [k for k in b if key(k) not in a_keys and k not in pairs]
+    parts = [f"missing {', '.join(missing)}"] if missing else []
+    parts += [f"extra {', '.join(extra)}"] if extra else []
+    parts += [f"{k!r} differs from {near!r} only in separators" for k, near in pairs.items()]
+    if not parts:
+        return None
+    return Finding(doc.path, "keywords", "keywords-mismatch", f"{'; '.join(parts)} (compared with {ref.path})")
 
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
@@ -350,7 +373,5 @@ def _show_people(people: tuple[Person, ...]) -> str:
 
 
 def _show(value: object) -> str:
-    if isinstance(value, tuple):
-        return ", ".join(map(str, value))
     text = str(value)
     return repr(text if len(text) <= 80 else text[:77] + "...")

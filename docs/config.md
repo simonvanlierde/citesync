@@ -8,7 +8,7 @@ citesync reads the first config it finds, in this order:
 4. `[workspace.metadata.citesync]` or `[package.metadata.citesync]` in Cargo.toml
 5. `"citesync"` in package.json
 
-It ignores the others and doesn't merge them. `citesync config` prints the config in use and the file it came from.
+It ignores the others and doesn't merge them. `citesync config` prints the config in use, the file it came from and the repo root.
 
 ```toml
 source = "CITATION.cff"                  # any of the six files
@@ -21,8 +21,8 @@ keywords-ignore-separators = true           # default false: big-data and big da
 ignore = ["description-mismatch"]          # rule ids whose findings to drop
 ```
 
-`write-manifests` names fields by their CodeMeta term: `name`, `version`, `author`, `contributor`, `license`, `identifier` (the DOI), `codeRepository`, `description`, `keywords` and `datePublished`. This is the `term` in the JSON output. Rule ids use the plainer `doi`, `repository` and `date`.
+`write-manifests` takes the fields a manifest holds, by their CodeMeta term: `version`, `author`, `contributor`, `license`, `codeRepository` and `keywords`. `"all"` means those six. This is the `term` in the JSON output. Rule ids use the plainer `repository`, but `write-manifests` takes only the term, and says which one to use.
 
-With `codemeta-version` unset, `check` accepts CodeMeta 2.0, 3.0, 3.1 and 4.0, and `write` leaves `@context` alone. Once it's set, any other `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes.
+Quote `codemeta-version`: `3.0` without quotes is a TOML number. With `codemeta-version` unset, `check` accepts CodeMeta 2.0, 3.0, 3.1 and 4.0, and `write` leaves `@context` alone. Once it's set, any other `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes.
 
-An `ignore` entry that matched no finding prints a warning to stderr. An unknown rule id is a config error. You can't ignore `unreadable`.
+An `ignore` entry that matched no finding prints a warning to stderr, unless you pass `-q`. An unknown rule id is a config error, which suggests the closest rule id. You can't ignore `unreadable`.

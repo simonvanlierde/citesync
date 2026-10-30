@@ -29,6 +29,11 @@ def _run(capsys: pytest.CaptureFixture[str], *args: str) -> tuple[int, str, str]
     return code, out, err
 
 
+def _findings(out: str) -> list[str]:
+    """The text report's lines, less the help line under each finding."""
+    return [line for line in out.splitlines() if not line.startswith("  help: ")]
+
+
 def _snapshot(root: Path) -> dict[str, bytes]:
     return {str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
 
@@ -75,7 +80,7 @@ def test_manifests_are_left_alone_without_write_manifests(tmp_path: Path, capsys
     code, out, err = _run(capsys, "write", "--root", str(root))
     assert (code, err) == (1, "")
     assert _snapshot(root) == before
-    lines = out.splitlines()[:-1]
+    lines = _findings(out)[:-1]
     assert all(line.endswith("to write-manifests)") for line in lines)
     assert any("pyproject.toml" in line and line.endswith("add version to write-manifests)") for line in lines)
     assert any("Cargo.toml" in line and line.endswith("add keywords to write-manifests)") for line in lines)
@@ -139,9 +144,9 @@ def test_cargo_workspace_keys_stay(tmp_path: Path, capsys: pytest.CaptureFixture
     code, out, _ = _run(capsys, "write", "--root", str(root))
     assert code == 1
     assert _snapshot(root) == before
-    [line, _] = out.splitlines()
+    [line, _] = _findings(out)
     assert member in line
-    assert line.endswith(" (edit it by hand)")
+    assert line.endswith(" (edit it by hand: inherited from [workspace.package] in the workspace's Cargo.toml)")
 
 
 def test_virtual_workspace_is_written_through_workspace_package(
@@ -188,7 +193,7 @@ def test_d2_gap_is_left_alone(
     code, out, _ = _run(capsys, "write", "--root", str(root))
     assert code == 1
     assert _snapshot(root) == before
-    *lines, _ = out.splitlines()
+    *lines, _ = _findings(out)
     assert any(line.startswith("codemeta.json") for line in lines)
     assert all(f"] {term}:" in line and line.endswith(" (edit it by hand)") for line in lines)
 
@@ -766,7 +771,7 @@ def test_diff_prints_the_edit_and_writes_nothing(tmp_path: Path, capsys: pytest.
     before = _snapshot(root)
 
     code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
-    assert (code, err) == (1, "")
+    assert (code, err) == (1, "would fix 1 finding in 1 file\n")
     assert _snapshot(root) == before
     files = [line for line in out.splitlines() if line.startswith(("--- ", "+++ "))]
     assert files == [
@@ -789,7 +794,7 @@ def test_diff_shows_a_codemeta_json_write_would_create(tmp_path: Path, capsys: p
     (root / "codemeta.json").unlink()
 
     code, out, err = _run(capsys, "write", "--diff", "--root", str(root))
-    assert (code, err) == (1, "")
+    assert (code, err) == (1, "would fix 1 finding in 1 file\n")
     assert out.splitlines()[:2] == ["--- /dev/null", "+++ b/codemeta.json"]
     assert not (root / "codemeta.json").exists()
 

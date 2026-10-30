@@ -22,6 +22,7 @@ from citesync.formats import Doc
 from citesync.mapping import TERMS
 
 FIXTURES = Path(__file__).parent / "fixtures"
+FIX = "Make the file agree with the source, or the other way round if the source is wrong."
 OUTPUT_SCHEMA = json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8"))
 CASES = [
     (repo.name, case)
@@ -83,11 +84,13 @@ def test_fixture_case(
     assert _triples(findings) == _triples(case["findings"])
     assert _triples(info) == _triples(case["info"])
 
-    # Text: one line per finding and a summary, not-checked only with -v.
+    # Text: two lines per finding (the help under it) and a summary, info only with -v, and the
+    # count write could fix when check fails.
+    fixable = case["exit"] == 1
     _, text, _ = _run(capsys, "check", "--root", str(root))
-    assert len(text.splitlines()) == len(case["findings"]) + 1
+    assert len(text.splitlines()) == 2 * len(case["findings"]) + 1 + fixable
     _, verbose, _ = _run(capsys, "check", "--root", str(root), "-v")
-    assert len(verbose.splitlines()) == len(case["findings"]) + len(case["info"]) + 1
+    assert len(verbose.splitlines()) == 2 * (len(case["findings"]) + len(case["info"])) + 1 + fixable
 
 
 PYPROJECT = '[build-system]\nrequires = []\n\n[project]\nname = "x"\n'
@@ -193,13 +196,14 @@ def test_findings_are_sorted_and_text_matches_codemeta_drift(
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
     assert code == 1
     assert _run(capsys, "check", "--root", str(tmp_path), "--quiet")[1] == out.rsplit("5 errors", 1)[0]
-    assert out.splitlines() == [
+    assert [line for line in out.splitlines() if not line.startswith("  help: ")] == [
         ".zenodo.json: error[license-mismatch] license: 'apache-2.0', CITATION.cff has 'MIT'",
         ".zenodo.json: error[name-mismatch] name: 'z', CITATION.cff has 'x'",
         "codemeta.json: error[context-mismatch] @context: 4.0, configured 3.0",
         "codemeta.json: error[name-mismatch] name: 'y', CITATION.cff has 'x'",
         "codemeta.json: error[version-mismatch] version: '2.0.0', CITATION.cff has '1.0.0'",
         "5 errors, 0 warnings in 3 files",
+        "5 fixable with `citesync write`",
     ]
 
 
@@ -209,7 +213,9 @@ def test_github_format(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> No
     code, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github", "-v")
     lines = out.splitlines()
     assert code == 1
-    assert lines[0] == "::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'"
+    assert lines[0] == (
+        f"::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'%0Ahelp: {FIX}"
+    )
     assert all(line.startswith("::notice title=citesync not-checked::") for line in lines[1:-1])
     assert lines[-1] == "::notice::citesync: 1 error, 0 warnings in 2 files"
 
@@ -580,7 +586,12 @@ def test_blame_does_not_depend_on_config_order(tmp_path: Path, capsys: pytest.Ca
         (
             "keywords-case-sensitive = true\n",
             [
-                ("keywords-mismatch", "codemeta.json", "keywords", "Life Cycle, lca, CITATION.cff has life cycle, LCA"),
+                (
+                    "keywords-mismatch",
+                    "codemeta.json",
+                    "keywords",
+                    "missing life cycle, LCA; extra Life Cycle, lca (compared with CITATION.cff)",
+                ),
                 (
                     "keywords-not-subset",
                     "pyproject.toml",
@@ -616,9 +627,8 @@ def test_keywords_compare_like_names(
                     "codemeta.json",
                     "keywords",
                     (
-                        "industrial-ecology, life_cycle, lca, CITATION.cff has industrial ecology, life cycle, lca"
-                        " ('industrial-ecology' differs from 'industrial ecology', 'life_cycle' differs from"
-                        " 'life cycle' only in separators)"
+                        "'industrial-ecology' differs from 'industrial ecology' only in separators;"
+                        " 'life_cycle' differs from 'life cycle' only in separators (compared with CITATION.cff)"
                     ),
                 ),
                 (
@@ -660,7 +670,9 @@ def test_many_keywords_compare_in_linear_time() -> None:
     finding = compare("keywords", ref, doc, kw_key=codecs.name_key)
     assert time.perf_counter() - start < 1
     assert finding is not None
-    assert finding.message.endswith("('big-data' differs from 'big data' only in separators)")
+    assert (
+        finding.message == "extra x; 'big-data' differs from 'big data' only in separators (compared with CITATION.cff)"
+    )
 
 
 def test_order_and_case_do_not_matter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -875,22 +887,22 @@ docs: https://github.com/simonvanlierde/citesync/blob/main/docs
         (
             ["--help"],
             """\
-usage: citesync [-h] [--version] command ...
+usage: citesync [-h] [-V] command ...
 
 Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
 (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file.
 
 positional arguments:
   command
-    check     report where the files disagree with the source
-    write     rewrite the files to agree with the source
-    config    print the config in use and where it came from
-    rules     list the rules
-    explain   print a rule's documentation
+    check        report where the files disagree with the source
+    write        rewrite the files to agree with the source
+    config       print the config in use and where it came from
+    rules        list the rules
+    explain      print a rule's documentation
 
 options:
-  -h, --help  show this help message and exit
-  --version   show the version and exit
+  -h, --help     show this help message and exit
+  -V, --version  show the version and exit
 
 """,
         ),
@@ -898,19 +910,22 @@ options:
             ["check", "--help"],
             """\
 usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--format {text,json,github,sarif}]
-                      [--json] [-v | -q]
+                      [--json] [--color {auto,always,never}] [-v | -q]
 
 Report where the files disagree with the source.
 
 options:
   -h, --help            show this help message and exit
   --root ROOT           repo root (default: the nearest directory up with a citation file or
-                        config, inside the git repo)
+                        config, else the git repo's top)
   --source SOURCE       the file the others must agree with; overrides config
   --format {text,json,github,sarif}
                         output format (default: text)
   --json                alias of --format json
-  -v, --verbose         also print not-checked info
+  --color {auto,always,never}
+                        colour the text output (default: auto, on a terminal unless NO_COLOR or
+                        FORCE_COLOR say otherwise)
+  -v, --verbose         also print info: fields not compared, manifests left out
   -q, --quiet           print only errors, and no summary
 
 """,
@@ -930,7 +945,7 @@ def test_no_command_prints_the_help_and_exits_2(capsys: pytest.CaptureFixture[st
         main([])
     out, err = capsys.readouterr()
     assert (exc.value.code, out) == (2, "")
-    assert err.startswith("usage: citesync [-h] [--version] command ...")
+    assert err.startswith("usage: citesync [-h] [-V] command ...")
 
 
 def test_version(capsys: pytest.CaptureFixture[str]) -> None:
@@ -944,7 +959,7 @@ def test_github_format_quiet_has_no_summary(tmp_path: Path, capsys: pytest.Captu
     (tmp_path / "codemeta.json").write_text(_codemeta(name="y"), encoding="utf-8")
     _, out, _ = _run(capsys, "check", "--root", str(tmp_path), "--format", "github", "-q")
     assert out.splitlines() == [
-        "::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'"
+        f"::error file=codemeta.json,title=citesync name-mismatch::name: 'y', CITATION.cff has 'x'%0Ahelp: {FIX}"
     ]
 
 

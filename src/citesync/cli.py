@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from citesync.check import Finding, check
-from citesync.config import Config, find_root, git_top, load_config, render
+from citesync.config import Config, did_you_mean, find_root, git_top, load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain, url
 
@@ -83,7 +83,17 @@ class _Formatter(argparse.RawDescriptionHelpFormatter):
 class _Parser(argparse.ArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         kwargs.setdefault("formatter_class", _Formatter)
+        if sys.version_info >= (3, 14):
+            kwargs.setdefault("suggest_on_error", True)
         super().__init__(*args, **kwargs)
+
+
+def _directory(value: str) -> Path:
+    path = Path(value)
+    if not path.is_dir():
+        msg = f"not a directory: {value}"
+        raise argparse.ArgumentTypeError(msg)
+    return path
 
 
 _DESCRIPTION = """Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
@@ -101,13 +111,13 @@ docs: {DOCS_URL.rsplit("/", 1)[0]}"""
 
 def _parser() -> argparse.ArgumentParser:
     parser = _Parser(prog="citesync", description=_DESCRIPTION, epilog=_EPILOG)
-    parser.add_argument("--version", action=_VersionAction)
+    parser.add_argument("-V", "--version", action=_VersionAction)
     sub = parser.add_subparsers(dest="command", metavar="command")
     root = _Parser(add_help=False)
     root.add_argument(
         "--root",
-        type=Path,
-        help="repo root (default: the nearest directory up with a citation file or config, inside the git repo)",
+        type=_directory,
+        help="repo root (default: the nearest directory up with a citation file or config, else the git repo's top)",
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
     report = _Parser(add_help=False, parents=[root])
@@ -115,8 +125,16 @@ def _parser() -> argparse.ArgumentParser:
         "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
     )
     report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
+    report.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default="auto",
+        help="colour the text output (default: auto, on a terminal unless NO_COLOR or FORCE_COLOR say otherwise)",
+    )
     shown = report.add_mutually_exclusive_group()
-    shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
+    shown.add_argument(
+        "-v", "--verbose", action="store_true", help="also print info: fields not compared, manifests left out"
+    )
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
     check = "report where the files disagree with the source"
     sub.add_parser("check", parents=[report], help=check, description=f"{check.capitalize()}.", epilog=_EPILOG)
@@ -147,34 +165,50 @@ def main(argv: list[str] | None = None) -> int:
         args.root = args.root or find_root(Path.cwd())
         config = load_config(args.root, args.source)
         if args.command == "config":
-            print(render(config))
+            print(f"# root: {args.root}\n{render(config)}")
             return 0
         if getattr(args, "diff", False):
             return _write_diff(args.root, config)
-        written, skipped = _write(args.root, config) if args.command == "write" else ({}, {})
-        findings, files = check(args.root, config)
+        written, skipped, fixed = _write(args.root, config) if args.command == "write" else ({}, {}, None)
+        findings, files, unused = check(args.root, config)
     except CheckError as err:
         print(f"citesync: {err}", file=sys.stderr)
         return 2
     except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
         print(f"citesync: {args.root}: unexpected error: {type(err).__name__}: {err}", file=sys.stderr)
         return 2
-    findings = _ignore(findings, config.ignore)
+    failed = any(f.severity == "error" for f in findings)
+    if args.command == "check" and failed and args.format == "text" and not args.quiet:
+        fixed = _fixable(args.root, config)  # only a failing check pays for write's imports
+    if not args.quiet:
+        for rule in unused:
+            print(f"citesync: warning: ignore entry {rule!r} matched no finding", file=sys.stderr)
     if args.command == "write":
-        from citesync.write import advice  # noqa: PLC0415
+        findings = _written(findings, written, skipped, config, args)
+    _report(findings, files, args, None if fixed is None else len(fixed))
+    return 1 if failed else 0
 
-        if not args.quiet:  # stdout stays one document in the json and github formats
-            shown = {(f.file, f.term) for f in findings}
-            for path in written:  # a field left out of a created file has no finding to carry its reason
-                left = [f"{t}: {why}" for (p, t), why in sorted(skipped.items()) if p == path and (p, t) not in shown]
-                wrote = f"wrote {path}" + (f", leaving out {'; '.join(left)}" if left else "")
-                print(wrote, file=sys.stdout if args.format == "text" else sys.stderr)
-        findings = [
-            f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config, skipped)})")
-            for f in findings
-        ]
-    _report(findings, files, args)
-    return 1 if any(f.severity == "error" for f in findings) else 0
+
+def _written(
+    findings: list[Finding],
+    written: dict[str, str],
+    skipped: dict[tuple[str, str], str],
+    config: Config,
+    args: argparse.Namespace,
+) -> list[Finding]:
+    """Print what write wrote, and return ``findings`` with what to do about each."""
+    from citesync.write import advice  # noqa: PLC0415
+
+    if not args.quiet:  # stdout stays one document in the json and github formats
+        shown = {(f.file, f.term) for f in findings}
+        for path in written:  # a field left out of a created file has no finding to carry its reason
+            left = [f"{t}: {why}" for (p, t), why in sorted(skipped.items()) if p == path and (p, t) not in shown]
+            wrote = f"wrote {path}" + (f", leaving out {'; '.join(left)}" if left else "")
+            print(wrote, file=sys.stdout if args.format == "text" else sys.stderr)
+    return [
+        f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config, skipped)})")
+        for f in findings
+    ]
 
 
 def _parse(argv: list[str] | None) -> argparse.Namespace:
@@ -196,33 +230,41 @@ def _utf8_streams() -> None:
             stream.reconfigure(encoding="utf-8")
 
 
-def _write(root: Path, config: Config) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+def _write(
+    root: Path, config: Config, *, dry_run: bool = False
+) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding]]:
     from citesync.write import write  # noqa: PLC0415
 
-    written, skipped, _ = write(root, config)
-    return written, skipped
+    written, skipped, _, fixed = write(root, config, dry_run=dry_run)
+    return written, skipped, fixed
+
+
+def _fixable(root: Path, config: Config) -> list[Finding] | None:
+    """The findings write would fix, or None when it would fail: the count is a hint, not the check."""
+    try:
+        return _write(root, config, dry_run=True)[2]
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _write_diff(root: Path, config: Config) -> int:
     """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
     from citesync.write import write  # noqa: PLC0415
 
-    texts, _, unreadable = write(root, config, dry_run=True)
+    texts, _, unreadable, fixed = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
+    if texts:
+        print(f"would fix {_count(len(fixed), 'finding')} in {_count(len(texts), 'file')}", file=sys.stderr)
     for f in unreadable:  # the diff can't show a file write never touches, so say so
         print(f"{f.where}: error[unreadable] {f.message}", file=sys.stderr)
     return 1 if texts or unreadable else 0
 
 
-def _ignore(findings: list[Finding], ignore: tuple[str, ...]) -> list[Finding]:
-    """``findings`` less the ignored rules', warning about an ignore entry that matched nothing."""
-    for rule in ignore:
-        if not any(f.rule == rule for f in findings):
-            print(f"citesync: warning: ignore entry {rule!r} matched no finding", file=sys.stderr)
-    return [f for f in findings if f.rule not in ignore]
+def _report(findings: list[Finding], files: int, args: argparse.Namespace, fixed: int | None) -> None:
+    """Print ``findings`` in ``args.format``.
 
-
-def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> None:
+    ``fixed`` counts what write fixed, or what it could fix after a failed check; None when not counted.
+    """
     counts = {s: sum(f.severity == s for f in findings) for s in ("error", "warning", "info")}
     if args.format == "json":
         summary = {"files": files, "errors": counts["error"], "warnings": counts["warning"], "info": counts["info"]}
@@ -244,23 +286,31 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace) -> No
     if args.format == "sarif":
         print(json.dumps(_sarif(findings, prefix), indent=2))
         return
-    total = f"{_count(counts['error'], 'error')}, {_count(counts['warning'], 'warning')} in {_count(files, 'file')}"
+    total = _total(counts, files, args.command, fixed)
     if args.format == "github":
         for f in findings:
             where = f"file={_escape(prefix + f.file, property_=True)}," if f.file else ""
             where += f"line={f.line},col={f.column}," if f.line else ""
-            message = _escape(_printable(f.text))
+            message = _escape(f"{_printable(f.text)}\nhelp: {RULES[f.rule].help}")
             print(f"::{_GITHUB_LEVEL[f.severity]} {where}title=citesync {f.rule}::{message}")
         if not args.quiet:  # GitHub shows only the first 10 annotations of a level, so give the totals
             print(f"::notice::citesync: {total}")
         return
-    colour = _colour()
+    colour = _colour(args.color)
     for f in findings:
         where = _printable(f"{f.where}: ") if f.file else ""
         severity = f"\033[{_ANSI[f.severity]}m{f.severity}\033[0m" if colour else f.severity
-        print(f"{where}{severity}[{f.rule}] {_printable(f.text)}")
+        print(f"{where}{severity}[{f.rule}] {_printable(f.text)}\n  help: {RULES[f.rule].help}")
     if not args.quiet:
         print(total)
+
+
+def _total(counts: dict[str, int], files: int, command: str, fixed: int | None) -> str:
+    """The summary line: what is left, and what write fixed or could fix."""
+    if command == "write":
+        return f"{fixed} fixed, {counts['error'] + counts['warning']} left in {_count(files, 'file')}"
+    total = f"{_count(counts['error'], 'error')}, {_count(counts['warning'], 'warning')} in {_count(files, 'file')}"
+    return total if fixed is None else f"{total}\n{fixed} fixable with `citesync write`"
 
 
 def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
@@ -290,6 +340,7 @@ def _sarif(findings: list[Finding], prefix: str) -> dict[str, Any]:
                 "id": rule,
                 "shortDescription": {"text": RULES[rule].summary},
                 "helpUri": url(rule),
+                "help": {"text": RULES[rule].help},
                 "defaultConfiguration": {"level": _SARIF_LEVEL[RULES[rule].severity]},
             }
             for rule in sorted({f.rule for f in findings})
@@ -325,8 +376,13 @@ def _count(n: int, noun: str) -> str:
     return f"{n} {noun}{'' if n == 1 else 's'}"
 
 
-def _colour() -> bool:
-    """Colour on a terminal. ``NO_COLOR`` turns it off; ``FORCE_COLOR`` turns it on, or off as 0 or false."""
+def _colour(when: str) -> bool:
+    """Colour by ``--color``; with ``auto``, on a terminal.
+
+    Under ``auto``, ``NO_COLOR`` turns it off; ``FORCE_COLOR`` turns it on, or off as 0 or false.
+    """
+    if when != "auto":
+        return when == "always"
     if os.environ.get("NO_COLOR"):
         return False
     if force := os.environ.get("FORCE_COLOR"):
@@ -338,7 +394,8 @@ def _rules(args: argparse.Namespace) -> int:
     """``citesync rules`` and ``citesync explain``."""
     if args.command == "explain":
         if args.rule not in RULES:
-            print(f"citesync: unknown rule {args.rule!r}; `citesync rules` lists them", file=sys.stderr)
+            hint = did_you_mean(args.rule, RULES)
+            print(f"citesync: unknown rule {args.rule!r}; `citesync rules` lists them{hint}", file=sys.stderr)
             return 2
         print(explain(args.rule), end="")
         return 0

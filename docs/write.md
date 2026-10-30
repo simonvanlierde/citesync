@@ -1,6 +1,6 @@
 # How `citesync write` works
 
-`citesync write` fixes what `check` reports, and nothing more. `citesync write --diff` prints the same edits as a unified diff and writes nothing. It exits 1 when there is a change or a file it can't read, so CI can run it.
+`citesync write` fixes what `check` reports, and nothing more. `citesync write --diff` prints the same edits as a unified diff and writes nothing, and on stderr how many findings it would fix in how many files. It exits 1 when there is a change or a file it can't read, so CI can run it.
 
 ## What it writes
 
@@ -29,11 +29,11 @@ Contributors are written as authors are.
 - If that would drop an old entry with more than a name and ORCID, for example after a rename, write leaves that file's authors for you to edit.
 - An author with only a name, such as an organization, keeps it as a family name. A new one goes into codemeta.json as an `Organization`.
 - Write doesn't add a new .zenodo.json contributor, because Zenodo needs a contributor `type`. Add it by hand.
-- A Cargo field inherited with `.workspace = true` stays as it is. Change it in `[workspace.package]`.
+- A Cargo field inherited with `.workspace = true` stays as it is, and the finding says so. Change it in `[workspace.package]`.
 
 ## Output and exit codes
 
-Write prints `wrote <file>` for each file it changed, to stderr with `--format json`, `github` or `sarif`. `--quiet` drops it. Then it reports the findings that are left, as `check` does, each with what to do about it. The exit codes are those of [`check`](check.md#findings-and-exit-codes).
+Write prints `wrote <file>` for each file it changed, to stderr with `--format json`, `github` or `sarif`. `--quiet` drops it. Then it reports the findings that are left, as `check` does, each with what to do about it, and ends with a count such as `9 fixed, 6 left in 6 files`. The exit codes are those of [`check`](check.md#findings-and-exit-codes).
 
 ## Safety
 
