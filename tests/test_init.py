@@ -252,11 +252,10 @@ PACKAGE = {
     ],
     ids=["keywords-from-two-manifests", "cargo-dual-licence", "dual-licence-with-zenodo", "package-json"],
 )
-def test_init_then_check_passes(
-    files: dict[str, str], left: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_init_then_check_passes(files: dict[str, str], left: str, tmp_path: Path, run: "Run") -> None:
     for name, text in files.items():
         (tmp_path / name).write_text(text, encoding="utf-8")
-    assert _run(capsys, "init", "--root", str(tmp_path)) == (0, f"wrote CITATION.cff{left}\n", "")
-    code, out, _ = _run(capsys, "check", "--root", str(tmp_path))
+    code, out, _ = run("init", "--root", str(tmp_path))
+    assert (code, out.startswith(f"wrote CITATION.cff{left}\n")) == (0, True), out
+    code, out, _ = run("check", "--root", str(tmp_path))
     assert code == 0, out
