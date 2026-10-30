@@ -36,10 +36,10 @@ from citesync.formats import (
     codemeta_person,
     codemeta_version,
     format_of,
+    locate,
     person,
-    url_label,
 )
-from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative, resolve
+from citesync.mapping import PERSON_TERMS, TERMS, Mapping, load_mapping, relative
 
 
 def write(
@@ -208,12 +208,10 @@ def _apply(
         iri = f"https://w3id.org/codemeta/{context}"
         old = data["@context"]
         data["@context"] = [iri if codemeta_version(c) else c for c in old] if isinstance(old, list) else iri
-    if doc.format == "cargo" and "package" not in data:
-        data = {"package": data["workspace"]["package"]}  # a virtual workspace, edited in place
     for term in terms:
         path = mapping[doc.format, term]
         assert path is not None  # noqa: S101 - write() only passes terms the file holds
-        slot = _slot(term, data, path)
+        slot = locate(doc.format, term, data, path)
         if slot is None:
             continue
         container, key = slot
@@ -231,22 +229,6 @@ def _apply(
         if new is not old:
             _set(container, key, _styled(new, old), old)
     return skipped
-
-
-def _slot(term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
-    """(container, key) of the value the reader reads at ``path``: the first alternative that has one."""
-    for alternative in path.split(" | "):
-        parent, _, key = alternative.rpartition(".")
-        key = key.removesuffix("[]")
-        for node in resolve(data, parent) if parent else [data]:
-            if not isinstance(node, dict):
-                continue
-            # a PEP 621 url label reads as packaging normalises it, the exact label first
-            label = key if key in node else next((k for k in node if url_label(k) == key), None)
-            if label is None or (term == "codeRepository" and codecs.doi_decode(node[label])):
-                continue  # Zenodo's isSupplementTo also lists papers by DOI
-            return node, label
-    return None
 
 
 def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key: Callable[[str], str]) -> Any:  # noqa: ANN401, PLR0911
@@ -456,6 +438,8 @@ def _new_person(fmt: str, p: Person, path: str, mapping: Mapping, like: Any) -> 
         table = tomlkit.inline_table()
         table.update(fields)
         return table
+    if p.organization and fmt in {"codemeta", "cff-1.2.0"}:
+        return {"@type": "Organization", "name": p.name} if fmt == "codemeta" else CommentedMap(name=p.name)
     if fmt == "codemeta":
         return {"@type": "Person", **fields}
     if fmt == "cff-1.2.0":
@@ -547,6 +531,15 @@ def _diff(text: str, node: tuple[int, int, Any], old: Any, new: Any, edits: list
     elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
         for i, (a, b) in enumerate(zip(old, new, strict=True)):
             _diff(text, kids[i], a, b, edits, indent)
+    elif isinstance(old, list) and isinstance(new, list) and old and new[: len(old)] == old:
+        # appended to: add after the last element in its layout, leaving the others' text alone
+        last_start, last_end, _ = kids[len(old) - 1]
+        line = text[text.rfind("\n", 0, last_start) + 1 :]
+        margin = line[: len(line) - len(line.lstrip(" \t"))]
+        sep = ",\n" + margin if "\n" in text[start:end] else ", "
+        multi = "\n" in text[last_start:last_end]
+        dumped = (json.dumps(el, indent=indent if multi else None, ensure_ascii=False) for el in new[len(old) :])
+        edits.append((last_end, last_end, "".join(sep + d.replace("\n", "\n" + margin) for d in dumped)))
     elif "\n" in text[start:end]:  # a multi-line value stays multi-line, at the indentation of its line
         line = text[text.rfind("\n", 0, start) + 1 :]
         margin = line[: len(line) - len(line.lstrip(" \t"))]

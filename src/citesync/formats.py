@@ -8,7 +8,7 @@ PEP 621 ``dynamic``), and the codecs in :mod:`citesync.codecs` read the spelling
 import json
 import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -34,12 +34,17 @@ _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
 
 @dataclass(frozen=True)
 class Person:
-    """One author. ``name`` is ``"Given Family"``; a format with one name string has no parts."""
+    """One author. ``name`` is ``"Given Family"``; a format with one name string has no parts.
+
+    ``organization`` marks a CFF entity or a CodeMeta Organization, written back as one; it never
+    makes two authors differ.
+    """
 
     name: str | None
     given: str | None = None
     family: str | None = None
     orcid: str | None = None
+    organization: bool = field(default=False, compare=False)
 
 
 @dataclass(frozen=True)
@@ -236,10 +241,7 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
         return _adapt_cargo(data, root, rel)
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
         dynamic = set(project.get("dynamic", []))  # a dynamic field is skipped, the rest still checked
-        project = {k: v for k, v in project.items() if k not in dynamic}
-        if isinstance(urls := project.get("urls"), dict):
-            project["urls"] = _url_labels(urls)
-        return {**data, "project": project}
+        return {**data, "project": {k: v for k, v in project.items() if k not in dynamic}}
     if fmt == "cff-1.2.0" and isinstance(data.get("authors"), list):
         return {**data, "authors": [cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
     if fmt == "npm":
@@ -257,14 +259,26 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
     return data
 
 
-def _url_labels(urls: dict[str, Any]) -> dict[str, Any]:
-    """``urls`` with each known label also under its normalised name, as :func:`url_label` gives it."""
-    named = dict(urls)
-    for label, url in urls.items():
-        known = url_label(label)
-        if known:
-            named.setdefault(known, url)
-    return named
+def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
+    """(container, key) of the value ``term`` reads at ``path``: the first alternative that has one.
+
+    Shared by the reader and the writer, so both pick the same value. A Cargo virtual workspace
+    holds its fields in ``[workspace.package]``; a PEP 621 url label matches as packaging normalises
+    it, the exact label first; Zenodo's isSupplementTo also lists papers by DOI, which are skipped.
+    """
+    if fmt == "cargo" and "package" not in data:
+        data = {"package": data.get("workspace", {}).get("package", {})}
+    for alternative in path.split(" | "):
+        parent, _, key = alternative.rpartition(".")
+        key = key.removesuffix("[]")
+        for node in resolve(data, parent) if parent else [data]:
+            if not isinstance(node, dict):
+                continue
+            label = key if key in node else next((k for k in node if url_label(k) == key), None)
+            if label is None or (term == "codeRepository" and codecs.doi_decode(node[label])):
+                continue
+            return node, label
+    return None
 
 
 def url_label(label: str) -> str | None:
@@ -322,15 +336,13 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
 
 
 def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Mapping) -> Any:  # noqa: ANN401
-    values = resolve(data, path)
     if term == "author":
-        people = tuple(p for p in (person(fmt, el, path, mapping) for el in values) if p)
+        people = tuple(p for p in (person(fmt, el, path, mapping) for el in resolve(data, path)) if p)
         return people or None
-    if not values:
+    slot = locate(fmt, term, data, path)
+    if slot is None:
         return None
-    if term == "codeRepository":  # Zenodo's isSupplementTo also lists papers by DOI
-        values = [v for v in values if codecs.doi_decode(v) is None] or [None]
-    raw = values[0]
+    raw = slot[0][slot[1]]
     if term == "keywords":
         items = (
             raw if isinstance(raw, list) else raw.split(",") if fmt == "codemeta" and isinstance(raw, str) else [raw]
@@ -378,4 +390,9 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping) -> Person |
         name = codecs.display_name(given, family)
     if name is None and orcid is None:
         return None
-    return Person(name, given, family, orcid)
+    org = isinstance(element, dict) and (
+        element.get("@type") == "Organization"
+        if fmt == "codemeta"
+        else fmt == "cff-1.2.0" and "given-names" not in element and "name" in element
+    )
+    return Person(name, given, family, orcid, organization=org)
