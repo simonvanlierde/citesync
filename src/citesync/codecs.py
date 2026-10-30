@@ -159,7 +159,7 @@ def repo_decode(raw: object) -> str | None:
     elif match := _SSH.match(url):
         url = f"https://{match['host']}/{match['path']}"
     while url.endswith(("/", ".git")):
-        url = url.rstrip("/").removesuffix(".git")
+        url = url.rstrip("/").removesuffix(".git").rstrip()  # what the suffix hid may be space
     return url or None
 
 

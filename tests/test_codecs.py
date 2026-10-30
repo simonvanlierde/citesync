@@ -82,6 +82,7 @@ def test_doi_decode_idempotent(raw: str) -> None:
 @example("git+https://github.com/o/r.git/")
 @example("https://github.com/o/r.git.git")
 @example("/")
+@example("0\x85/")
 def test_repo_decode_idempotent(raw: str) -> None:
     once = codecs.repo_decode(raw)
     assert codecs.repo_decode(once) == once
