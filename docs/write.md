@@ -13,7 +13,7 @@ It leaves these alone:
 - values that compare equal, such as `v1.2.3` against `1.2.3`;
 - findings whose rule is in `ignore`, and `unreadable` files.
 
-When `files` lists a codemeta.json that doesn't exist, write creates it from the source. It gets the configured `codemeta-version`, else 3.0, the version Software Heritage reads. Write doesn't create a missing .zenodo.json or CITATION.cff.
+When `files` lists a codemeta.json that doesn't exist, write creates it from the source. It gets the configured `codemeta-version`, else 3.0, the version Software Heritage reads. Write doesn't create a missing .zenodo.json or CITATION.cff. [`citesync init`](init.md) creates a CITATION.cff.
 
 ## How it spells values
 

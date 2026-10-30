@@ -1,4 +1,4 @@
-"""Command line: ``citesync check|write|config|rules|explain``.
+"""Command line: ``citesync check|write|init|config|rules|explain``.
 
 Exit codes: 0 when the files agree (after ``write``, once it has written), 1 on any error
 finding (that ``write`` may not fix), 2 when citesync couldn't run. ``write --diff`` exits 1
@@ -148,6 +148,15 @@ def _parser() -> argparse.ArgumentParser:
         epilog=_EPILOG,
     )
     write_.add_argument("--diff", action="store_true", help="print the changes as a unified diff and write nothing")
+    init = "write a CITATION.cff from codemeta.json, .zenodo.json and the manifests"
+    init_ = sub.add_parser(
+        "init",
+        parents=[root],
+        help=init,
+        description=f"W{init[1:]}, when the repo has none.\nEach field comes from the first file that"
+        " holds it: --source, then the files in the order above.",
+    )
+    init_.add_argument("--diff", action="store_true", help="print the new file as a unified diff and write nothing")
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", help="list the rules")
     rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
@@ -155,7 +164,7 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: C901, PLR0911 - a return per command
     """Run the command line and return its exit code."""
     _utf8_streams()
     args = _parse(argv)
@@ -167,6 +176,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config":
             print(f"# root: {args.root}\n{render(config)}")
             return 0
+        if args.command == "init":
+            return _init(args.root, config, diff=args.diff)
         if getattr(args, "diff", False):
             return _write_diff(args.root, config)
         written, skipped, fixed = _write(args.root, config) if args.command == "write" else ({}, {}, None)
@@ -218,7 +229,7 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
     if args.command is None:
         parser.print_help(sys.stderr)
         parser.exit(2)
-    if getattr(args, "diff", False) and args.format != "text":
+    if getattr(args, "diff", False) and getattr(args, "format", "text") != "text":
         parser.error("--diff prints a unified diff; it takes no --format")
     return args
 
@@ -258,6 +269,19 @@ def _write_diff(root: Path, config: Config) -> int:
     for f in unreadable:  # the diff can't show a file write never touches, so say so
         print(f"{f.where}: error[unreadable] {f.message}", file=sys.stderr)
     return 1 if texts or unreadable else 0
+
+
+def _init(root: Path, config: Config, *, diff: bool) -> int:
+    """Write a new CITATION.cff, or with ``diff`` print it as a diff from nothing."""
+    from citesync.write import init  # noqa: PLC0415
+
+    text, skipped = init(root, config, dry_run=diff)
+    if diff:
+        sys.stdout.write(_diff(root, {"CITATION.cff": text}))
+        return 0
+    left = "; ".join(f"{term}: {why}" for term, why in skipped.items())
+    print("wrote CITATION.cff" + (f", leaving out {left}" if left else ""))
+    return 0
 
 
 def _report(findings: list[Finding], files: int, args: argparse.Namespace, fixed: int | None) -> None:
