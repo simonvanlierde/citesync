@@ -9,7 +9,7 @@
 ```json
 {
   "version": 1,
-  "tool": { "name": "citesync", "version": "0.1.0" },
+  "tool": { "name": "citesync", "version": "0.2.0" },
   "summary": { "files": 3, "errors": 1, "warnings": 0, "info": 0 },
   "findings": [
     {
