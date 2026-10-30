@@ -1,4 +1,4 @@
-# Synthetic fixture: every file below states the same ten fields in its own spelling.
+# Synthetic fixture: every file below states the same eleven fields in its own spelling.
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
