@@ -15,7 +15,7 @@ citesync checks that your software's citation metadata says the same thing every
 
 ## Usage
 
-citesync compares ten fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another with `--source`. With neither, citesync exits 2. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
+citesync compares eleven fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another with `--source`. With neither, citesync exits 2. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
 
 ```sh
 uv tool install citesync            # or run it once with uvx citesync check

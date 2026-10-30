@@ -33,6 +33,12 @@
           "file": null,
           "term": "datePublished",
           "why": "no file holds a release date"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "swhid",
+          "why": "no file holds a value"
         }
       ]
     },
@@ -66,6 +72,12 @@
           "file": null,
           "term": "datePublished",
           "why": "no file holds a release date"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
+          "term": "swhid",
+          "why": "no file holds a value"
         },
         {
           "rule": "not-checked",

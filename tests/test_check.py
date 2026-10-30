@@ -368,7 +368,7 @@ def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, run: "Run") -
     cff_terms = sorted(t for t in TERMS if t != "contributor")
     assert [(f["file"], f["term"]) for f in info] == [*(("CITATION.cff", t) for t in cff_terms), (None, "contributor")]
     assert {f["message"] for f in info[:-1]} == {"not compared with the source: it can't be read"}
-    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 10}
+    assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 11}
 
 
 def test_unexpected_error_is_exit_2(tmp_path: Path, run: "Run", monkeypatch: pytest.MonkeyPatch) -> None:
@@ -756,6 +756,24 @@ def test_codemeta_property_value_doi(
     assert _triples(_split(_check_json(tmp_path, run, files))[0]) == expected
 
 
+@pytest.mark.parametrize(
+    ("swhid", "expected"),
+    [
+        ("swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505", []),
+        ("swh:1:rev:309cf2674ee7a0749978cf8265ab91a60aea0f7d", [("swhid-mismatch", "codemeta.json", "swhid")]),
+    ],
+)
+def test_codemeta_property_value_swhid(
+    swhid: str, expected: list[tuple[str, str, str]], tmp_path: Path, run: "Run"
+) -> None:
+    identifier = ["https://doi.org/10.1/a", {"@type": "PropertyValue", "propertyID": "swhid", "value": swhid}]
+    cff = CFF + 'doi: "10.1/a"\n'
+    cff += "identifiers:\n  - {type: swh, value: swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505}\n"
+    # The .zenodo.json keeps CFF's identifiers out of zenodo-drops-field.
+    files = {"CITATION.cff": cff, "codemeta.json": _codemeta(identifier=identifier), ".zenodo.json": '{"title": "x"}'}
+    assert _triples(_split(_check_json(tmp_path, run, files))[0]) == expected
+
+
 SYNTHETIC = FIXTURES / "synthetic-agree"
 # One planted disagreement per row, in synthetic-agree with CITATION.cff as the source.
 PLANTED = [
@@ -789,6 +807,17 @@ PLANTED = [
     ("codemeta.json", "0000-0002-1825-0097", "0000-0001-5109-3700", "author-mismatch", "author", None),
     ("pyproject.toml", 'license = "Apache-2.0"', 'license = "MIT"', "license-mismatch", "license", None),
     ("codemeta.json", "zenodo.1234567", "zenodo.7654321", "doi-mismatch", "identifier", None),
+    (
+        ".zenodo.json",
+        "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
+        "swh:1:rev:309cf2674ee7a0749978cf8265ab91a60aea0f7d",
+        "swhid-mismatch",
+        "swhid",
+        (
+            "'swh:1:rev:309cf2674ee7a0749978cf8265ab91a60aea0f7d',"
+            " CITATION.cff has 'swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505'"
+        ),
+    ),
     (
         ".zenodo.json",
         '"https://github.com/example/synthagree"',
@@ -869,7 +898,7 @@ def test_not_checked_detail(tmp_path: Path, run: "Run") -> None:
 
 def test_json_keeps_info_under_quiet(tmp_path: Path, run: "Run") -> None:
     report = _check_json(tmp_path, run, {"CITATION.cff": CFF}, "-q")
-    assert report["summary"]["info"] == len(_split(report)[1]) == 9
+    assert report["summary"]["info"] == len(_split(report)[1]) == 10
 
 
 def test_schema_lets_a_minor_release_add_rules_and_fields(tmp_path: Path, run: "Run") -> None:
@@ -1038,7 +1067,7 @@ def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, run: "Run")
     (tmp_path / "citesync.toml").write_text('ignore = ["name-mismatch", "doi-mismatch"]\n', encoding="utf-8")
     code, out, err = run("check", "--root", str(tmp_path), "--json")
     assert (code, err) == (0, "citesync: warning: ignore entry 'doi-mismatch' matched no finding\n")
-    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 9
+    assert [f["rule"] for f in json.loads(out)["findings"]] == ["not-checked"] * 10
 
 
 @pytest.mark.parametrize("zenodo", [False, True])

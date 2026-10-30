@@ -9,7 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 To upgrade from 0.1.0:
 
-- `citesync check` has four new error rules: `contributor-mismatch`, `date-mismatch`, `zenodo-license-list` and `file-missing`. To turn any of them off for now, list it under `ignore` ([docs/rules.md](docs/rules.md)).
+- `citesync check` has five new error rules: `contributor-mismatch`, `date-mismatch`, `swhid-mismatch`, `zenodo-license-list` and `file-missing`. To turn any of them off for now, list it under `ignore` ([docs/rules.md](docs/rules.md)).
 - `codemeta-version` no longer defaults to 3.0. To keep checking codemeta.json's `@context` as before, set `codemeta-version = "3.0"`.
 - Use citesync through its command line or the pre-commit hook. Its Python modules are internal and may change in any release.
 - `write-manifests` takes only `version`, `author`, `contributor`, `license`, `codeRepository` and `keywords`, the fields a manifest holds. Take any other field off the list.
@@ -20,6 +20,7 @@ To upgrade from 0.1.0:
 - `citesync init` writes a CITATION.cff from codemeta.json, .zenodo.json and the package manifests when a repo has none. It passes `citesync check` when those files already agree, and `citesync write` fixes the rest ([docs/init.md](docs/init.md)).
 - Contributors are compared across codemeta.json, .zenodo.json and package.json, the same way as authors (`contributor-mismatch`).
 - Release dates are compared across CITATION.cff, codemeta.json and .zenodo.json (`date-mismatch`).
+- Software Heritage identifiers (SWHIDs) are compared across CITATION.cff, codemeta.json and .zenodo.json, and `citesync write` fixes them (`swhid-mismatch`, [docs/check.md](docs/check.md#how-values-compare)).
 - `version-behind-tag` warns when the source's version is older than the repo's newest git tag.
 - `--format sarif` prints a SARIF log that GitHub code scanning can upload.
 - `citesync write` creates codemeta.json when the `files` setting lists it and it doesn't exist yet.
@@ -36,7 +37,7 @@ To upgrade from 0.1.0:
 
 - **Breaking:** `codemeta-version` has no default. When it's unset, any CodeMeta version passes and `citesync write` leaves `@context` alone.
 - **Breaking:** a file listed in the `files` setting that doesn't exist is a `file-missing` error. 0.1.0 skipped it.
-- The field mapping comes from codemeta-drift 0.2.0, which adds contributors and release dates.
+- The field mapping comes from codemeta-drift 0.3.0, which adds contributors, release dates and SWHIDs.
 - `citesync check` starts about a third faster.
 - **Breaking:** `write-manifests = "all"` means the six manifest fields, and naming any other field is a config error.
 - A keyword finding between citation files lists the missing and extra words, not both files' lists.

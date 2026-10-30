@@ -434,6 +434,33 @@ def test_a_property_value_doi_keeps_its_keys(shape: str, tmp_path: Path, run: "R
     )
 
 
+def test_a_property_value_swhid_is_written_beside_the_doi(tmp_path: Path, run: "Run") -> None:
+    root = _synthetic(tmp_path / "repo")
+    swhid = {"@type": "PropertyValue", "propertyID": "swhid", "value": REV}
+    old = ["https://doi.org/10.5281/zenodo.1234567", swhid]
+    _edit(root / "codemeta.json", '"https://doi.org/10.5281/zenodo.1234567"', json.dumps(old))
+
+    run("write", "--root", str(root))
+    identifier = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["identifier"]
+    assert identifier == [old[0], {**swhid, "value": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"}]
+
+
+def test_a_zenodo_swhid_without_a_scheme_keeps_its_shape(tmp_path: Path, run: "Run") -> None:
+    root = _synthetic(tmp_path / "repo")
+    _edit(
+        root / ".zenodo.json",
+        '"identifier": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",\n      "scheme": "swh"',
+        f'"identifier": "{REV}"',
+    )
+
+    run("write", "--root", str(root))
+    related = json.loads((root / ".zenodo.json").read_text(encoding="utf-8"))["related_identifiers"]
+    assert related[2] == {
+        "relation": "isIdenticalTo",
+        "identifier": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
+    }
+
+
 @pytest.mark.parametrize("case_sensitive", [False, True])
 def test_values_that_compare_equal_are_left_as_written(
     case_sensitive: bool,  # noqa: FBT001
@@ -570,16 +597,19 @@ def test_crlf_line_ends_stay(name: str, tmp_path: Path, run: "Run") -> None:
         assert written == _expected(name).replace(b"\n", b"\r\n")
 
 
-@pytest.mark.parametrize("crlf_lines", [1, 12, 13])  # of 24 lines: a tie keeps LF
+@pytest.mark.parametrize("crlf_lines", [1, 14, 15])  # of 28 lines: a tie keeps LF
 def test_mixed_line_ends_take_the_more_common_one(crlf_lines: int, tmp_path: Path, run: "Run") -> None:
     root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
-    lines = (PLANTED / "CITATION.cff").read_bytes().splitlines(keepends=True)
+    lines = [
+        b"# mixed\n",
+        *(PLANTED / "CITATION.cff").read_bytes().splitlines(keepends=True),
+    ]  # an even count, for the tie
     mixed = [line.replace(b"\n", b"\r\n") for line in lines[:crlf_lines]] + lines[crlf_lines:]
     (root / "CITATION.cff").write_bytes(b"".join(mixed))
 
     assert run("write", "--root", str(root))[0] == 0
-    expected = _expected("CITATION.cff")
-    assert (root / "CITATION.cff").read_bytes() == (expected.replace(b"\n", b"\r\n") if crlf_lines > 12 else expected)
+    expected = b"# mixed\n" + _expected("CITATION.cff")
+    assert (root / "CITATION.cff").read_bytes() == (expected.replace(b"\n", b"\r\n") if crlf_lines > 14 else expected)
 
 
 def test_a_mixed_file_write_leaves_alone_keeps_its_line_ends(tmp_path: Path, run: "Run") -> None:
@@ -613,9 +643,11 @@ def test_a_failed_write_changes_no_file(tmp_path: Path, run: "Run", monkeypatch:
     assert calls[0] == {"dir": root, "prefix": ".codemeta.json.", "suffix": ".tmp"}
 
 
+REV = "swh:1:rev:309cf2674ee7a0749978cf8265ab91a60aea0f7d"
 # Text edits that each plant one disagreement in the synthetic set, with the term it plants.
-# .zenodo.json holds no version or DOI: as the source it leaves a gap (D2), which write never fills.
-GAPS = {".zenodo.json": {"version", "identifier"}}
+# .zenodo.json holds no version or DOI, and codemeta.json no SWHID: as the source each leaves a gap (D2),
+# which write never fills.
+GAPS = {".zenodo.json": {"version", "identifier"}, "codemeta.json": {"swhid"}}
 EDITS = [
     ("codemeta.json", '"version": "1.2.3"', '"version": "2.0.0rc1"', "version"),
     ("codemeta.json", '"familyName": "Lovelace"', '"familyName": "Byron"', "author"),
@@ -628,6 +660,8 @@ EDITS = [
     ("CITATION.cff", "0000-0002-1825-0097", "0000-0001-5109-3700", "author"),
     ("CITATION.cff", '  - "delta"\n', '  - "delta"\n  - "epsilon"\n', "keywords"),
     ("CITATION.cff", 'doi: "10.5281/zenodo.1234567"', 'doi: "10.5281/zenodo.42"', "identifier"),
+    ("CITATION.cff", "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505", REV, "swhid"),
+    (".zenodo.json", "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505", REV, "swhid"),
     ("pyproject.toml", 'license = "Apache-2.0"', 'license = "MIT OR Apache-2.0"', "license"),
     ("pyproject.toml", '{ name = "Alan Turing" }', '{ name = "Grace Hopper" }, { name = "Alan Turing" }', "author"),
     ("Cargo.toml", '"Alan Turing"', '"Alan Turing <alan@example.org>", "Grace Hopper"', "author"),
@@ -945,7 +979,14 @@ CREATED = """{
   "description": "A made-up package whose metadata files all agree.",
   "version": "1.2.3",
   "datePublished": "2026-01-15",
-  "identifier": "https://doi.org/10.5281/zenodo.1234567",
+  "identifier": [
+    "https://doi.org/10.5281/zenodo.1234567",
+    {
+      "@type": "PropertyValue",
+      "propertyID": "SWHID",
+      "value": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    }
+  ],
   "codeRepository": "https://github.com/example/synthagree",
   "license": "https://spdx.org/licenses/Apache-2.0",
   "author": [

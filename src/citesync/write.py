@@ -178,6 +178,8 @@ def init(
         cff, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key(config)
     )
     data.update((blank[term][0], value) for term, value in values.items())
+    if swhid := record.get("swhid"):  # CFF holds it in identifiers, as a typed entry
+        data["identifiers"] = [{"type": "swh", "value": swhid}]
     if (
         not (root / ".zenodo.json").is_file()
         and "zenodo-license-list" not in config.ignore
@@ -322,6 +324,9 @@ def _new_codemeta(
     data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
     values, skipped = _encode_terms(doc, source, blank, mapping, keyword_key)
+    if swhid := source.record.get("swhid"):  # codemeta holds it in identifier, beside the DOI
+        value = {"@type": "PropertyValue", "propertyID": "SWHID", "value": swhid}
+        values["identifier"] = [values["identifier"], value] if "identifier" in values else value
     return json.dumps(data | values, indent=2, ensure_ascii=False) + "\n", skipped
 
 
@@ -406,7 +411,9 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     if term == "license":
         return _license(fmt, value, old)
     if term == "identifier":
-        return _identifier(value, old)
+        return _identifier(value, old, codecs.doi_decode, _doi_form)
+    if term == "swhid":
+        return _identifier(value, old, codecs.swhid_decode, lambda swhid, _: swhid)
     if term == "codeRepository":
         if isinstance(old, dict):  # npm's {type, url}
             old["url"] = _encode(doc, source, term, value, old["url"], keyword_key)
@@ -435,16 +442,29 @@ def _date(value: str, old: Any) -> Any:  # noqa: ANN401
     return day if isinstance(old, dt.date) else day.isoformat()
 
 
-def _identifier(doi: str, old: Any) -> Any:  # noqa: ANN401
-    """``doi`` in ``old``'s form: a DOI URL or bare, in place inside a codemeta list or PropertyValue."""
-    if isinstance(old, list):  # codemeta: the first DOI in the list is the one read
-        i = next(i for i, el in enumerate(old) if codecs.doi_decode(el))
-        return [*old[:i], _identifier(doi, old[i]), *old[i + 1 :]]
-    if isinstance(old, dict):  # a schema.org PropertyValue: set the keys holding the DOI, keep the rest
+def _identifier(
+    new: str,
+    old: Any,  # noqa: ANN401
+    decode: Callable[[object], str | None],
+    spell: Callable[[str, Any], str],
+) -> Any:  # noqa: ANN401
+    """``new`` spelled by ``spell`` like the value it replaces: in place inside a codemeta list or PropertyValue.
+
+    The value replaced is the one ``decode`` reads, so a DOI and a SWHID in one codemeta ``identifier`` stay apart.
+    """
+    if isinstance(old, list):  # codemeta: the first value decode reads is the one read
+        i = next(i for i, el in enumerate(old) if decode(el))
+        return [*old[:i], _identifier(new, old[i], decode, spell), *old[i + 1 :]]
+    if isinstance(old, dict):  # a schema.org PropertyValue: set the keys holding the value, keep the rest
         for key in ("value", "url"):
-            if codecs.doi_decode(old.get(key)):
-                old[key] = _identifier(doi, old[key])
+            if decode(old.get(key)):
+                old[key] = _identifier(new, old[key], decode, spell)
         return old
+    return spell(new, old)
+
+
+def _doi_form(doi: str, old: Any) -> str:  # noqa: ANN401
+    """``doi`` as a URL or bare, as ``old`` is."""
     form = "url" if isinstance(old, str) and old.strip().lower().startswith("http") else "bare"
     return codecs.doi_encode(doi, form)
 

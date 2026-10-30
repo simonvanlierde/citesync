@@ -170,6 +170,25 @@ def test_doi_decode_keeps_only_doi_shaped_values() -> None:
     assert codecs.doi_decode(["https://github.com/o/r", "https://doi.org/10.1/a", "10.1/b"]) == "10.1/a"
 
 
+def test_swhid_decode_reads_strings_property_values_and_lists() -> None:
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    assert codecs.swhid_decode(f" {swhid} ") == swhid
+    assert codecs.swhid_decode({"@type": "PropertyValue", "propertyID": "swhid", "value": swhid}) == swhid
+    assert codecs.swhid_decode(["https://doi.org/10.1/a", {"@type": "PropertyValue", "url": swhid}]) == swhid
+    qualified = f"{swhid};origin=https://github.com/o/r"
+    assert codecs.swhid_decode(qualified) == qualified
+    for other in ("https://doi.org/10.1/a", "swh:1:dir:0", "swh:2:dir:" + "0" * 40, ["swh:1:dir:0"], 1, None):
+        assert codecs.swhid_decode(other) is None, other
+
+
+def test_swhid_key_ignores_the_case_of_the_hash_only() -> None:
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    assert codecs.swhid_key(swhid.upper().replace("SWH:1:DIR", "swh:1:dir")) == swhid
+    assert codecs.swhid_key(f"{swhid};origin=https://github.com/O/R") != codecs.swhid_key(
+        f"{swhid};origin=https://github.com/o/r"
+    )
+
+
 def test_doi_decode_reads_property_values() -> None:
     swhid = {"@type": "PropertyValue", "propertyID": "SWHID", "value": "swh:1:dir:" + "0" * 40}
     ror = {"@type": "PropertyValue", "propertyID": "ROR", "url": "https://ror.org/02e2c7k09"}

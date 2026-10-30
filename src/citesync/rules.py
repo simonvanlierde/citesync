@@ -77,6 +77,15 @@ _FIELDS = {
         "The DOI differs from the source's.",
         "DOIs compare case-insensitively, with or without `https://doi.org/`. Manifests have no DOI.",
     ),
+    "swhid": (
+        "swhid-mismatch",
+        "The Software Heritage identifier (SWHID) differs from the source's.",
+        (
+            "CFF `identifiers` of type `swh`, Zenodo `related_identifiers` with scheme `swh` (or no scheme),"
+            " and a SWHID in CodeMeta `identifier`, as a string or a PropertyValue beside the DOI. The hash"
+            " compares case-insensitively, qualifiers after `;` as written. Manifests have no SWHID."
+        ),
+    ),
     "codeRepository": (
         "repository-mismatch",
         "The repository URL differs from the source's.",
@@ -209,7 +218,7 @@ def markdown() -> str:
         "# Rules\n\n<!-- Generated from src/citesync/rules.py by"
         " `uv run python -m citesync.rules > docs/rules.md`. Edit that file, not this one. -->\n\n"
         "`citesync rules` lists these rules, and `citesync explain <id>` prints one section.\n\n"
-        "The ten rules from `name-mismatch` to `date-mismatch` compare a field with the source."
+        "The eleven rules from `name-mismatch` to `date-mismatch` compare a field with the source."
         " When the source doesn't hold the field (pyproject.toml has no DOI),"
         " the other files that hold it must agree with each other.\n"
     )

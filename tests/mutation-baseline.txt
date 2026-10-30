@@ -50,13 +50,14 @@ citesync.write.x__new_codemeta__mutmut_45  _encode reads only the stand-in Doc's
 citesync.write.x__new_codemeta__mutmut_46  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_47  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_56  _encode reads only the stand-in Doc's format
-citesync.write.x__new_codemeta__mutmut_71  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
+citesync.write.x__new_codemeta__mutmut_97  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.write.x__yaml__mutmut_8  any width past the longest line keeps every line whole
 citesync.write.x__yaml__mutmut_9  any width past the longest line keeps every line whole
 citesync.write.x__apply__mutmut_26  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
 citesync.write.x__apply__mutmut_80  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
-citesync.write.x__encode__mutmut_41  the codeRepository branch reads neither source nor keyword_key
-citesync.write.x__encode__mutmut_45  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_57  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_61  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__identifier__mutmut_24  a PropertyValue's value or url is a string, and spelling a string never calls decode
 citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__people__mutmut_56  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_59  matches has one entry per person, so strict never fires
@@ -93,8 +94,8 @@ citesync.write.x_init__mutmut_75  a blank's text is never read, only its type
 citesync.write.x_init__mutmut_89  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
 citesync.write.x_init__mutmut_95  a blank's text is never read: "XXXX" has no git+ or .git to keep
 citesync.write.x_init__mutmut_100  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x_init__mutmut_144  any width past the longest line keeps every line whole
-citesync.write.x_init__mutmut_145  any width past the longest line keeps every line whole
-citesync.write.x_init__mutmut_146  mapping=None keeps ruamel's default of 2
-citesync.write.x_init__mutmut_149  mapping's default is 2
-citesync.write.x_init__mutmut_152  init writes no mapping inside a mapping, the only place this indent shows
+citesync.write.x_init__mutmut_156  any width past the longest line keeps every line whole
+citesync.write.x_init__mutmut_157  any width past the longest line keeps every line whole
+citesync.write.x_init__mutmut_158  mapping=None keeps ruamel's default of 2
+citesync.write.x_init__mutmut_161  mapping's default is 2
+citesync.write.x_init__mutmut_164  init writes no mapping inside a mapping, the only place this indent shows

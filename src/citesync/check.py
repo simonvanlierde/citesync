@@ -285,6 +285,7 @@ _KEY = {
     "version": codecs.version_key,
     "license": codecs.license_key,
     "identifier": codecs.doi_key,
+    "swhid": codecs.swhid_key,
     "codeRepository": codecs.repo_key,
 }
 

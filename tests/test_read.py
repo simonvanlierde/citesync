@@ -122,6 +122,35 @@ def test_zenodo_repository_skips_a_doi_supplement(tmp_path: Path) -> None:
     assert record["codeRepository"] == "https://github.com/o/r"
 
 
+def test_zenodo_repository_skips_a_swhid_supplement(tmp_path: Path) -> None:
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    related = [
+        {"relation": "isSupplementTo", "identifier": swhid, "scheme": "swh"},
+        {"relation": "isSupplementTo", "identifier": "https://github.com/o/r", "scheme": "url"},
+    ]
+    record = _read(tmp_path, ".zenodo.json", json.dumps({"related_identifiers": related}))
+    assert (record["codeRepository"], record["swhid"]) == ("https://github.com/o/r", swhid)
+
+
+def test_zenodo_swhid_needs_no_scheme(tmp_path: Path) -> None:
+    """Zenodo detects the scheme itself, so a SWHID entry may leave it out; a DOI entry before it is not a SWHID."""
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    related = [
+        {"relation": "isSupplementTo", "identifier": "10.1/paper"},
+        {"relation": "isIdenticalTo", "identifier": swhid},
+    ]
+    record = _read(tmp_path, ".zenodo.json", json.dumps({"related_identifiers": related}))
+    assert record["swhid"] == swhid
+
+
+def test_codemeta_swhid_sits_beside_the_doi(tmp_path: Path) -> None:
+    swhid = "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    identifier = ["https://doi.org/10.1/a", {"@type": "PropertyValue", "propertyID": "swhid", "value": swhid}]
+    text = json.dumps({"@context": "https://w3id.org/codemeta/3.0", "identifier": identifier})
+    record = _read(tmp_path, "codemeta.json", text)
+    assert (record["identifier"], record["swhid"]) == ("10.1/a", swhid)
+
+
 def test_codemeta_identifier_url_or_list(tmp_path: Path) -> None:
     head = '{"@context": "https://w3id.org/codemeta/3.0", '
     assert "identifier" not in _read(tmp_path, "codemeta.json", head + '"identifier": "https://github.com/o/r"}')
