@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from importlib.metadata import version
 from pathlib import Path
 
@@ -915,6 +916,17 @@ def test_titles_compare_in_nfc(term: str, tmp_path: Path, capsys: pytest.Capture
     if term == "name":
         files["CITATION.cff"] = files["CITATION.cff"].replace('title: "x"\n', "")
     assert _split(_check_json(tmp_path, capsys, files))[0] == []
+
+
+def test_nested_lists_are_not_followed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """YAML aliases share one list, so ten levels of ten hold 10**10 leaves in a file of a few hundred bytes."""
+    levels = ["a0: &a0 [MIT, MIT, MIT, MIT, MIT, MIT, MIT, MIT, MIT, MIT]"]
+    levels += [f"a{i}: &a{i} [{', '.join([f'*a{i - 1}'] * 10)}]" for i in range(1, 10)]
+    cff = CFF + "\n".join(levels) + "\nlicense: [*a9]\ndoi: [*a9]\n"
+    start = time.perf_counter()
+    report = _check_json(tmp_path, capsys, {"CITATION.cff": cff, ".zenodo.json": json.dumps({"title": "x"})})
+    assert time.perf_counter() - start < 1
+    assert _split(report)[0] == []
 
 
 def test_release_dates_compare_by_day(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

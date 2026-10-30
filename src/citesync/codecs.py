@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 _SPDX_URL = re.compile(r"^https?://spdx\.org/licenses/(?P<id>[^/]+?)(?:\.html|\.json)?/?$", re.IGNORECASE)
 _ORCID_URL = re.compile(r"^https?://(?:www\.)?orcid\.org/", re.IGNORECASE)
-_SLASHES_AND_SPACE = re.compile(r"^[\s/]+|[\s/]+$")  # "/\r0" is "0", as decoding it again gives
+_LEADING_SLASHES_AND_SPACE = re.compile(r"^[\s/]+")
 _DOI_PREFIX = re.compile(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", re.IGNORECASE)
 _DOI = re.compile(r"^10\.\d+/\S+$")
 _NPM_HOSTS = {"github": "github.com", "gitlab": "gitlab.com", "bitbucket": "bitbucket.org"}
@@ -32,7 +32,8 @@ _REF_TAIL = {
     "gitea.com": re.compile(_OWNER_REPO_TAIL.format("src")),
     "bitbucket.org": re.compile(_OWNER_REPO_TAIL.format("src")),
 }
-_CONTACT = re.compile(r"^(?P<name>[^<(]*?)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
+# Possessive, so a long run of spaces has one way to match, not one per split; clean() drops the trailing ones.
+_CONTACT = re.compile(r"^(?P<name>[^<(]*+)(?:<[^>]*>)?\s*(?:\([^)]*\))?$")
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}(?:$|T)")
 _SEMVER_TAG = {"a": "alpha", "b": "beta", "rc": "rc"}
 
@@ -53,10 +54,11 @@ def spaced(text: str) -> str:
 def license_decode(raw: object) -> str | None:
     """The SPDX id in a licence field; PEP 621's legacy ``{text = ...}`` table gives its text.
 
-    A list (CFF, codemeta) reads as the SPDX expression ``A OR B``, in the order given.
+    A list (CFF, codemeta) reads as the SPDX expression ``A OR B``, in the order given. Only its strings
+    count: a nested list is never followed, since YAML aliases can make one hold billions of items.
     """
     if isinstance(raw, list):
-        ids = [i for i in map(license_decode, raw) if i]
+        ids = [i for i in (license_decode(item) for item in raw if isinstance(item, str)) if i]
         return " OR ".join(ids) or None
     if isinstance(raw, dict):
         raw = raw.get("text")  # a {file = ...} table names a file, not a licence
@@ -88,8 +90,17 @@ def orcid_decode(raw: object) -> str | None:
     """The bare iD (``0000-0002-1825-0097``), with a final ``x`` upper-cased."""
     if not isinstance(raw, str) or not raw.strip():
         return None
-    bare = _SLASHES_AND_SPACE.sub("", _ORCID_URL.sub("", raw.strip()))
+    bare = _strip_slashes(_ORCID_URL.sub("", raw.strip()))
     return bare.upper() or None
+
+
+def _strip_slashes(text: str) -> str:
+    r"""``text`` without slashes or whitespace at either end: ``"/\r0"`` is ``"0"``, as decoding it again gives.
+
+    The end is stripped as the reversed text's start, as searching for ``[\s/]+$`` is quadratic in a run of spaces.
+    """
+    text = _LEADING_SLASHES_AND_SPACE.sub("", text, count=1)
+    return _LEADING_SLASHES_AND_SPACE.sub("", text[::-1], count=1)[::-1]
 
 
 def orcid_encode(orcid: str, form: str) -> str:
@@ -105,12 +116,16 @@ def doi_decode(raw: object) -> str | None:
 
     codemeta's ``identifier`` may be any URL, a schema.org PropertyValue or a list: the first DOI
     in it counts. A PropertyValue holds a DOI in its ``value`` or ``url`` (``propertyID`` ``DOI``);
-    any other, such as a SWHID or ROR id, is ignored.
+    any other, such as a SWHID or ROR id, is ignored. A list is read one level deep, as :func:`license_decode` is.
     """
-    if isinstance(raw, dict):
-        raw = [raw.get("value"), raw.get("url")]
     if isinstance(raw, list):
-        return next(filter(None, map(doi_decode, raw)), None)
+        return next(filter(None, (doi_decode(item) for item in raw if isinstance(item, (str, dict)))), None)
+    if isinstance(raw, dict):
+        return next(filter(None, (_doi(raw.get(key)) for key in ("value", "url"))), None)
+    return _doi(raw)
+
+
+def _doi(raw: object) -> str | None:
     if not isinstance(raw, str):
         return None
     doi = _DOI_PREFIX.sub("", raw.strip())
