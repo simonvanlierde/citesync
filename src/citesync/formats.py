@@ -258,16 +258,13 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
         dynamic = set(project.get("dynamic", []))  # a dynamic field is skipped, the rest still checked
         return {**data, "project": {k: v for k, v in project.items() if k not in dynamic}}
-    if fmt == "cff-1.2.0" and isinstance(data.get("authors"), list):
-        return {**data, "authors": [cff_person(a) if isinstance(a, dict) else a for a in data["authors"]]}
     if fmt == "npm":
         return _adapt_npm(data)
     if fmt == "codemeta":
         data = dict(data)
         for key in PEOPLE:
-            if isinstance(people := data.get(key), (dict, list)):
-                people = people if isinstance(people, list) else [people]  # JSON-LD allows one node for a list of one
-                data[key] = [codemeta_person(p) for p in people]
+            if isinstance(people := data.get(key), dict):  # JSON-LD allows one node for a list of one
+                data[key] = [people]
     return data
 
 
@@ -324,12 +321,8 @@ def codemeta_person(author: object) -> object:
 
 
 def _adapt_npm(data: dict[str, Any]) -> dict[str, Any]:
-    """Read npm's ``Name <email>`` person strings as ``{name}`` and a repository object or shorthand as a URL."""
+    """Read npm's repository object or shorthand as a URL."""
     data = dict(data)
-    if isinstance(data.get("author"), str):
-        data["author"] = {"name": data["author"]}
-    if isinstance(data.get("contributors"), list):
-        data["contributors"] = [{"name": c} if isinstance(c, str) else c for c in data["contributors"]]
     if isinstance(data.get("repository"), dict):
         data["repository"] = data["repository"].get("url")
     if isinstance(data.get("repository"), str) and _NPM_BARE_REPO.match(data["repository"]):
@@ -397,7 +390,16 @@ _DECODE = {
 
 
 def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) -> Person | None:
-    """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID."""
+    """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID.
+
+    Check and write both read people here, so they match people the same way.
+    """
+    if fmt == "cff-1.2.0" and isinstance(element, dict):
+        element = cff_person(element)
+    elif fmt == "codemeta":
+        element = codemeta_person(element)
+    elif fmt == "npm" and isinstance(element, str):  # "Name <email>"
+        element = {"name": element}
     given_term, family_term, orcid_term = person_terms(term)
 
     def sub(term: str) -> object:

@@ -386,7 +386,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
             Zenodo contributor would be added, since Zenodo needs a contributor type.
     """
     items = list(old) if isinstance(old, list) else [old]
-    decoded = [_decode(fmt, el, path, mapping, term) for el in items]
+    decoded = [person(fmt, el, path, mapping, term) for el in items]
     npm = term == "author" and "npm" in {fmt, source.format}
     people: tuple[Person, ...] = source.record[term][:1] if npm else source.record[term]
     matches = _matches(decoded, people)
@@ -444,16 +444,6 @@ def _relist(old: list[Any], new: list[Any]) -> None:
     else:  # a reorder: rebuild the list
         old.clear()
         old.extend(new)
-
-
-def _decode(fmt: str, element: Any, path: str, mapping: Mapping, term: str) -> Person | None:  # noqa: ANN401
-    if fmt == "cff-1.2.0" and isinstance(element, dict):
-        element = cff_person(element)
-    elif fmt == "codemeta":
-        element = codemeta_person(element)
-    elif fmt == "npm" and isinstance(element, str):
-        element = {"name": element}
-    return person(fmt, element, path, mapping, term)
 
 
 def _matches(decoded: list[Person | None], people: tuple[Person, ...]) -> list[int | None]:
