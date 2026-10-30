@@ -106,7 +106,53 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
 def check(root: Path, config: Config) -> tuple[list[Finding], int]:
     """Every finding for the repo at ``root``, sorted, and the number of files checked."""
     docs, unreadable = read_docs(root, config, load_mapping())
-    return findings(docs, unreadable, config), len(docs)
+    behind = version_behind_tag(docs[0], git_tags(root))
+    return sorted([*findings(docs, unreadable, config), *behind], key=Finding.sort_key), len(docs)
+
+
+def git_tags(root: Path) -> list[str]:
+    """The tag names of the git repository at ``root``, read from its files; none when it isn't one.
+
+    Reads loose refs and ``packed-refs`` in the common git dir, so a linked worktree sees the
+    clone's tags. Running ``git`` would cost a process per check.
+    """
+    git = root / ".git"
+    if git.is_file():  # a linked worktree: "gitdir: <path>", whose commondir file points at the clone's .git
+        git = (root / git.read_text(encoding="utf-8").removeprefix("gitdir:").strip()).resolve()
+        if (git / "commondir").is_file():
+            git = (git / (git / "commondir").read_text(encoding="utf-8").strip()).resolve()
+    tags = [p.relative_to(git / "refs/tags").as_posix() for p in (git / "refs/tags").rglob("*") if p.is_file()]
+    if (git / "packed-refs").is_file():
+        lines = (git / "packed-refs").read_text(encoding="utf-8").splitlines()
+        tags += [
+            ref.removeprefix("refs/tags/")
+            for _, _, ref in (line.partition(" ") for line in lines)
+            if ref.startswith("refs/tags/")
+        ]
+    return tags
+
+
+def version_behind_tag(source: Doc, tags: list[str]) -> list[Finding]:
+    """A warning when the source's version is older than the newest tag that reads as a version."""
+    version = source.record.get("version")
+    if not version or not tags:
+        return []
+    from packaging.version import InvalidVersion, Version  # noqa: PLC0415 - 2.5 ms, only in a repo with tags
+
+    versions = {}
+    for tag in tags:
+        try:
+            versions[tag] = Version(tag)
+        except InvalidVersion:
+            continue
+    try:
+        current = Version(version)
+    except InvalidVersion:
+        return []
+    newest = max(versions, key=versions.__getitem__, default=None)
+    if newest is None or versions[newest] <= current:
+        return []
+    return [Finding(source.path, "version", "version-behind-tag", f"{version}, the newest tag is {newest}")]
 
 
 def findings(docs: list[Doc], unreadable: list[Finding], config: Config) -> list[Finding]:
