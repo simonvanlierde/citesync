@@ -203,7 +203,7 @@ def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set
             detail = f"a Role points at {orcids}, which no Person in author or contributor has"
             found.add(Finding(doc.path, key, "role-dangling", detail))
         for key, rule in doc.zenodo_gaps:
-            found.add(Finding(doc.path, key, rule, _ZENODO_GAPS[rule]))
+            found.add(Finding(doc.path, key, rule, ZENODO_GAPS[rule]))
     for term in TERMS:
         if not source.readable and has_slot(source, term):
             found.add(Finding(source.path, term, "not-checked", "not compared with the source: it can't be read"))
@@ -215,7 +215,7 @@ def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set
     return {f for f in found if f.rule not in config.ignore}, unused
 
 
-_ZENODO_GAPS = {
+ZENODO_GAPS = {
     "zenodo-license-list": "a list: with no .zenodo.json, Zenodo reads one licence and refuses the release",
     "zenodo-drops-field": "with no .zenodo.json, Zenodo leaves this out of the record",
 }

@@ -27,7 +27,17 @@ from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
 from citesync import codecs
-from citesync.check import Finding, cargo_keyword_key, findings, has_slot, keyword_key, missing, near_misses, read_docs
+from citesync.check import (
+    ZENODO_GAPS,
+    Finding,
+    cargo_keyword_key,
+    findings,
+    has_slot,
+    keyword_key,
+    missing,
+    near_misses,
+    read_docs,
+)
 from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
@@ -43,6 +53,7 @@ from citesync.formats import (
     locate,
     person,
     same_name,
+    zenodo_gaps,
 )
 from citesync.jsonsplice import splice
 from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
@@ -124,6 +135,8 @@ def init(
 
     Each term comes from the first file that holds it: the configured source, then codemeta.json,
     .zenodo.json and the manifests in that order, so a citation file's ORCIDs and name parts win.
+    Keywords come from every file, so each manifest's are in it. A licence list is left out when
+    there is no .zenodo.json, as Zenodo would refuse it.
     With ``dry_run``, nothing is written.
 
     Raises:
@@ -165,6 +178,9 @@ def init(
                 data[cff_key] = _encode(cff, source, term, record[term], old, keyword_key(config))
         except CannotWrite as err:
             skipped[term] = str(err)
+    if not (root / ".zenodo.json").is_file() and ("license", "zenodo-license-list") in zenodo_gaps(data):
+        del data["license"]
+        skipped["license"] = ZENODO_GAPS["zenodo-license-list"]
     yaml = YAML()
     yaml.width = 1 << 16
     yaml.indent(mapping=2, sequence=4, offset=2)
@@ -190,9 +206,14 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
         msg = f"{bad.where}: {bad.message}"
         raise CheckError(msg)
     record: dict[str, Any] = {}
+    words: dict[str, str] = {}  # check wants every manifest's keywords in CITATION.cff, so all files give them
     for doc in docs:
         for term, value in doc.record.items():
             record.setdefault(term, value)
+        for word in doc.record.get("keywords", ()):
+            words.setdefault(keyword_key(config)(word), word)
+    if words:
+        record["keywords"] = tuple(words.values())
     for term, cff_key in (("name", "title"), ("author", "authors")):
         if term not in record:
             msg = f"no {cff_key} in {', '.join(d.path for d in docs)}, and CITATION.cff needs one"
