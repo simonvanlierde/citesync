@@ -55,8 +55,10 @@ class _VersionAction(argparse.Action):
         parser.exit()
 
 
-class _Formatter(argparse.HelpFormatter):
+class _Formatter(argparse.RawDescriptionHelpFormatter):
     """argparse's formatter, sized as ``shutil.get_terminal_size`` would size it, without importing shutil.
+
+    Raw, so the epilog's exit-code table keeps its lines.
 
     argparse builds one for every argument it adds, and shutil's imports cost 3 ms a run.
     """
@@ -84,10 +86,23 @@ class _Parser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
 
 
+_DESCRIPTION = """Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
+(pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file."""
+_EPILOG = f"""exit codes:
+  0  no error finding (warnings and info don't fail)
+  1  an error finding; with write --diff, a change to make or a file it can't read
+  2  citesync couldn't run: a bad config or option, a missing source file
+
+config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
+[workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
+
+docs: {DOCS_URL.rsplit("/", 1)[0]}"""
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = _Parser(prog="citesync", description=__doc__.splitlines()[0])
+    parser = _Parser(prog="citesync", description=_DESCRIPTION, epilog=_EPILOG)
     parser.add_argument("--version", action=_VersionAction)
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", metavar="command")
     root = _Parser(add_help=False)
     root.add_argument(
         "--root",
@@ -96,17 +111,28 @@ def _parser() -> argparse.ArgumentParser:
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
     report = _Parser(add_help=False, parents=[root])
-    report.add_argument("--format", choices=("text", "json", "github", "sarif"), default="text")
+    report.add_argument(
+        "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
+    )
     report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     shown = report.add_mutually_exclusive_group()
     shown.add_argument("-v", "--verbose", action="store_true", help="also print not-checked info")
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
-    sub.add_parser("check", parents=[report], help="report where the files disagree")
-    write_ = sub.add_parser("write", parents=[report], help="rewrite the files to agree with the source")
+    check = "report where the files disagree with the source"
+    sub.add_parser("check", parents=[report], help=check, description=f"{check.capitalize()}.", epilog=_EPILOG)
+    write = "rewrite the files to agree with the source"
+    write_ = sub.add_parser(
+        "write",
+        parents=[report],
+        help=write,
+        description=f"{write.capitalize()}, changing only what check reports,\nand a manifest only for the fields"
+        " in write-manifests.",
+        epilog=_EPILOG,
+    )
     write_.add_argument("--diff", action="store_true", help="print the changes as a unified diff and write nothing")
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", help="list the rules")
-    rules.add_argument("--format", choices=("text", "json"), default="text")
+    rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
     sub.add_parser("explain", help="print a rule's documentation").add_argument("rule", help="a rule id")
     return parser
 
@@ -114,10 +140,7 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run the command line and return its exit code."""
     _utf8_streams()
-    parser = _parser()
-    args = parser.parse_args(argv)
-    if getattr(args, "diff", False) and args.format != "text":
-        parser.error("--diff prints a unified diff; it takes no --format")
+    args = _parse(argv)
     if args.command in {"rules", "explain"}:
         return _rules(args)
     try:
@@ -152,6 +175,18 @@ def main(argv: list[str] | None = None) -> int:
         ]
     _report(findings, files, args)
     return 1 if any(f.severity == "error" for f in findings) else 0
+
+
+def _parse(argv: list[str] | None) -> argparse.Namespace:
+    """The parsed command line; with no command, the help on stderr and exit 2."""
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if args.command is None:
+        parser.print_help(sys.stderr)
+        parser.exit(2)
+    if getattr(args, "diff", False) and args.format != "text":
+        parser.error("--diff prints a unified diff; it takes no --format")
+    return args
 
 
 def _utf8_streams() -> None:

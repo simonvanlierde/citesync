@@ -850,6 +850,83 @@ def test_schema_lets_a_minor_release_add_rules_and_fields(tmp_path: Path, capsys
         jsonschema.validate(report, OUTPUT_SCHEMA)
 
 
+EPILOG = """\
+exit codes:
+  0  no error finding (warnings and info don't fail)
+  1  an error finding; with write --diff, a change to make or a file it can't read
+  2  citesync couldn't run: a bad config or option, a missing source file
+
+config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
+[workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
+
+docs: https://github.com/simonvanlierde/citesync/blob/main/docs
+"""
+
+
+@pytest.mark.parametrize(
+    ("args", "head"),
+    [
+        (
+            ["--help"],
+            """\
+usage: citesync [-h] [--version] command ...
+
+Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
+(pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file.
+
+positional arguments:
+  command
+    check     report where the files disagree with the source
+    write     rewrite the files to agree with the source
+    config    print the config in use and where it came from
+    rules     list the rules
+    explain   print a rule's documentation
+
+options:
+  -h, --help  show this help message and exit
+  --version   show the version and exit
+
+""",
+        ),
+        (
+            ["check", "--help"],
+            """\
+usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--format {text,json,github,sarif}]
+                      [--json] [-v | -q]
+
+Report where the files disagree with the source.
+
+options:
+  -h, --help            show this help message and exit
+  --root ROOT           repo root (default: the nearest directory up with a citation file or
+                        config, inside the git repo)
+  --source SOURCE       the file the others must agree with; overrides config
+  --format {text,json,github,sarif}
+                        output format (default: text)
+  --json                alias of --format json
+  -v, --verbose         also print not-checked info
+  -q, --quiet           print only errors, and no summary
+
+""",
+        ),
+    ],
+    ids=["citesync", "check"],
+)
+def test_help(args: list[str], head: str, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("COLUMNS", "100")
+    with pytest.raises(SystemExit) as exc:
+        main(args)
+    assert (exc.value.code, capsys.readouterr().out) == (0, head + EPILOG)
+
+
+def test_no_command_prints_the_help_and_exits_2(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main([])
+    out, err = capsys.readouterr()
+    assert (exc.value.code, out) == (2, "")
+    assert err.startswith("usage: citesync [-h] [--version] command ...")
+
+
 def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exit_:
         main(["--version"])
