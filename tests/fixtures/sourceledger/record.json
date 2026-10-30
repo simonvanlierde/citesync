@@ -25,7 +25,8 @@
         "open data",
         "research software",
         "FAIR"
-      ]
+      ],
+      "datePublished": "2026-10-27"
     }
   },
   "codemeta.json": {
@@ -54,7 +55,8 @@
         "open data",
         "research software",
         "FAIR"
-      ]
+      ],
+      "datePublished": "2026-10-27"
     }
   },
   ".zenodo.json": {

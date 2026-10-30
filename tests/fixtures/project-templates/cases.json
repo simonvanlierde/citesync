@@ -12,6 +12,12 @@
         {
           "rule": "not-checked",
           "file": null,
+          "term": "datePublished",
+          "why": "no file holds a release date"
+        },
+        {
+          "rule": "not-checked",
+          "file": null,
           "term": "version",
           "why": "CFF has no version and no other file exists"
         }

@@ -359,6 +359,7 @@ _DECODE = {
     "license": codecs.license_decode,
     "identifier": codecs.doi_decode,
     "codeRepository": codecs.repo_decode,
+    "datePublished": codecs.date_decode,
 }
 
 

@@ -8,6 +8,7 @@ spelled the way the target format spells them, through :mod:`citesync.codecs`.
 """
 
 import copy
+import datetime as dt
 import io
 import json
 import os
@@ -168,6 +169,7 @@ def _new_codemeta(source: Doc, version: str, mapping: Mapping, keyword_key: Call
         "name": "",
         "description": "",
         "version": "",
+        "datePublished": "",
         "identifier": "https://doi.org/",  # the placeholders' shapes pick the forms: DOI and SPDX URLs
         "codeRepository": "",
         "license": "https://spdx.org/licenses/",
@@ -231,7 +233,7 @@ def _apply(
     return skipped
 
 
-def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key: Callable[[str], str]) -> Any:  # noqa: ANN401, PLR0911
+def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key: Callable[[str], str]) -> Any:  # noqa: ANN401, C901, PLR0911 - one branch per term
     """``value`` spelled for ``doc``'s format, in the shape ``old`` has; ``keyword_key`` compares keywords."""
     fmt = doc.format
     if term == "version":
@@ -253,10 +255,26 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
             return old
         old = old.strip()
         return ("git+" if old.startswith("git+") else "") + value + (".git" if old.endswith(".git") else "")
+    if term == "datePublished":
+        return _date(value, old)
     if term == "keywords":
         key = cargo_keyword_key(keyword_key, doc, source)
         return _keywords(old, value, key, add=doc.is_citation, remove=source.is_citation or not doc.is_citation)
     return value
+
+
+def _date(value: str, old: Any) -> Any:  # noqa: ANN401
+    """``value`` as CFF, CodeMeta and Zenodo all take it, ``YYYY-MM-DD``; an unquoted CFF date stays a YAML date.
+
+    Raises:
+        CannotWrite: when ``value`` is not such a date.
+    """
+    try:
+        day = dt.date.fromisoformat(value)
+    except ValueError as err:
+        msg = f"{value} is not a YYYY-MM-DD date"
+        raise CannotWrite(msg) from err
+    return day if isinstance(old, dt.date) else day.isoformat()
 
 
 def _identifier(doi: str, old: Any) -> Any:  # noqa: ANN401

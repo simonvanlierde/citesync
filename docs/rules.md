@@ -68,6 +68,14 @@ Citation files must hold the same keywords, in any order. A manifest's keywords 
 
 To fix: Make the file agree with the source, or the other way round if the source is wrong.
 
+## date-mismatch
+
+The release date differs from the source's. Severity: error.
+
+CFF `date-released`, CodeMeta `datePublished` and Zenodo `publication_date` compare as `YYYY-MM-DD`; a time after the date is ignored. Manifests have no release date. When the source has no place or no value for the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
+
+To fix: Make the file agree with the source, or the other way round if the source is wrong.
+
 ## keywords-not-subset
 
 A manifest has a keyword the citation file doesn't. Severity: error.

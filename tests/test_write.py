@@ -811,3 +811,14 @@ def test_a_missing_zenodo_json_is_reported_not_created(tmp_path: Path, capsys: p
     assert code == 1
     assert ".zenodo.json: error[file-missing]" in out
     assert not (root / ".zenodo.json").exists()
+
+
+def test_a_date_cff_cannot_hold_is_left_for_a_hand_edit(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\n')
+    codemeta = root / "codemeta.json"
+    codemeta.write_text(codemeta.read_text().replace('"2026-01-15"', '"January 2026"'), encoding="utf-8")
+    before = _snapshot(root)
+    code, out, _ = _run(capsys, "write", "--root", str(root))
+    assert code == 1
+    assert "January 2026 is not a YYYY-MM-DD date" in out
+    assert _snapshot(root) == before

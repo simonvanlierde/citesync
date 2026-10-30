@@ -1,5 +1,6 @@
 """Property tests on every codec: decode(encode(x)) == x for normalised values, and decoding is idempotent."""
 
+import datetime as dt
 import re
 from collections.abc import Callable
 
@@ -297,3 +298,14 @@ def test_spaced_reads_any_separator_run_as_one_space(words: list[str], seps: lis
     joined = "".join(w + (seps[i % len(seps)] if seps else "-") for i, w in enumerate(words))
     assert codecs.spaced(joined) == " ".join(words)
     assert codecs.spaced(codecs.spaced(joined)) == codecs.spaced(joined)
+
+
+@given(st.dates(), st.times())
+def test_date_decode_keeps_the_day(day: dt.date, time: dt.time) -> None:
+    assert codecs.date_decode(f"{day.isoformat()}T{time.isoformat()}") == day.isoformat()
+    assert codecs.date_decode(day.isoformat()) == day.isoformat()
+
+
+@pytest.mark.parametrize(("raw", "expected"), [("January 2026", "January 2026"), ("", None), (None, None)])
+def test_date_decode_keeps_what_is_not_iso(raw: object, expected: str | None) -> None:
+    assert codecs.date_decode(raw) == expected
