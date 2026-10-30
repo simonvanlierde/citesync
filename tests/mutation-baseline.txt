@@ -28,7 +28,9 @@ citesync.jsonsplice.x__edits__mutmut_123  json.dumps reads ensure_ascii as a tru
 citesync.jsonsplice.x__edits__mutmut_133  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.write.x_write__mutmut_55  "UTF-8" and "utf-8" name the same codec
 citesync.write.x_write__mutmut_75  without CRLF the text has no "\r\n" to replace
-citesync.write.x_write__mutmut_112  _new_codemeta only puts rel in the stand-in Doc, whose path nothing reads
+citesync.write.x_write__mutmut_1  every caller passes dry_run, so its default is never read
+citesync.write.x_write__mutmut_97  without a context, no (file, "@context") error exists for done to mark fixed
+citesync.write.x_write__mutmut_118  _new_codemeta only puts rel in the stand-in Doc, whose path nothing reads
 citesync.write.x__replace__mutmut_16  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
 citesync.write.x__replace__mutmut_17  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
 citesync.write.x__replace__mutmut_20  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
@@ -53,7 +55,7 @@ citesync.write.x__new_codemeta__mutmut_96  json.dumps reads ensure_ascii as a tr
 citesync.write.x__yaml__mutmut_8  any width past the longest line keeps every line whole
 citesync.write.x__yaml__mutmut_9  any width past the longest line keeps every line whole
 citesync.write.x__apply__mutmut_26  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
-citesync.write.x__apply__mutmut_76  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__apply__mutmut_80  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__encode__mutmut_41  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__encode__mutmut_45  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__license__mutmut_28  a table without text reads as no licence, so write never gets one, and no SPDX id holds "text"
