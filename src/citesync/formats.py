@@ -153,14 +153,19 @@ def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:
         for entry in (data[key] if isinstance(data.get(key), list) else [data.get(key)])
         if isinstance(entry, dict)
     ]
-    people = {codecs.orcid_decode(e.get("@id")) for _, e in entries if e.get("@type") != "Role"}
+    people = {codecs.orcid_decode(_ld(e, "id")) for _, e in entries if _ld(e, "type") != "Role"}
     found = []
     for key, entry in entries:
         target = entry.get("schema:author")
-        orcid = codecs.orcid_decode(target.get("@id") if isinstance(target, dict) else target)
-        if entry.get("@type") == "Role" and orcid and orcid not in people:
+        orcid = codecs.orcid_decode(_ld(target, "id") if isinstance(target, dict) else target)
+        if _ld(entry, "type") == "Role" and orcid and orcid not in people:
             found.append((key, orcid))
     return tuple(found)
+
+
+def _ld(node: dict[str, Any], key: str) -> object:
+    """``node``'s ``@type`` or ``@id``, or the ``type`` or ``id`` that CodeMeta 3's context makes an alias of it."""
+    return node.get(f"@{key}", node.get(key))
 
 
 def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
@@ -406,7 +411,7 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str =
     if name is None and orcid is None:
         return None
     org = isinstance(element, dict) and (
-        element.get("@type") == "Organization"
+        _ld(element, "type") == "Organization"
         if fmt == "codemeta"
         else fmt == "cff-1.2.0" and "given-names" not in element and "name" in element
     )

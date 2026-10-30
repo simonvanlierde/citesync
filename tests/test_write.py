@@ -652,6 +652,33 @@ def test_dangling_roles() -> None:
     assert dangling_roles(data) == (("author", "0000-0001-5109-3700"), ("contributor", "0000-0002-9079-593X"))
 
 
+def test_dangling_roles_read_the_type_and_id_aliases() -> None:
+    """CodeMeta 3's context makes `type` and `id` aliases of `@type` and `@id`; credit-matrix writes Roles that way."""
+    other = "https://orcid.org/0000-0001-5109-3700"
+    data = {
+        "author": [
+            {"type": "Person", "id": ADA, "givenName": "Ada", "familyName": "Lovelace"},
+            {"type": "Role", "schema:author": ADA, "roleName": SOFTWARE},
+            {"type": "Role", "schema:author": {"id": other}, "roleName": SOFTWARE},
+        ]
+    }
+    assert dangling_roles(data) == (("author", "0000-0001-5109-3700"),)
+
+
+def test_an_organization_typed_by_alias_is_written_as_an_entity(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _synthetic(tmp_path / "repo", 'source = "codemeta.json"\nmanifests = []\n')
+    path = root / "codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["author"].append({"type": "Organization", "name": "Example Lab"})
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    _run(capsys, "write", "--root", str(root))
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+    assert '    family-names: "Turing"\n  - name: Example Lab\n' in cff
+
+
 def test_role_dangling_lists_the_orcids_per_list(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = _synthetic(tmp_path / "repo")
     path = root / "codemeta.json"
