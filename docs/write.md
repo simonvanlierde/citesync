@@ -13,7 +13,30 @@ It leaves these alone:
 - values that compare equal, such as `v1.2.3` against `1.2.3`;
 - findings whose rule is in `ignore`, and `unreadable` files.
 
-When `files` lists a codemeta.json that doesn't exist, write creates it from the source. It gets the configured `codemeta-version`, else 3.0, the version Software Heritage reads. Write doesn't create a missing .zenodo.json or CITATION.cff. [`citesync init`](init.md) creates a CITATION.cff.
+## Create citation files
+
+List a missing codemeta.json or .zenodo.json under `files` to create it from the source:
+
+```toml
+# citesync.toml
+files = ["codemeta.json", ".zenodo.json"]
+```
+
+Preview the files with `citesync write --diff`. Run `citesync write` to create them.
+Without that setting, write only updates files that exist. Ignoring `file-missing` also prevents creation.
+[`citesync init`](init.md) creates a CITATION.cff.
+
+A new codemeta.json gets the configured `codemeta-version`, else 3.0, the version Software Heritage reads.
+A new .zenodo.json gets `upload_type: software` and the supported fields the source holds.
+Repository URLs and Software Heritage identifiers become separate `related_identifiers` entries.
+Creators use Zenodo's `Family, Given` spelling and bare ORCID iDs.
+
+Review the new .zenodo.json before publishing a release. Only the compared fields are copied;
+funding, affiliations, communities and references need separate review. Missing source fields stay absent.
+The output is metadata for Zenodo's GitHub integration, not a complete deposition API request.
+Write reports fields it cannot represent, including compound licences, authors without names and
+contributors without a type. It leaves those fields out rather than choosing values.
+A successful `citesync check` confirms agreement, not that Zenodo will accept a release.
 
 ## How it spells values
 

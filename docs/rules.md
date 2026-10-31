@@ -146,9 +146,9 @@ To fix: Add a .zenodo.json with the field's Zenodo form (`related_identifiers`, 
 
 A file listed under `files` doesn't exist. Severity: error.
 
-Only for a citation file named in the `files` setting. Without that setting, citesync checks the citation files that are there. `citesync write` creates codemeta.json from the source, with the configured `codemeta-version`, else 3.0. It doesn't create a .zenodo.json or a CITATION.cff.
+Only for a citation file named in the `files` setting. Without that setting, citesync checks the citation files that are there. `citesync write` creates codemeta.json from the source, with the configured `codemeta-version`, else 3.0. It also creates .zenodo.json from the source, with upload_type set to software. Use `citesync init` to create a CITATION.cff.
 
-To fix: Run `citesync write`, which creates a missing codemeta.json; create any other file by hand, or take it off `files`.
+To fix: Run `citesync write` to create codemeta.json or .zenodo.json; use `citesync init` for CITATION.cff, or take the file off `files`.
 
 ## unreadable
 

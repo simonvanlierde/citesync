@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `citesync write` creates a missing .zenodo.json when `files` lists it. Preview it with `--diff` and review any omitted fields before releasing ([docs/write.md](docs/write.md#create-citation-files)).
+
 ### Fixed
 
 - `citesync write` keeps a byte order mark at the start of CITATION.cff ([docs/write.md](docs/write.md)).
