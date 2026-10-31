@@ -429,6 +429,7 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) 
             return None
         rel = relative(path, parent)
         values = [element] if rel == "" else resolve(element, rel)
+        values = [_ld(element, "id")] if fmt == "codemeta" and rel == "@id" and isinstance(element, dict) else values
         return values[0] if values else None
 
     def text(value: object) -> str | None:

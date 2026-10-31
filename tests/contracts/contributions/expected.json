@@ -1,0 +1,31 @@
+{
+  "cff_authors": [
+    {
+      "given-names": "Marie",
+      "family-names": "Skłodowska-Curie",
+      "orcid": "https://orcid.org/0000-0002-1825-0097"
+    },
+    {
+      "given-names": "Antonie",
+      "name-particle": "van",
+      "family-names": "Leeuwenhoek"
+    }
+  ],
+  "zenodo_creators": [
+    {
+      "name": "Skłodowska-Curie, Marie",
+      "orcid": "0000-0002-1825-0097",
+      "affiliation": "Example Lab"
+    },
+    {
+      "name": "van Leeuwenhoek, Antonie"
+    }
+  ],
+  "zenodo_contributors": [
+    {
+      "name": "Johnson, Katherine",
+      "type": "DataManager",
+      "affiliation": "Example Lab"
+    }
+  ]
+}
