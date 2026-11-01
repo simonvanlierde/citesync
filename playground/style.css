@@ -452,7 +452,8 @@ fieldset {
 .file-tools label {
   margin: 0;
 }
-.file-tools select {
+.file-tools select,
+.picker input {
   font-size: 15px;
 }
 .drop-active {
@@ -470,8 +471,8 @@ fieldset {
 .colophon nav {
   align-items: center;
 }
-#source-format {
-  max-width: 200px;
+#source-format-search {
+  width: 200px;
 }
 #output {
   overflow-wrap: normal;
@@ -502,7 +503,8 @@ textarea[aria-invalid="true"] {
   .file-tools {
     gap: 8px;
   }
-  .panehead select {
+  .panehead select,
+  #source-format-search {
     max-width: 100%;
   }
 }
@@ -582,3 +584,66 @@ textarea[aria-invalid="true"] {
 .field-help { margin: 4px 0 12px; padding: 0; border: 0; }
 .field-help summary { color: var(--accent); }
 .field-help p { margin: 0 0 12px; }
+
+.picker {
+  position: relative;
+  min-width: 0; /* a flex row may shrink it below the input's natural width */
+  max-width: 100%;
+}
+.picker input {
+  width: auto;
+  max-width: 100%;
+  background: var(--paper)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2353616c' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  padding-right: 30px;
+  cursor: pointer;
+}
+.picker ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.picker [role="listbox"] {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(32rem, calc(100vw - 32px));
+  max-height: 20rem;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-size: 15px;
+}
+.picker [role="listbox"][data-empty="true"]::after {
+  content: "No matching file";
+  display: block;
+  padding: 10px 12px;
+  color: var(--muted);
+}
+.picker-group {
+  padding: 8px 12px 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.picker [role="option"] {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.picker [role="option"][aria-selected="true"] {
+  font-weight: bold;
+}
+.picker [role="option"].active,
+.picker [role="option"]:hover {
+  background: var(--wash);
+  box-shadow: inset 3px 0 var(--accent);
+}
+#names-right {
+  margin-top: 16px;
+}

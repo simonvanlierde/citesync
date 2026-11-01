@@ -29,7 +29,7 @@
 <section aria-label="Your project">
 <div class="tabs" id="entry-tabs" role="tablist" aria-label="How to start"><button type="button" id="file-tab" role="tab" aria-selected="true" aria-controls="file-panel">Use a file</button><button type="button" id="form-tab" role="tab" aria-selected="false" aria-controls="form-panel" tabindex="-1">Enter details</button></div>
 <div id="file-panel" role="tabpanel" aria-labelledby="file-tab">
-<div class="panehead"><h2><label for="input">Project metadata</label></h2><label for="source-format" class="sr-only">Input filename</label><select id="source-format"><option value="auto">Detect automatically</option><option>pyproject.toml</option><option>Cargo.toml</option><option>package.json</option><option>CITATION.cff</option><option>codemeta.json</option><option>.zenodo.json</option><option>PKG-INFO</option><option>METADATA</option><option>DESCRIPTION</option><option>Project.toml</option><option>JuliaProject.toml</option></select></div>
+<div class="panehead"><h2><label for="input">Project metadata</label></h2><label for="source-format" class="sr-only">Input filename</label><select id="source-format"><option value="auto">Detect automatically</option><optgroup label="Citation files"><option>CITATION.cff</option><option>codemeta.json</option><option>.zenodo.json</option></optgroup><optgroup label="JavaScript"><option>package.json</option></optgroup><optgroup label="Julia"><option>JuliaProject.toml</option><option>Project.toml</option></optgroup><optgroup label="Python"><option>METADATA</option><option>PKG-INFO</option><option>pyproject.toml</option></optgroup><optgroup label="R"><option>DESCRIPTION</option></optgroup><optgroup label="Rust"><option>Cargo.toml</option></optgroup></select></div>
 <textarea id="input" wrap="off" spellcheck="false" aria-describedby="input-hint message"></textarea>
 <p class="hint" id="detected-format" role="status"></p>
 <p class="hint" id="input-hint">Paste or drop a file, up to 1 MB.</p>
@@ -51,7 +51,7 @@
 <h2 id="result-title" tabindex="-1">Your files</h2>
 <div id="empty-result"><p>Your files will appear here.</p></div>
 <div id="output-choice" hidden><label for="output-file">Output file</label><select id="output-file"></select></div>
-<details class="review" id="name-review" hidden><summary id="review-title">Author names</summary><p>Names were split automatically. You can correct them here.</p><div id="review-fields"></div></details>
+<details class="review" id="name-review" hidden><summary id="review-title">Author names</summary><p>Names were split automatically. You can correct them here.</p><div id="review-fields"></div><button type="button" id="names-right">Names look right</button></details>
 <div id="output-panel" hidden><pre tabindex="0" id="output" aria-label="Generated file"></pre></div>
 <div class="controls" id="exports" hidden><button type="button" class="primary" id="copy" disabled>Copy this file</button><button type="button" id="download" disabled>Download this file</button><button type="button" class="link" id="zip" disabled>All citation files (.zip)</button></div>
 <p class="status" id="status"></p>
