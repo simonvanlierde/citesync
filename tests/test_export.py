@@ -61,7 +61,7 @@ def test_bibtex_is_readable_by_an_independent_parser() -> None:
 
     bib = render("bibtex", {"name": "lensgrind {optics} & \\ calibration", "author": (LEEUWENHOEK, LAB)})[0]
     entry = parse_string(bib, "bibtex").entries["lensgrind-optics-calibration"]
-    assert entry.type == "misc"
+    assert entry.type == "software"
     assert len(entry.persons["author"]) == 2
     assert entry.persons["author"][0].last_names == ["{van Leeuwenhoek}"]
     assert entry.persons["author"][0].first_names == ["{Antonie}"]
@@ -145,7 +145,7 @@ def test_bibtex_doi_and_url_stay_verbatim() -> None:
 
 def test_csl_and_bibtex_carry_the_version() -> None:
     assert json.loads(render("csl-json", LENSGRIND)[0])[0]["version"] == "1.4.0"
-    assert "  note = {Software, version 1.4.0},\n" in render("bibtex", LENSGRIND)[0]
+    assert "  version = {1.4.0},\n" in render("bibtex", LENSGRIND)[0]
 
 
 def test_a_bad_date_is_noted_once_and_kept_in_jsonld() -> None:
@@ -312,7 +312,7 @@ def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_
         assert f"{path}: error[export-stale] can't be written: a link, a folder, or under a file" in out
     code, out, err = run("write", "--diff", "--root", str(root))
     assert "+++ b/citation.bib" in out
-    assert "hi" not in out
+    assert "out/citation.apa.txt" not in out
     assert "unexpected error" not in err
     code, out, err = run("write", "--root", str(root))
     assert code == 1
@@ -367,7 +367,7 @@ def test_export_notes_go_to_stderr(tmp_path: Path, run: "Run") -> None:
     )
     code, out, err = run("export", "--root", str(root), "--format", "bibtex")
     assert code == 0
-    assert out.startswith("@misc{synthagree,")
+    assert out.startswith("@software{synthagree,")
     assert "release date omitted" in err
 
 
@@ -506,3 +506,21 @@ _FORMAT = {
     "citation.apa.txt": "apa",
     "schema.jsonld": "jsonld",
 }
+
+
+def test_bibtex_is_a_biblatex_software_entry_named_by_the_rows() -> None:
+    from pybtex.database import parse_string  # noqa: PLC0415
+
+    from citesync.mapping import load_mapping  # noqa: PLC0415
+
+    rec = LENSGRIND | {"description": "Grinds lenses.", "swhid": "swh:1:dir:" + "0" * 40}
+    bib = render("bibtex", rec)[0]
+    assert bib.startswith("@software{lensgrind,\n")
+    fields = parse_string(bib, "bibtex").entries["lensgrind"].fields
+    mapping = load_mapping()
+    for term in ("name", "version", "license", "identifier", "swhid", "codeRepository", "description", "keywords"):
+        assert str(mapping["bibtex", term]) in fields, term
+    assert (fields["date"], fields["year"]) == ("2026-10-31", "2026")  # biblatex reads date, plain BibTeX year
+    assert fields["url"] == "https://example.org/lensgrind"  # plain BibTeX styles print url, not repository
+    assert (fields["keywords"], fields["license"]) == ("optics, microscopy", "Apache-2.0")
+    assert "note" not in fields

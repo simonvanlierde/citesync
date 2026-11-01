@@ -151,20 +151,42 @@ def writable(root: Path, path: str) -> bool:
 
 
 def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
+    """A biblatex-software ``@software`` entry, each field named as codemeta-drift's bibtex rows name it.
+
+    A row with alternatives (``date | year``) writes each one, so plain BibTeX styles, which print an
+    unknown type as ``@misc``, still find the field they read.
+    """
+    from citesync.mapping import load_mapping  # noqa: PLC0415 - only the BibTeX export reads the rows
+
+    rows = load_mapping()
     authors = []
     for p in _people(rec):
         if p.organization or not p.family:
             authors.append("{" + tex(p.name or "") + "}")
         else:
             authors.append("{" + tex(p.family) + "}" + (", {" + tex(p.given) + "}" if p.given else ""))
-    fields = {"title": "{" + tex(rec["name"]) + "}", "author": " and ".join(authors)}
-    for term, field in (("identifier", "doi"), ("codeRepository", "url")):
-        if value := rec.get(term):  # biblatex reads these verbatim, so only braces would break the entry
-            fields[field] = value.replace("{", "%7B").replace("}", "%7D")
-    fields["note"] = tex("Software" + (f", version {rec['version']}" if rec.get("version") else ""))
-    if day:
-        fields["year"] = str(day[0])
-    return f"@misc{{{key(rec)},\n" + "".join(f"  {k} = {{{v}}},\n" for k, v in fields.items()) + "}\n"
+    values = {
+        "name": "{" + tex(rec["name"]) + "}",
+        "author": " and ".join(authors),
+        "version": tex(rec.get("version") or ""),
+        "datePublished": "-".join(f"{part:02d}" for part in day) if day else "",
+        "identifier": str(rec.get("identifier") or ""),
+        "swhid": str(rec.get("swhid") or ""),
+        "codeRepository": str(rec.get("codeRepository") or ""),
+        "license": tex(rec.get("license") or ""),
+        "description": tex(rec.get("description") or ""),
+        "keywords": tex(", ".join(rec.get("keywords") or ())),
+    }
+    verbatim = {"identifier", "swhid", "codeRepository"}  # biblatex reads these as written: only braces would break
+    fields: dict[str, str] = {}
+    for term, value in values.items():
+        names = str(rows["bibtex", term] or "").split(" | ")
+        if term == "codeRepository" and "url" not in names:
+            names.append("url")  # NOTE: until codemeta-drift's row reads `repository | url`
+        for name in names if value else ():
+            text = value.replace("{", "%7B").replace("}", "%7D") if term in verbatim else value
+            fields.setdefault(name, str(day[0]) if name == "year" and day else text)
+    return f"@software{{{key(rec)},\n" + "".join(f"  {k} = {{{v}}},\n" for k, v in fields.items()) + "}\n"
 
 
 def _csl(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
