@@ -19,6 +19,12 @@ The suffix picks the format:
 
 The citation key in BibTeX and CSL-JSON is the title up to any subtitle, in lowercase ASCII with dashes: `CRediT Matrix: drafting CRediT contribution statements` gives `credit-matrix`.
 
+## Citation files
+
+`citesync export --format cff|codemeta|zenodo` prints the CITATION.cff, codemeta.json or .zenodo.json citesync would make from the source, and writes nothing. Each is built as [`init`](init.md) builds CITATION.cff and as [`write`](write.md#create-citation-files) creates the other two, from the same values as the exports below. What the file can't hold goes to stderr as `leaving out <field>: <why>`, so `citesync export --format cff > CITATION.cff` stays a clean file.
+
+These three can't go under `exports`: list them under `files`, and `write` updates them field by field, keeping comments, key order and fields citesync doesn't map. An export is made again whole, which would drop those.
+
 ## Where the values come from
 
 The values come from the source. A field the source doesn't hold, such as the DOI when pyproject.toml is the source, comes from the first other file that holds it, in the order [check](check.md) reads them. The BibTeX `url` and CSL `URL` are the repository URL. A release date that isn't a full `YYYY-MM-DD` date is left out of BibTeX, CSL-JSON and APA, and the command says so on stderr. JSON-LD keeps the date as written.

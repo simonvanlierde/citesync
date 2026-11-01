@@ -178,6 +178,37 @@ def init(
         raise CheckError(msg)
     mapping = mapping or load_mapping()
     source = _merged(root, config, mapping)
+    text, skipped = _new_cff(root, source, config, mapping)
+    if not dry_run:
+        _replace({root / "CITATION.cff": text})
+    splits = []
+    for p in source.record["author"]:  # _merged makes sure there is one
+        given, family = _split_name(p.name)
+        if p.family is None and not p.organization and given:
+            splits.append((str(p.name), given, family))
+    return text, skipped, splits
+
+
+def citation_file(fmt: str, root: Path, config: Config, source: Doc, mapping: Mapping) -> tuple[str, dict[str, str]]:
+    """A new CITATION.cff (``cff``), codemeta.json or .zenodo.json holding ``source``'s terms, and what it left out.
+
+    Raises:
+        CheckError: when the source gives no title, or CITATION.cff no authors.
+    """
+    for term, needed in (("name", True), ("author", fmt == "cff")):
+        if needed and not source.record.get(term):
+            msg = f"no file gives {'a title' if term == 'name' else 'any author'}, which the {fmt} file needs"
+            raise CheckError(msg)
+    if fmt == "cff":
+        return _new_cff(root, source, config, mapping)
+    key = keyword_key(config)
+    if fmt == "codemeta":
+        return _new_codemeta("codemeta.json", source, config.codemeta_version or NEW_CODEMETA_VERSION, mapping, key)
+    return _new_zenodo(".zenodo.json", source, mapping, key, config.zenodo_contributor_type)
+
+
+def _new_cff(root: Path, source: Doc, config: Config, mapping: Mapping) -> tuple[str, dict[str, str]]:
+    """A CITATION.cff holding ``source``'s terms, and the reason for each term left out."""
     record = source.record
     cff = Doc("CITATION.cff", "cff-1.2.0", {}, frozenset(), "1.2.0", release=True)
     data = CommentedMap(
@@ -216,14 +247,7 @@ def init(
     yaml.indent(mapping=2, sequence=4, offset=2)
     out = io.StringIO()
     yaml.dump(data, out)
-    if not dry_run:
-        _replace({root / "CITATION.cff": out.getvalue()})
-    splits = []
-    for p in record["author"]:  # _merged makes sure there is one
-        given, family = _split_name(p.name)
-        if p.family is None and not p.organization and given:
-            splits.append((str(p.name), given, family))
-    return out.getvalue(), skipped, splits
+    return out.getvalue(), skipped
 
 
 def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
