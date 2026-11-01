@@ -117,14 +117,14 @@ def _urls(message: Message, rel: str) -> dict[str, str]:
         label, address = label.strip(), address.strip()
         if not separator or not label or not address:
             raise UnreadableError(rel, "Project-URL must contain a label, comma and URL")
-        if label in urls and urls[label] != address:
+        key = "".join(c for c in label.lower() if c.isalnum())  # as the well-known project URLs spec compares them
+        if key in urls and urls[key] != address:
             raise UnreadableError(rel, f"Project-URL has conflicting values for {label!r}")
-        urls[label] = address
+        urls[key] = address
     homes = message.get_all("Home-page", [])
     if len(homes) > 1:
         raise UnreadableError(rel, "Home-page must appear only once")
-    labels = {"".join(c for c in label.lower() if c.isalnum()): address for label, address in urls.items()}
-    if repository := next((labels[k] for k in _REPOSITORY_LABELS if k in labels), None):
+    if repository := next((urls[k] for k in _REPOSITORY_LABELS if k in urls), None):
         return {"Source": repository}
     return {"Homepage": str(homes[0]).strip()} if homes else {}
 

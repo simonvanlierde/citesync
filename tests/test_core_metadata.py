@@ -230,3 +230,11 @@ def test_repository_comes_from_the_well_known_labels_in_order(
 def test_description_comes_from_summary_only(tmp_path: Path) -> None:
     (tmp_path / "METADATA").write_text(BARE + "Description: The whole README.\n\nBody text.\n")
     assert "description" not in read_doc(tmp_path, "METADATA", load_mapping()).record
+
+
+def test_labels_that_normalise_alike_must_agree(tmp_path: Path) -> None:
+    (tmp_path / "METADATA").write_text(
+        BARE + "Project-URL: Source Code, https://example.org/a\nProject-URL: source-code, https://example.org/b\n"
+    )
+    with pytest.raises(UnreadableError, match="conflicting values"):
+        read_doc(tmp_path, "METADATA", load_mapping())

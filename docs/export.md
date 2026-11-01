@@ -21,7 +21,7 @@ The citation key in BibTeX and CSL-JSON is the title up to any subtitle, in lowe
 
 ## Citation files
 
-`citesync export --format cff|codemeta|zenodo` prints the CITATION.cff, codemeta.json or .zenodo.json citesync would make from the source, and writes nothing. Each is built as [`init`](init.md) builds CITATION.cff and as [`write`](write.md#create-citation-files) creates the other two: each field comes from the first file that holds it, and the keywords from every file, so the printed file passes `check`. The CITATION.cff needs no CITATION.cff to read, just as `init` doesn't. What the file can't hold goes to stderr as `leaving out <field>: <why>`, so `citesync export --format cff > CITATION.cff` stays a clean file.
+`citesync export --format cff|codemeta|zenodo` prints the CITATION.cff, codemeta.json or .zenodo.json citesync would make from the source, and writes nothing. Each is built as [`init`](init.md) builds CITATION.cff and as [`write`](write.md#create-citation-files) creates the other two: each field comes from the first file that holds it, and the keywords from every file, so the printed file passes `check`. The CITATION.cff needs no CITATION.cff to read, just as `init` doesn't, and like `init` it stops when any of those files can't be read, or when a source named with `--source` or `source` is missing. What the file can't hold goes to stderr as `leaving out <field>: <why>`, so `citesync export --format cff > CITATION.cff` stays a clean file.
 
 These three can't go under `exports`: list them under `files`, and `write` updates them field by field, keeping comments, key order and fields citesync doesn't map. An export is made again whole, which would drop those.
 
