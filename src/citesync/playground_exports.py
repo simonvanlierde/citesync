@@ -9,9 +9,13 @@ from packaging.utils import InvalidName, canonicalize_name
 
 from citesync import codecs
 from citesync.errors import CannotWrite
+from citesync.research_metadata import R_PACKAGE
 
 _CARGO_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 _NPM_NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*")
+_R_VERSION = re.compile(r"\d+(?:[.-]\d+)+")
+_JULIA_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_R_GPL = re.compile(r"(A?L?GPL)-(\d)(?:\.0|(\.\d))-(only|or-later)")
 
 
 def package_templates(record: dict[str, Any]) -> tuple[dict[str, str], list[str]]:
@@ -43,7 +47,94 @@ def package_templates(record: dict[str, Any]) -> tuple[dict[str, str], list[str]
         templates[filename] = (
             "# Incomplete metadata template: review build settings, sources and dependencies.\n" + text
         )
+    templates["DESCRIPTION"] = _description(record, notes)
+    templates["Project.toml"] = _julia_project(record, notes)
     return templates, notes
+
+
+def _description(record: dict[str, Any], notes: list[str]) -> str:
+    """An R DESCRIPTION, each field where codemeta-drift's r-description rows read it."""
+    package, _, title = record["name"].partition(": ")  # the R import names a package `Package: Title`
+    fields = {}
+    if R_PACKAGE.fullmatch(package):
+        fields["Package"] = package
+    else:
+        notes.append("DESCRIPTION: Package omitted; use letters, numbers and dots, starting with a letter.")
+    if title:
+        fields["Title"] = title
+    else:
+        notes.append("DESCRIPTION: add a Title, a one-line summary in title case.")
+    if (version := record.get("version")) and _R_VERSION.fullmatch(version):
+        fields["Version"] = version
+    else:
+        notes.append("DESCRIPTION: Version omitted; R needs two or more numbers, such as 1.4.0.")
+    people = [_r_person(p, "aut") for p in record.get("author", ()) if p.name]  # an ORCID alone names no one
+    people += [_r_person(p, "ctb") for p in record.get("contributor", ()) if p.name]
+    if people:
+        fields["Authors@R"] = "c(\n" + ",\n".join(f"    {p}" for p in people) + "\n  )"
+    notes.append("DESCRIPTION: give the maintainer the role cre and an email, as CRAN asks.")
+    if description := record.get("description"):
+        fields["Description"] = " ".join(description.split())
+    if licence := record.get("license"):
+        fields["License"] = _R_GPL.sub(_r_gpl, licence).replace(" OR ", " | ")  # R separates choices with |
+        notes.append("DESCRIPTION: check License against R's licence names; MIT and BSD add + file LICENSE.")
+    if repository := record.get("codeRepository"):
+        fields["URL"] = repository
+    fields["Encoding"] = "UTF-8"
+    return "".join(f"{key}: {value}\n" for key, value in fields.items())
+
+
+def _r_gpl(match: re.Match[str]) -> str:
+    version = match[2] + (match[3] or "")  # R drops a .0: GPL-3, but LGPL-2.1
+    return f"{match[1]}-{version}" if match[4] == "only" else f"{match[1]} (>= {version})"
+
+
+def _r_person(person: Any, role: str) -> str:  # noqa: ANN401 - a citesync.formats.Person
+    if person.given and person.family:
+        parts = [_r_string(person.given), _r_string(person.family)]
+    elif person.family and not person.organization:
+        parts = [f"family = {_r_string(person.family)}"]
+    else:
+        parts = [_r_string(person.name)]
+    parts.append(f'role = "{role}"')
+    if person.orcid:
+        parts.append(f"comment = c(ORCID = {_r_string(person.orcid)})")
+    return f"person({', '.join(parts)})"
+
+
+def _r_string(text: str) -> str:
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _julia_project(record: dict[str, Any], notes: list[str]) -> str:
+    """A Julia Project.toml, with authors as CFF tables as codemeta-drift's julia rows read them."""
+    data: dict[str, Any] = {}
+    if _JULIA_NAME.fullmatch(record["name"]):
+        data["name"] = record["name"]
+    else:
+        notes.append("Project.toml: name omitted; a Julia package name is an identifier, such as Lensgrind.")
+    notes.append("Project.toml: add the uuid Pkg generates for a new package.")
+    if version := record.get("version"):
+        try:
+            data["version"] = codecs.version_encode_semver(version)
+        except CannotWrite as error:
+            notes.append(f"Project.toml: version omitted: {error}")
+    authors = []
+    for person in record.get("author", ()):
+        if not person.name:  # an ORCID alone names no one
+            continue
+        if person.given and person.family:
+            author = {"given-names": person.given, "family-names": person.family}
+        elif person.family and not person.organization:
+            author = {"family-names": person.family}
+        else:
+            author = {"name": person.name}
+        if person.orcid:
+            author["orcid"] = codecs.orcid_encode(person.orcid, "url")
+        authors.append(author)
+    if authors:
+        data["authors"] = authors
+    return "# Incomplete metadata template: review dependencies and compat bounds.\n" + tomlkit.dumps(data)
 
 
 def _package_metadata(record: dict[str, Any], filename: str) -> tuple[dict[str, Any], list[str]]:

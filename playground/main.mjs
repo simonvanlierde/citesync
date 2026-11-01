@@ -52,6 +52,13 @@ const outputLabels = {
   "citation.apa.txt": "citation.apa.txt — APA reference",
   "schema.jsonld": "schema.jsonld — Website structured data",
 };
+const templateLabels = {
+  "pyproject.toml": "Python",
+  "Cargo.toml": "Rust",
+  "package.json": "JavaScript",
+  DESCRIPTION: "R",
+  "Project.toml": "Julia",
+};
 const examples = {
   "pyproject.toml":
     '[project]\nname = "lensgrind"\nversion = "1.4.0"\ndescription = "Measure microscope optics."\nauthors = [{name = "Antonie van Leeuwenhoek"}]\nlicense = "Apache-2.0"\n',
@@ -382,7 +389,9 @@ function render() {
       for (const filename of Object.keys(files).sort(byName)) {
         group.append(
           new Option(
-            label === "Citation files" ? outputLabels[filename] || filename : `${filename} (incomplete)`,
+            label === "Citation files"
+              ? outputLabels[filename] || filename
+              : `${filename} — ${templateLabels[filename] || "package"} (incomplete)`,
             filename,
           ),
         );
