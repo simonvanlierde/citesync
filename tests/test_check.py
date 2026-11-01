@@ -939,6 +939,7 @@ positional arguments:
     check        report where the files disagree with the source
     write        rewrite the files to agree with the source
     init         write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
+    export       print a citation from the source: BibTeX, CSL-JSON, APA or JSON-LD
     config       print the config in use and where it came from
     rules        list the rules
     explain      print a rule's documentation

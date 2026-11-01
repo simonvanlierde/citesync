@@ -64,6 +64,7 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         "# files: not set, so every citation file present\n"
         "# manifests: not set, so every release manifest at the repo root\n"
         "write-manifests = []\n"
+        "exports = []\n"
         "# zenodo-contributor-type: not set, so new contributors need a hand edit\n"
         "keywords-case-sensitive = false\n"
         "keywords-ignore-separators = false\n"

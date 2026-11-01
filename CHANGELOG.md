@@ -7,6 +7,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `citesync export --format apa|bibtex|csl-json|jsonld` prints a citation made from the source. List files under `exports` to have `write` keep them in step and `check` report a stale one ([citation exports](docs/export.md)).
+- APA 7 references and schema.org JSON-LD for websites, in the CLI and the [playground](https://simonvanlierde.com/citesync/).
+
+### Changed
+
+- BibTeX and CSL-JSON citation keys come from the title, such as `credit-matrix`, instead of `software`.
+
 ## [0.3.0] - 2026-11-01
 
 ### Added
