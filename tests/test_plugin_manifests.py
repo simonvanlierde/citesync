@@ -104,9 +104,10 @@ def test_write_leaves_a_pre_release_out_of_typst_toml(tmp_path: Path, run: "Run"
     root = _repo(tmp_path, "1.2.3")
     cff = root / "CITATION.cff"
     cff.write_text(cff.read_text(encoding="utf-8").replace('version: "1.2.3"', 'version: "1.3.0rc1"'), encoding="utf-8")
-    _, out, _ = run("write", "--root", str(root))
+    code, out, _ = run("write", "--root", str(root))
+    assert code == 1, out
     assert (root / TYPST_PATH).read_text(encoding="utf-8") == TYPST.format(version="1.2.3")
-    assert "1.3.0-rc.1" in out
+    assert "major.minor.patch only, not 1.3.0-rc.1" in out
     assert (root / QUARTO_PATH).read_text(encoding="utf-8") == QUARTO.format(version="1.3.0-rc.1")
 
 
