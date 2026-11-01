@@ -6,6 +6,14 @@
 
 The eleven rules from `name-mismatch` to `date-mismatch` compare a field with the source. When the source doesn't hold the field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
 
+## metadata-omitted
+
+An imported metadata value cannot be represented safely. Severity: warning.
+
+Legacy Core Metadata License text is not assumed to be an SPDX expression. Values that cannot be represented are omitted with this notice; distribution metadata is never rewritten.
+
+To fix: Add an explicit supported value in the source metadata, then generate the citation files again.
+
 ## name-mismatch
 
 The title differs from the source's. Severity: error.

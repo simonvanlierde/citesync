@@ -17,7 +17,7 @@ import shutil
 import tempfile
 from collections.abc import Callable
 from dataclasses import replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import tomlkit
@@ -42,6 +42,7 @@ from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
     CITATION_FILES,
+    IMPORTS,
     MANIFESTS,
     Doc,
     Person,
@@ -64,7 +65,7 @@ from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms,
 NEW_CODEMETA_VERSION = "3.0"
 
 
-def write(
+def write(  # noqa: C901 - preserve each format and create requested citation targets
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
 ) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding], list[Finding]]:
     """Write every finding write may fix; return what it wrote and skipped, what it couldn't read, and what it fixed.
@@ -94,6 +95,8 @@ def write(
     source, texts, skipped, done = docs[0], {}, {}, set()
     key = keyword_key(config)
     for doc in docs:  # the source too, for its @context
+        if PurePosixPath(doc.path).name in IMPORTS:
+            continue
         terms = [
             t
             for t in TERMS
@@ -110,7 +113,7 @@ def write(
         bom = "\ufeff" if old.startswith("\ufeff") else ""  # ruamel.yaml drops one, so put it back
         # edited with LF line ends, which the YAML and JSON writers add
         lf = old.removeprefix(bom).replace("\r\n", "\n")
-        new, reasons = _rewrite(doc, source, terms, lf, mapping, context, key)
+        new, reasons = _rewrite(doc, source, terms, lf, mapping, context, key, config.zenodo_contributor_type)
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != lf:
             crlf = old.count("\r\n") * 2 > old.count("\n")  # a file with both gets the more common one
@@ -125,7 +128,7 @@ def write(
         if fmt == "codemeta":
             texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
         else:
-            texts[rel], reasons = _new_zenodo(rel, source, mapping, key)
+            texts[rel], reasons = _new_zenodo(rel, source, mapping, key, config.zenodo_contributor_type)
         skipped |= {(rel, term): reason for term, reason in reasons.items()}
         done.add((rel, None))
     if not dry_run:
@@ -289,23 +292,24 @@ def _rewrite(
     mapping: Mapping,
     context: str | None,
     keyword_key: Callable[[str], str],
+    zenodo_contributor_type: str | None,
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
     if doc.format == "cff-1.2.0":
         yaml = _yaml(text)
         data = yaml.load(text)
-        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
+        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
         out = io.StringIO()
         yaml.dump(data, out)
         head = re.match(r"(?:[ \t]*(?:#.*)?\n)*(?=---)", text)  # ruamel drops the comments above a ---
         return (head[0] if head else "") + out.getvalue(), skipped
     if doc.path.endswith(".toml"):
         data = tomlkit.parse(text)
-        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
+        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
         return tomlkit.dumps(data), skipped
     old = json.loads(text)
     data = copy.deepcopy(old)
-    skipped = _apply(doc, source, terms, data, mapping, context, keyword_key)
+    skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
     return splice(text, old, data), skipped
 
 
@@ -339,7 +343,11 @@ def _new_codemeta(
 
 
 def _new_zenodo(
-    rel: str, source: Doc, mapping: Mapping, keyword_key: Callable[[str], str]
+    rel: str,
+    source: Doc,
+    mapping: Mapping,
+    keyword_key: Callable[[str], str],
+    zenodo_contributor_type: str | None = None,
 ) -> tuple[str, dict[str, str]]:
     """GitHub release metadata holding the source's fields; report fields Zenodo can't represent."""
     blank = {
@@ -356,9 +364,10 @@ def _new_zenodo(
         "swhid": ("related_identifiers", ""),
     }
     doc = Doc(rel, "zenodo", {}, frozenset(), None, release=True)
-    values, skipped = _encode_terms(doc, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key)
+    values, skipped = _encode_terms(
+        doc, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key, zenodo_contributor_type
+    )
     if any(not person.name for person in source.record.get("author", ())):
-        values.pop("author", None)
         skipped["author"] = "Zenodo needs a name for each creator"
     related = []
     for term, relation, scheme in (
@@ -374,14 +383,27 @@ def _new_zenodo(
 
 
 def _encode_terms(
-    doc: Doc, source: Doc, blank: dict[str, Any], mapping: Mapping, keyword_key: Callable[[str], str]
+    doc: Doc,
+    source: Doc,
+    blank: dict[str, Any],
+    mapping: Mapping,
+    keyword_key: Callable[[str], str],
+    zenodo_contributor_type: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Each term of ``blank`` the source holds, spelled for ``doc`` in its blank's shape, and why any is left out."""
     values, skipped = {}, {}
     for term in (t for t in blank if t in source.record):
         try:
             if term in PEOPLE:
-                values[term] = _people(doc.format, blank[term], source, str(mapping[doc.format, term]), mapping, term)
+                values[term] = _people(
+                    doc.format,
+                    blank[term],
+                    source,
+                    str(mapping[doc.format, term]),
+                    mapping,
+                    term,
+                    zenodo_contributor_type,
+                )
             else:
                 values[term] = _encode(doc, source, term, source.record[term], blank[term], keyword_key)
         except CannotWrite as err:
@@ -409,6 +431,7 @@ def _apply(
     mapping: Mapping,
     context: str | None,
     keyword_key: Callable[[str], str],
+    zenodo_contributor_type: str | None,
 ) -> dict[str, str]:
     skipped = {}
     if context:
@@ -419,6 +442,13 @@ def _apply(
         path = mapping[doc.format, term]
         assert path is not None  # noqa: S101 - write() only passes terms the file holds
         slot = locate(doc.format, term, data, path)
+        if (
+            doc.format == "zenodo"
+            and term == "contributor"
+            and zenodo_contributor_type
+            and data.get("contributors") == []
+        ):
+            slot = data, "contributors"
         if slot is None:
             continue
         container, key = slot
@@ -428,7 +458,7 @@ def _apply(
             continue
         try:
             if term in PEOPLE:
-                new = _people(doc.format, old, source, path, mapping, term)
+                new = _people(doc.format, old, source, path, mapping, term, zenodo_contributor_type)
             else:
                 new = _encode(doc, source, term, source.record[term], old, keyword_key)
         except CannotWrite as err:
@@ -562,7 +592,15 @@ def _keywords(old: Any, value: tuple[str, ...], key: Callable[[str], str], *, ad
     return items
 
 
-def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: str) -> Any:  # noqa: ANN401
+def _people(
+    fmt: str,
+    old: Any,  # noqa: ANN401
+    source: Doc,
+    path: str,
+    mapping: Mapping,
+    term: str,
+    zenodo_contributor_type: str | None = None,
+) -> Any:  # noqa: ANN401
     """``term``'s list for ``fmt``, with the source's people in the source's order.
 
     An existing entry is kept, with its other fields, when its name or ORCID
@@ -574,7 +612,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
     Raises:
         CannotWrite: when an entry it would drop holds more than a name and ORCID, or an ORCID
             while someone with no ORCID is added, or when a Zenodo contributor would be added,
-            since Zenodo needs a contributor type.
+            since Zenodo needs a contributor type and none was configured.
     """
     items = list(old) if isinstance(old, list) else [old]
     decoded = [person(fmt, el, path, mapping, term) for el in items]
@@ -582,7 +620,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
     people: tuple[Person, ...] = source.record[term][:1] if npm else source.record[term]
     matches = _matches(decoded, people)
     used = {i for i in matches if i is not None}
-    if fmt == "zenodo" and term == "contributor" and None in matches:
+    if fmt == "zenodo" and term == "contributor" and None in matches and zenodo_contributor_type is None:
         msg = "Zenodo needs a type for each contributor, which citesync doesn't choose"
         raise CannotWrite(msg)
     if mapping[fmt, f"{term}.@id"] is None and (
@@ -602,7 +640,7 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
     out = []
     for p, i in zip(people, matches, strict=True):
         if i is None:
-            out.append(_new_person(fmt, p, path, mapping, items[0] if items else None, term))
+            out.append(_new_person(fmt, p, path, mapping, items[0] if items else None, term, zenodo_contributor_type))
             continue
         q = decoded[i]
         assert q is not None  # noqa: S101 - _match skips entries that read as no one
@@ -694,8 +732,21 @@ def _fields(fmt: str, p: Person, path: str, mapping: Mapping, term: str) -> dict
     return {str(k): v for k, v in fields.items() if v}
 
 
-def _new_person(fmt: str, p: Person, path: str, mapping: Mapping, like: Any, term: str) -> Any:  # noqa: ANN401
+def _new_person(
+    fmt: str,
+    p: Person,
+    path: str,
+    mapping: Mapping,
+    like: Any,  # noqa: ANN401
+    term: str,
+    zenodo_contributor_type: str | None = None,
+) -> Any:  # noqa: ANN401
+    if fmt == "zenodo" and not p.name:
+        msg = "Zenodo needs a name for each person"
+        raise CannotWrite(msg)
     fields = _fields(fmt, p, path, mapping, term)
+    if fmt == "zenodo" and term == "contributor" and zenodo_contributor_type is not None:
+        fields["type"] = zenodo_contributor_type
     if fmt == "cargo" or (fmt == "npm" and not isinstance(like, dict)):
         return p.name or ""
     if fmt == "pep621":

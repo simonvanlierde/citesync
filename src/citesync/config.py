@@ -24,6 +24,7 @@ class Config:
     files: tuple[str, ...] | None = None
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
+    zenodo_contributor_type: str | None = None
     keywords_case_sensitive: bool = False
     keywords_ignore_separators: bool = False
     ignore: tuple[str, ...] = ()
@@ -110,6 +111,39 @@ def _codemeta_version(value: object, origin: str) -> str:
     return str(value)
 
 
+# Zenodo deposition metadata: https://developers.zenodo.org/#representation
+ZENODO_CONTRIBUTOR_TYPES = (
+    "ContactPerson",
+    "DataCollector",
+    "DataCurator",
+    "DataManager",
+    "Distributor",
+    "Editor",
+    "HostingInstitution",
+    "Other",
+    "Producer",
+    "ProjectLeader",
+    "ProjectManager",
+    "ProjectMember",
+    "RegistrationAgency",
+    "RegistrationAuthority",
+    "RelatedPerson",
+    "ResearchGroup",
+    "RightsHolder",
+    "Researcher",
+    "Sponsor",
+    "Supervisor",
+    "WorkPackageLeader",
+)
+
+
+def _zenodo_contributor_type(value: object, origin: str) -> str:
+    if not isinstance(value, str) or value not in ZENODO_CONTRIBUTOR_TYPES:
+        msg = f"{origin}: zenodo-contributor-type must be one of {', '.join(ZENODO_CONTRIBUTOR_TYPES)}"
+        raise CheckError(msg)
+    return value
+
+
 def _bool(value: object, origin: str, key: str) -> bool:
     if not isinstance(value, bool):
         msg = f"{origin}: {key} must be true or false"
@@ -191,6 +225,7 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
     "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
     "write-manifests": _write_manifests,
+    "zenodo-contributor-type": _zenodo_contributor_type,
     "keywords-case-sensitive": lambda value, origin: _bool(value, origin, "keywords-case-sensitive"),
     "keywords-ignore-separators": lambda value, origin: _bool(value, origin, "keywords-ignore-separators"),
     "ignore": _ignore,
@@ -212,6 +247,9 @@ def render(config: Config) -> str:
         if config.manifests is not None
         else "# manifests: not set, so every release manifest at the repo root",
         f"write-manifests = {json.dumps(list(config.write_manifests))}",
+        f"zenodo-contributor-type = {json.dumps(config.zenodo_contributor_type)}"
+        if config.zenodo_contributor_type is not None
+        else "# zenodo-contributor-type: not set, so new contributors need a hand edit",
         f"keywords-case-sensitive = {json.dumps(config.keywords_case_sensitive)}",
         f"keywords-ignore-separators = {json.dumps(config.keywords_ignore_separators)}",
         f"ignore = {json.dumps(list(config.ignore))}",

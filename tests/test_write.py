@@ -1628,3 +1628,82 @@ def test_a_created_codemeta_json_takes_contributors_and_non_ascii_names(tmp_path
     text = (root / "codemeta.json").read_text(encoding="utf-8")
     assert '"familyName": "Skłodowska Curie"' in text
     assert json.loads(text)["contributor"] == [{"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}]
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_configured_zenodo_contributor_type_adds_only_new_people(tmp_path: Path, run: "Run", *, empty: bool) -> None:
+    root = _synthetic(
+        tmp_path / "repo",
+        'source = "codemeta.json"\nmanifests = []\nzenodo-contributor-type = "Researcher"\n',
+    )
+    grace = {"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}
+    ada = {"@type": "Person", "@id": f"https://orcid.org/{ORCID}", "givenName": "Ada", "familyName": "Lovelace"}
+    role = {
+        "@type": "Role",
+        "schema:author": ada["@id"],
+        "roleName": "https://credit.niso.org/contributor-roles/software/",
+    }
+    old = [] if empty else [{"name": "Hopper, Grace", "type": "Editor", "affiliation": "Example Lab"}]
+    _contributors(root, [grace, ada, role], old)
+    source_path = root / "codemeta.json"
+    source_data = json.loads(source_path.read_text(encoding="utf-8"))
+    source_data["version"] = "2.0.0"
+    source_data["author"].append(grace)
+    source_path.write_text(json.dumps(source_data), encoding="utf-8")
+    assert run("check", "--root", str(root))[0] == 1
+    assert run("write", "--root", str(root))[0] == 0
+    target = root / ".zenodo.json"
+    assert json.loads(target.read_text(encoding="utf-8"))["contributors"] == [
+        {"name": "Hopper, Grace", "type": "Researcher"} if empty else old[0],
+        {"name": "Lovelace, Ada", "orcid": ORCID, "type": "Researcher"},
+    ]
+    assert json.loads(target.read_text(encoding="utf-8"))["creators"][-1] == {"name": "Hopper, Grace"}
+    cff = YAML().load((root / "CITATION.cff").read_text(encoding="utf-8"))
+    assert all("type" not in person for person in cff["authors"])
+    assert run("check", "--root", str(root))[0] == 0
+    before = target.read_bytes()
+    assert run("write", "--root", str(root))[0] == 0
+    assert target.read_bytes() == before
+
+
+def test_configured_zenodo_contributor_type_leaves_absent_field_out(tmp_path: Path, run: "Run") -> None:
+    root = _synthetic(
+        tmp_path / "repo",
+        'source = "codemeta.json"\nmanifests = []\nzenodo-contributor-type = "Other"\n',
+    )
+    data = json.loads((root / "codemeta.json").read_text(encoding="utf-8"))
+    data["contributor"] = [{"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}]
+    (root / "codemeta.json").write_text(json.dumps(data), encoding="utf-8")
+    target = root / ".zenodo.json"
+    before = target.read_bytes()
+    assert run("write", "--root", str(root))[0] == 0
+    assert target.read_bytes() == before
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_empty_zenodo_source_leaves_contributors_alone(tmp_path: Path, run: "Run", *, configured: bool) -> None:
+    config = 'source = ".zenodo.json"\nmanifests = []\n'
+    if configured:
+        config += 'zenodo-contributor-type = "Other"\n'
+    root = _synthetic(tmp_path / "repo", config)
+    _contributors(root, [{"@type": "Person", "givenName": "Grace", "familyName": "Hopper"}], [])
+    target = root / "codemeta.json"
+    before = target.read_bytes()
+    assert run("write", "--root", str(root))[0] == 0
+    assert target.read_bytes() == before
+
+
+def test_cff_preserves_a_bom_inside_the_final_value(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "codemeta.json").write_text(
+        '{"@context":"https://w3id.org/codemeta/3.0","name":"lensgrind","version":"2.0.0"}', encoding="utf-8"
+    )
+    target = tmp_path / "CITATION.cff"
+    target.write_text(
+        "\ufeffcff-version: 1.2.0\nmessage: Cite this.\ntitle: lensgrind\nversion: 1.0.0\nabstract: optics\ufeff",
+        encoding="utf-8",
+    )
+    code, out, err = run("write", "--root", str(tmp_path), "--source", "codemeta.json")
+    assert (code, err) == (0, ""), out
+    result = YAML(typ="safe").load(target.read_text(encoding="utf-8"))
+    assert result["abstract"] == "optics\ufeff"
+    assert target.read_bytes().startswith(b"\xef\xbb\xbf")

@@ -236,3 +236,37 @@ def test_an_unsupported_missing_file_does_not_block_zenodo_creation(tmp_path: Pa
     data = json.loads((tmp_path / ".zenodo.json").read_text(encoding="utf-8"))
     assert data == {"upload_type": "software", "title": "lensgrind"}
     assert not (tmp_path / "CITATION.cff").exists()
+
+
+def test_create_zenodo_uses_configured_contributor_type(tmp_path: Path) -> None:
+    source = {
+        "@context": "https://w3id.org/codemeta/3.0",
+        "name": "lensgrind",
+        "author": [{"givenName": "Marie", "familyName": "Skłodowska-Curie"}],
+        "contributor": [{"givenName": "Antonie", "familyName": "van Leeuwenhoek"}],
+    }
+    path = tmp_path / "codemeta.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    config = Config(source="codemeta.json", files=(".zenodo.json",), manifests=(), zenodo_contributor_type="Researcher")
+    preview = write(tmp_path, config, dry_run=True)[0]
+    assert not (tmp_path / ".zenodo.json").exists()
+    expected = [{"name": "van Leeuwenhoek, Antonie", "type": "Researcher"}]
+    assert json.loads(preview[".zenodo.json"])["contributors"] == expected
+    write(tmp_path, config)
+    assert json.loads((tmp_path / ".zenodo.json").read_text())["contributors"] == expected
+    assert json.loads(path.read_text()) == source
+    assert write(tmp_path, config)[0] == {}
+
+
+def test_configured_type_does_not_invent_an_unnamed_contributor(tmp_path: Path) -> None:
+    source = {
+        "@context": "https://w3id.org/codemeta/3.0",
+        "name": "lensgrind",
+        "author": [{"name": "Example Lab"}],
+        "contributor": [{"@id": "https://orcid.org/0000-0002-1825-0097"}],
+    }
+    (tmp_path / "codemeta.json").write_text(json.dumps(source))
+    config = Config(source="codemeta.json", files=(".zenodo.json",), manifests=(), zenodo_contributor_type="Researcher")
+    texts, skipped, _, _ = write(tmp_path, config)
+    assert "contributors" not in json.loads(texts[".zenodo.json"])
+    assert skipped[".zenodo.json", "contributor"] == "Zenodo needs a name for each person"
