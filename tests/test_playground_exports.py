@@ -17,7 +17,16 @@ def test_templates_omit_unusable_names_and_versions_without_inventing_replacemen
         assert "name" not in data
         assert "version" not in data
         assert "dependencies" not in data
-    assert len(notes) == 6
+    assert not {"name", "version"} & tomllib.loads(templates["Project.toml"]).keys()
+    assert not any(line.startswith(("Package:", "Version:")) for line in templates["DESCRIPTION"].splitlines())
+    assert len(notes) == 13
+    for note in (
+        "DESCRIPTION: Package omitted; use letters, numbers and dots, starting with a letter.",
+        "DESCRIPTION: Version omitted; R needs two or more numbers, such as 1.4.0.",
+        "Project.toml: name omitted; a Julia package name is an identifier, such as Lensgrind.",
+        "Project.toml: version omitted: semver has no spelling for nightly",
+    ):
+        assert note in notes
     assert json.loads(templates["package.json"])["private"] is True
     assert "build-system" not in tomllib.loads(templates["pyproject.toml"])
 

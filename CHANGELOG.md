@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The playground makes incomplete R DESCRIPTION and Julia Project.toml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
+
 ### Changed
 
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
