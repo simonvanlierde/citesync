@@ -158,6 +158,30 @@ def test_julia_cff_name_particle_and_missing_optional_fields(tmp_path: Path):
     assert "identifier" not in doc.record
 
 
+@pytest.mark.parametrize(
+    ("author", "name", "organization"),
+    [
+        (
+            '"Antonie van Leeuwenhoek (Example Lab) <antonie@example.org>"',
+            "Antonie van Leeuwenhoek (Example Lab)",
+            False,
+        ),
+        ('"Tu Youyou (she/her)"', "Tu Youyou (she/her)", False),
+        ('{name = "", family-names = "Tu"}', "Tu", False),
+        ('{given-names = "", name = "Example Lab"}', "Example Lab", True),
+    ],
+)
+def test_julia_authors_read_as_pkg_writes_them(
+    author: str,
+    name: str,
+    organization: bool,  # noqa: FBT001
+    tmp_path: Path,
+):
+    (tmp_path / "Project.toml").write_text(f'name="Lensgrind"\nauthors=[{author}]')
+    person = read_doc(tmp_path, "Project.toml", load_mapping()).record["author"][0]
+    assert (person.name, person.organization) == (name, organization)
+
+
 def test_non_package_julia_environment_transfers_as_a_partial_draft():
     result = generate({"filename": "Project.toml", "text": "[deps]\n", "edit": True})
     assert result["details"]["title"] == ""

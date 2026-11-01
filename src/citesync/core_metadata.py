@@ -116,7 +116,8 @@ def _authors(message: Message, rel: str) -> dict[str, list[str]]:
             name = raw_name.strip()
             if name:
                 authors.setdefault(name.casefold(), name)
-    emails = [f"{c['name']} <{c['email']}>" for key, c in contacts.items() if key not in authors]
+    # NOTE: only the name; an address would reach the name decoder and end up in family-names
+    emails = [c["name"] for key, c in contacts.items() if key not in authors]
     return {k: v for k, v in (("Author", list(authors.values())), ("Author-email", emails)) if v}
 
 

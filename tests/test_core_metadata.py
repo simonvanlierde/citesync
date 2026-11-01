@@ -122,6 +122,15 @@ def test_author_order_survives_contact_enrichment(tmp_path: Path) -> None:
     assert [person.name for person in people] == ["Antonie van Leeuwenhoek", "Marie Skłodowska-Curie"]
 
 
+def test_an_author_email_comment_keeps_the_address_out_of_the_name(tmp_path: Path) -> None:
+    (tmp_path / "METADATA").write_text(
+        "Metadata-Version: 2.4\nName: lensgrind\nVersion: 1.0\n"
+        "Author-email: Marie Skłodowska-Curie (Example Lab) <marie@example.org>\n"
+    )
+    people = read_doc(tmp_path, "METADATA", load_mapping()).record["author"]
+    assert [person.name for person in people] == ["Marie Skłodowska-Curie"]
+
+
 def test_distribution_metadata_is_never_a_write_target(tmp_path: Path) -> None:
     (tmp_path / "CITATION.cff").write_text(
         "cff-version: 1.2.0\nmessage: Cite this.\ntitle: lensgrind\nversion: 2.0.0\n"
@@ -259,7 +268,7 @@ def test_metadata_reads_through_the_pkg_info_rows(tmp_path: Path) -> None:
     assert at("codeRepository") == ["https://example.org/lensgrind"]
     assert at("author") == [
         ["Marie Skłodowska-Curie"],
-        ["Antonie van Leeuwenhoek <antonie@example.org>", "Tu Youyou <tu@example.org>"],
+        ["Antonie van Leeuwenhoek", "Tu Youyou"],
     ]
     doc = read_doc(tmp_path, "METADATA", mapping)
     assert doc.format == "pkg-info"

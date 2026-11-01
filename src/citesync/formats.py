@@ -479,13 +479,15 @@ def person(  # noqa: C901 - one branch per format's person shape
     ``alternative`` is the alternative of ``parent`` that ``element`` came from. Check and
     write both read people here, so they match people the same way.
     """
+    if fmt == "julia" and isinstance(element, dict):  # an empty name or given-names counts as absent
+        element = {k: v for k, v in element.items() if not (isinstance(v, str) and not v.strip())}
     org = isinstance(element, dict) and (
         _ld(element, "type") == "Organization"
         if fmt == "codemeta"
         else fmt in {"cff-1.2.0", "julia"} and "given-names" not in element and "name" in element
     )
     if fmt == "julia" and isinstance(element, str):  # Pkg writes "Name <email>"; a table is a CFF person or entity
-        element = {"name": codecs.contact_name_decode(element)}
+        element = {"name": re.sub(r"\s*<[^<>]+>\s*$", "", element).strip()}
     if fmt in {"cff-1.2.0", "julia"} and isinstance(element, dict):
         element = cff_person(element)
     elif fmt == "codemeta":
