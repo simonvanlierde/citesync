@@ -1,0 +1,3 @@
+# This exact producer release was reviewed; other versions retain the cooldown.
+minimumReleaseAgeExclude:
+  - credit-matrix@0.10.0

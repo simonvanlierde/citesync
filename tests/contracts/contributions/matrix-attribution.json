@@ -1,0 +1,43 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "author": [
+    {
+      "type": "Person",
+      "id": "https://orcid.org/0000-0002-1825-0097",
+      "name": "Marie Skłodowska-Curie",
+      "givenName": "Marie",
+      "familyName": "Skłodowska-Curie"
+    },
+    {
+      "type": "Role",
+      "schema:author": "https://orcid.org/0000-0002-1825-0097",
+      "roleName": "https://credit.niso.org/contributor-roles/software/"
+    },
+    {
+      "type": "Person",
+      "id": "#credit-matrix-person-2",
+      "name": "Antonie van Leeuwenhoek",
+      "givenName": "Antonie",
+      "familyName": "van Leeuwenhoek"
+    },
+    {
+      "type": "Role",
+      "schema:author": "#credit-matrix-person-2",
+      "roleName": "https://credit.niso.org/contributor-roles/investigation/"
+    }
+  ],
+  "contributor": [
+    {
+      "type": "Person",
+      "id": "#credit-matrix-person-3",
+      "name": "Katherine Johnson",
+      "givenName": "Katherine",
+      "familyName": "Johnson"
+    },
+    {
+      "type": "Role",
+      "schema:author": "#credit-matrix-person-3",
+      "roleName": "https://credit.niso.org/contributor-roles/data-curation/"
+    }
+  ]
+}

@@ -59,5 +59,18 @@ write leaves that contributor list intact. Set
 An existing empty target list opts in; an absent list stays absent. A passing check
 does not establish that every contribution has reached every format.
 
-This example checks the citesync boundary using the current pinned mapping. It
-does not run CRediT Matrix or prove a complete export-and-deposit workflow.
+The hand-written fixture checks the citesync boundary without installing Matrix.
+The existing [playground CI job](../.github/workflows/pages.yml) also runs the
+Matrix integration tests using `credit-matrix@0.10.0`, pinned in `package.json`
+and `pnpm-lock.yaml`. Run the same check locally:
+
+```sh
+pnpm install --frozen-lockfile
+uv run --frozen pytest tests/test_matrix_consumer.py
+```
+
+These tests use Matrix's native roster and hand-checked attribution expectation,
+plus the existing target expectations. They check linked people and roles,
+local identities, idempotence and explicit Zenodo contributor types. The
+[fixture notes](../tests/contracts/contributions/README.md) record provenance.
+This checks citation files, not a live Zenodo deposit.
