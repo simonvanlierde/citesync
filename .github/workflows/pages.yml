@@ -31,6 +31,7 @@ jobs:
           install: false
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
+      - run: uv run --frozen pytest tests/test_matrix_consumer.py
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - run: pnpm run check
       - run: uv run playground/build.py

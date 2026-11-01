@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "authors": [
+    {
+      "id": "marie",
+      "name": "Marie Skłodowska-Curie",
+      "firstName": "Marie",
+      "middleName": "",
+      "surname": "Skłodowska-Curie",
+      "initials": "MS",
+      "contributions": [
+        {
+          "role": "Software",
+          "score": 100
+        }
+      ],
+      "equalContribution": false,
+      "corresponding": false,
+      "orcid": "0000-0002-1825-0097",
+      "contributorType": "author"
+    },
+    {
+      "id": "antonie",
+      "name": "Antonie van Leeuwenhoek",
+      "firstName": "Antonie",
+      "middleName": "",
+      "surname": "van Leeuwenhoek",
+      "initials": "Av",
+      "contributions": [
+        {
+          "role": "Investigation",
+          "score": 33
+        }
+      ],
+      "equalContribution": false,
+      "corresponding": false,
+      "contributorType": "author"
+    },
+    {
+      "id": "katherine",
+      "name": "Katherine Johnson",
+      "firstName": "Katherine",
+      "middleName": "",
+      "surname": "Johnson",
+      "initials": "KJ",
+      "contributions": [
+        {
+          "role": "Data curation",
+          "score": 66
+        }
+      ],
+      "equalContribution": false,
+      "corresponding": false,
+      "contributorType": "non-author"
+    }
+  ]
+}

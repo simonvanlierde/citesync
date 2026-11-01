@@ -15,6 +15,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Import Python PKG-INFO/METADATA, R DESCRIPTION and Julia Project.toml/JuliaProject.toml in the CLI and playground without executing package code. Imported files remain read-only; unsupported or omitted values are reported ([supported files](docs/formats.md)).
 - Create a missing .zenodo.json with `citesync write` when `files` lists it. Set `zenodo-contributor-type` to supply a default for new contributors; existing types are preserved ([configuration](docs/config.md), [writing](docs/write.md#create-citation-files)).
 - Use the [contribution handoff guide](docs/contributions.md) for linked CodeMeta people and roles from CRediT Matrix, and the [Pandoc guide](docs/pandoc.md) for software citations from CSL-JSON or BibTeX.
+- A [Matrix consumer check](docs/contributions.md) runs the published Credit Matrix 0.10.0 CLI through citesync write/check, including linked roles, local identities and explicit Zenodo contributor types.
 
 ### Changed
 
