@@ -26,6 +26,10 @@ request outside what the project sets out to do is closed with a link to this se
 and the git hooks. `just check` runs the checks CI runs, and `just fmt` fixes and
 formats.
 
+Add automated tests for new functionality and regression tests for fixes.
+Run a regression test before the fix and check that it fails for the reported reason.
+Fix every lint and type warning, or suppress it with a stated reason.
+
 ## Profile
 
 `just bench` times `citesync check` on this repo. `just profile` shows where the time

@@ -104,7 +104,7 @@ citesync.write.x__new_zenodo__mutmut_70  release is not read by citation-format 
 citesync.write.x__people__mutmut_125  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_128  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_129  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_180  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__people__mutmut_209  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__people__mutmut_58  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_61  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_62  matches has one entry per person, so strict never fires
