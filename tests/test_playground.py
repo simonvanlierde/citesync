@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import zipfile
+from pathlib import Path
 
 import pytest
 from hypothesis import given, settings
@@ -235,10 +236,10 @@ def test_partial_files_can_open_in_the_details_form(filename: str, text: str):
     assert details["authors"] == []
 
 
-def test_r_and_julia_templates_read_back_through_the_imports():
-    from citesync.formats import Person  # noqa: PLC0415
+def test_r_and_julia_templates_read_back_through_the_imports(tmp_path: Path):
+    from citesync.formats import Person, read_doc  # noqa: PLC0415
+    from citesync.mapping import load_mapping  # noqa: PLC0415
     from citesync.playground_exports import package_templates  # noqa: PLC0415
-    from citesync.research_metadata import parse  # noqa: PLC0415
 
     curie = Person(
         "Marie Skłodowska-Curie", "Marie", "Skłodowska-Curie", "0000-0002-1825-0097"
@@ -259,32 +260,29 @@ def test_r_and_julia_templates_read_back_through_the_imports():
         "contributor": (Person("Tu Youyou", "Youyou", "Tu"),),
     }
     templates, notes = package_templates(record)
-    r = parse(templates["DESCRIPTION"], "DESCRIPTION")
+    for filename in ("DESCRIPTION", "Project.toml"):
+        (tmp_path / filename).write_text(templates[filename])
+    r = read_doc(tmp_path, "DESCRIPTION", load_mapping()).record
     assert (r["name"], r["version"], r["license"]) == ("lensgrind: Grind: Lenses", "1.4.0", "GPL-3.0-or-later")
     assert (r["description"], r["codeRepository"]) == (
         "Measure microscope optics.",
         "https://github.com/example/lensgrind",
     )
-    assert r["author"] == [
-        {
-            "@type": "Person",
-            "givenName": "Marie",
-            "familyName": "Skłodowska-Curie",
-            "@id": "https://orcid.org/0000-0002-1825-0097",
-        },
-        {"@type": "Person", "givenName": "Example Lab"},
-        {"@type": "Person", "givenName": 'Ant "Q" \\', "familyName": "Leeuwenhoek"},
-        {"@type": "Person", "familyName": "Tu"},
+    assert [(p.given, p.family, p.orcid) for p in r["author"]] == [
+        ("Marie", "Skłodowska-Curie", "0000-0002-1825-0097"),
+        ("Example Lab", None, None),
+        ('Ant "Q" \\', "Leeuwenhoek", None),
+        (None, "Tu", None),
     ]
-    assert [p.get("familyName") for p in r["contributor"]] == ["Tu"]
-    julia = parse(templates["Project.toml"], "Project.toml")
+    assert [p.family for p in r["contributor"]] == ["Tu"]
+    julia = read_doc(tmp_path, "Project.toml", load_mapping()).record
     assert julia["version"] == "1.4.0"
     assert 'orcid = "https://orcid.org/0000-0002-1825-0097"' in templates["Project.toml"]
-    assert [(p["@type"], p.get("familyName")) for p in julia["author"]] == [
-        ("Person", "Skłodowska-Curie"),
-        ("Organization", "Example Lab"),
-        ("Person", "Leeuwenhoek"),
-        ("Person", "Tu"),
+    assert [(p.organization, p.family) for p in julia["author"]] == [
+        (False, "Skłodowska-Curie"),
+        (True, "Example Lab"),
+        (False, "Leeuwenhoek"),
+        (False, "Tu"),
     ]
     for note in (
         "DESCRIPTION: give the maintainer the role cre and an email, as CRAN asks.",
@@ -305,13 +303,15 @@ def test_r_and_julia_templates_read_back_through_the_imports():
         ("GPL-3.0-or-later OR MIT", "GPL (>= 3) | MIT"),
     ],
 )
-def test_the_r_template_spells_licences_as_r_does(spdx: str, r: str):
+def test_the_r_template_spells_licences_as_r_does(spdx: str, r: str, tmp_path: Path):
+    from citesync.formats import read_doc  # noqa: PLC0415
+    from citesync.mapping import load_mapping  # noqa: PLC0415
     from citesync.playground_exports import package_templates  # noqa: PLC0415
-    from citesync.research_metadata import parse  # noqa: PLC0415
 
     description = package_templates({"name": "lensgrind: Grind Lenses", "license": spdx})[0]["DESCRIPTION"]
     assert f"License: {r}\n" in description
-    assert parse(description, "DESCRIPTION")["license"] == spdx
+    (tmp_path / "DESCRIPTION").write_text(description)
+    assert read_doc(tmp_path, "DESCRIPTION", load_mapping()).record["license"] == spdx
 
 
 def test_an_author_given_only_by_orcid_keeps_every_file():

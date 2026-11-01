@@ -1,4 +1,4 @@
-"""Read distribution headers into the existing PEP 621 field shapes, without loading package code."""
+"""Read distribution headers in their own shape, for the pkg-info rows, without loading package code."""
 
 import csv
 import unicodedata
@@ -17,10 +17,13 @@ from citesync.errors import UnreadableError
 
 
 def parse(text: str, rel: str) -> dict[str, Any]:  # noqa: C901 - independent optional headers
-    """Normalize UTF-8 Core Metadata 1.x to 2.6; retain import notices for fields that cannot be represented.
+    """UTF-8 Core Metadata 1.0 to 2.6 as header names to values, with import notices for values left out.
 
-    Repeated author/address and Project-URL headers are read in full. Conflicting
-    scalar fields and repeated URL labels are errors. No build or package import runs.
+    A multi-value header is a list: ``Author`` holds each name, ``Author-email`` the
+    ``Name <address>`` contacts not already named in ``Author``, and ``Project-URL``
+    ``{"label", "url"}`` objects with labels normalised as the well-known project URLs
+    spec compares them. Conflicting scalar fields and URL labels are errors. No build or
+    package import runs.
     """
     message = Parser(policy=compat32).parsestr(text)
     if message.defects:
@@ -38,25 +41,34 @@ def parse(text: str, rel: str) -> dict[str, Any]:  # noqa: C901 - independent op
     version = one("Metadata-Version", required=True)
     if version not in {"1.0", "1.1", "1.2", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"}:
         raise UnreadableError(rel, f"unsupported Metadata-Version {version!r}; citesync reads 1.0 to 2.6")
-    project: dict[str, Any] = {"name": one("Name", required=True), "version": one("Version", required=True)}
+    headers: dict[str, Any] = {
+        "Metadata-Version": version,
+        "Name": one("Name", required=True),
+        "Version": one("Version", required=True),
+    }
     try:
-        canonicalize_name(project["name"], validate=True)
-        Version(project["version"])
+        canonicalize_name(headers["Name"], validate=True)
+        Version(headers["Version"])
     except (InvalidName, InvalidVersion) as err:
         raise UnreadableError(rel, f"invalid Name or Version: {err}") from err
-    if description := one("Summary"):  # Description and the body hold the README, not a summary
-        project["description"] = description
-    if authors := _authors(message, rel):
-        project["authors"] = authors
+    if summary := one("Summary"):  # Description and the body hold the README, not a summary
+        headers["Summary"] = summary
+    headers.update(_authors(message, rel))
     if urls := _urls(message, rel):
-        project["urls"] = urls
+        headers["Project-URL"] = urls
+    homes = message.get_all("Home-page", [])
+    if len(homes) > 1:
+        raise UnreadableError(rel, "Home-page must appear only once")
+    if homes:
+        headers["Home-page"] = str(homes[0]).strip()
     if words := one("Keywords"):
-        project["keywords"] = [word.strip() for word in words.split(",") if word.strip()]
-    notes = _license(project, one("License-Expression"), one("License"), rel)
-    return {"project": project, "build-system": {}, "_import_notes": notes}
+        headers["Keywords"] = [word.strip() for word in words.split(",") if word.strip()]
+    notes = _license(headers, one("License-Expression"), one("License"), rel)
+    return {**headers, "_import_notes": notes}
 
 
-def _license(project: dict[str, Any], expression: str, legacy: str, rel: str) -> list[tuple[str, str]]:
+def _license(headers: dict[str, Any], expression: str, legacy: str, rel: str) -> list[tuple[str, str]]:
+    """Set the licence header given as its canonical SPDX expression, or leave it out with a note."""
     notes = []
     if expression or legacy:
         try:
@@ -66,7 +78,7 @@ def _license(project: dict[str, Any], expression: str, legacy: str, rel: str) ->
                     ("license", "LicenseRef has no public SPDX licence URL; review this licence in each citation file.")
                 )
             else:
-                project["license"] = canonical
+                headers["License-Expression" if expression else "License"] = canonical
         except InvalidLicenseExpression as err:
             if expression:
                 raise UnreadableError(rel, f"invalid License-Expression: {err}") from err
@@ -79,7 +91,11 @@ def _license(project: dict[str, Any], expression: str, legacy: str, rel: str) ->
     return notes
 
 
-def _authors(message: Message, rel: str) -> list[dict[str, str]]:
+def _authors(message: Message, rel: str) -> dict[str, list[str]]:
+    """``Author`` and ``Author-email``, merged by name: a contact named in ``Author`` is that author, not a second one.
+
+    An address with no name names no one, so it is left out.
+    """
     contacts: dict[str, dict[str, str]] = {}
     for raw_name, address in getaddresses(message.get_all("Author-email", [])):
         if not address or "@" not in address or any(c.isspace() for c in address):
@@ -90,7 +106,7 @@ def _authors(message: Message, rel: str) -> list[dict[str, str]]:
             if key in contacts and contacts[key].get("email") != address:
                 raise UnreadableError(rel, f"Author-email gives conflicting addresses for {name!r}")
             contacts[key] = {"name": name, "email": address}
-    authors: dict[str, dict[str, str]] = {}
+    authors: dict[str, str] = {}
     for header in message.get_all("Author", []):
         try:
             names = next(csv.reader([_header(str(header), rel)], skipinitialspace=True, strict=True))
@@ -99,19 +115,15 @@ def _authors(message: Message, rel: str) -> list[dict[str, str]]:
         for raw_name in names:
             name = raw_name.strip()
             if name:
-                authors.setdefault(name.casefold(), contacts.get(name.casefold(), {"name": name}))
-    for key, contact in contacts.items():
-        authors.setdefault(key, contact)
-    return list(authors.values())
+                authors.setdefault(name.casefold(), name)
+    # NOTE: only the name; an address would reach the name decoder and end up in family-names
+    emails = [c["name"] for key, c in contacts.items() if key not in authors]
+    return {k: v for k, v in (("Author", list(authors.values())), ("Author-email", emails)) if v}
 
 
-# the mapping row's order, labels normalised as the well-known project URLs spec says
-_REPOSITORY_LABELS = ("source", "repository", "sourcecode", "github")
-
-
-def _urls(message: Message, rel: str) -> dict[str, str]:
-    """The repository URL under the one PEP 621 label the mapping reads, from Project-URL or else Home-page."""
-    urls = {}
+def _urls(message: Message, rel: str) -> list[dict[str, str]]:
+    """Each Project-URL once, as ``{"label", "url"}``."""
+    urls: dict[str, str] = {}
     for raw in message.get_all("Project-URL", []):
         label, separator, address = str(raw).partition(",")
         label, address = label.strip(), address.strip()
@@ -121,12 +133,7 @@ def _urls(message: Message, rel: str) -> dict[str, str]:
         if key in urls and urls[key] != address:
             raise UnreadableError(rel, f"Project-URL has conflicting values for {label!r}")
         urls[key] = address
-    homes = message.get_all("Home-page", [])
-    if len(homes) > 1:
-        raise UnreadableError(rel, "Home-page must appear only once")
-    if repository := next((urls[k] for k in _REPOSITORY_LABELS if k in urls), None):
-        return {"Source": repository}
-    return {"Homepage": str(homes[0]).strip()} if homes else {}
+    return [{"label": label, "url": url} for label, url in urls.items()]
 
 
 def _header(value: str, rel: str) -> str:

@@ -1,4 +1,4 @@
-"""Normalize read-only R and Julia metadata into the existing CodeMeta field shapes."""
+"""Read R DESCRIPTION and Julia Project.toml files in their own shape, for the r-description and julia rows."""
 
 import ast
 import re
@@ -12,20 +12,21 @@ from uuid import UUID
 from packaging.licenses import InvalidLicenseExpression, canonicalize_license_expression
 
 from citesync.errors import UnreadableError
-from citesync.formats import cff_person, codemeta_orcid
+from citesync.formats import codemeta_orcid
 
 R_PACKAGE = re.compile(r"[A-Za-z][A-Za-z0-9.]*[A-Za-z0-9]")
 """A valid R package name, as the DESCRIPTION import and template both check it."""
 
 
 def parse(text: str, rel: str) -> dict[str, Any]:
-    """Read static DESCRIPTION or Project.toml text; never run R, Julia or package code."""
-    data: dict[str, Any] = {"@context": "https://w3id.org/codemeta/3.0"}
+    """Read static DESCRIPTION or Project.toml text; never run R, Julia or package code.
+
+    A DESCRIPTION reads as its DCF fields, with ``Authors@R`` as a list of
+    ``{"given", "family", "role", "comment": {"ORCID"}}`` people. A Project.toml reads as
+    its TOML, checked. Values a citation can't use are left out with an import notice.
+    """
     notes: list[tuple[str, str]] = []
-    if rel.rsplit("/", 1)[-1] == "DESCRIPTION":
-        _r(text, rel, data, notes)
-    else:
-        _julia(text, rel, data)
+    data = _r(text, rel, notes) if rel.rsplit("/", 1)[-1] == "DESCRIPTION" else _julia(text, rel)
     data["_import_notes"] = notes
     return data
 
@@ -36,10 +37,10 @@ def _text(value: object, field: str, rel: str) -> str:
     return value.strip()
 
 
-def _licence(value: str, data: dict[str, Any], notes: list[tuple[str, str]]) -> None:
-    """An R License field as an SPDX expression, or a note when it can't be one."""
+def _licence(value: str, notes: list[tuple[str, str]]) -> str | None:
+    """An R License field as an SPDX expression, or None and a note when it can't be one."""
     if not value:
-        return
+        return None
     aliases = {"BSD_2_clause": "BSD-2-Clause", "BSD_3_clause": "BSD-3-Clause"}
     value = " OR ".join(aliases.get(part.strip(), part.strip()) for part in value.split("|"))
     value = re.sub(
@@ -57,14 +58,11 @@ def _licence(value: str, data: dict[str, Any], notes: list[tuple[str, str]]) -> 
     except InvalidLicenseExpression:
         expression = ""
     if expression and "LicenseRef-" not in expression:
-        data["license"] = expression
-    else:
-        notes.append(
-            (
-                "license",
-                "The licence needs review: use an explicit SPDX expression; external licence files are not read.",
-            )
-        )
+        return expression
+    notes.append(
+        ("license", "The licence needs review: use an explicit SPDX expression; external licence files are not read.")
+    )
+    return None
 
 
 def _orcid(value: object, rel: str) -> str:
@@ -74,14 +72,14 @@ def _orcid(value: object, rel: str) -> str:
     return "https://orcid.org/" + orcid
 
 
-def _julia(text: str, rel: str, data: dict[str, Any]) -> None:  # noqa: C901, PLR0912 - validate each optional field and author shape
+def _julia(text: str, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - validate each optional field and author shape
     try:
         raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as err:
         raise UnreadableError(rel, str(err)) from err
-    for key in ("name", "version"):  # Project.toml has no description or license (pkgdocs toml-files)
-        if key in raw and (value := _text(raw[key], key, rel)):
-            data[key] = value
+    for key in ("name", "version"):
+        if key in raw:
+            _text(raw[key], key, rel)
     if "uuid" in raw:
         try:
             UUID(_text(raw["uuid"], "uuid", rel))
@@ -90,13 +88,10 @@ def _julia(text: str, rel: str, data: dict[str, Any]) -> None:  # noqa: C901, PL
     authors = raw.get("authors", [])
     if not isinstance(authors, list):
         raise UnreadableError(rel, "authors must be an array of names or CFF person/entity tables")
-    people = []
     for author in authors:
         if isinstance(author, str):
-            name = re.sub(r"\s*<[^<>]+>\s*$", "", author).strip()
-            if not name:
+            if not re.sub(r"\s*<[^<>]+>\s*$", "", author).strip():
                 raise UnreadableError(rel, "author must have a name")
-            people.append({"@type": "Person", "name": name})
         elif isinstance(author, dict):
             fields = {
                 key: _text(value, f"author {key}", rel)
@@ -107,18 +102,11 @@ def _julia(text: str, rel: str, data: dict[str, Any]) -> None:  # noqa: C901, PL
                 raise UnreadableError(rel, "author must be a CFF person or entity, not both")
             if not any(fields.get(k) for k in ("name", "given-names", "family-names")):
                 raise UnreadableError(rel, "author table needs a name")
-            fields = cff_person(fields)
-            person: dict[str, str] = {"@type": "Organization" if fields.get("name") else "Person"}
-            for original, term in [("name", "name"), ("given-names", "givenName"), ("family-names", "familyName")]:
-                if fields.get(original):
-                    person[term] = fields[original]
             if fields.get("orcid"):
-                person["@id"] = _orcid(fields["orcid"], rel)
-            people.append(person)
+                _orcid(fields["orcid"], rel)
         else:
             raise UnreadableError(rel, "author must be a name or CFF person/entity table")
-    if people:
-        data["author"] = people
+    return raw
 
 
 def _dcf(text: str, rel: str) -> dict[str, str]:
@@ -215,13 +203,14 @@ def _strings(value: Any, rel: str) -> list[str]:  # noqa: ANN401 - literal synta
     raise UnreadableError(rel, "Authors@R person fields must be strings, c(strings), or NULL")
 
 
-def _r_people(call: _Call, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) -> None:  # noqa: C901, PLR0912 - person fields, role and ORCID variants
+def _r_people(call: _Call, rel: str, notes: list[tuple[str, str]]) -> list[dict[str, Any]]:  # noqa: C901, PLR0912 - person fields, role and ORCID variants
     if call.name == "c":
+        people = []
         for key, child in call.arguments:
             if key is not None or not isinstance(child, _Call):
                 raise UnreadableError(rel, "Authors@R c() must contain literal person() calls")
-            _r_people(child, rel, data, notes)
-        return
+            people += _r_people(child, rel, notes)
+        return people
     fields: dict[str, Any] = {}
     positional = iter(("given", "family"))
     for argument_name, value in call.arguments:
@@ -232,11 +221,7 @@ def _r_people(call: _Call, rel: str, data: dict[str, Any], notes: list[tuple[str
     given, family = (" ".join(_strings(fields.get(k), rel)) for k in ("given", "family"))
     if not given and not family:
         raise UnreadableError(rel, "Authors@R person needs a name")
-    person = {"@type": "Person"}
-    if given:
-        person["givenName"] = given
-    if family:
-        person["familyName"] = family
+    person: dict[str, Any] = {k: v for k, v in (("given", given), ("family", family)) if v}
     comment = fields.get("comment")
     if isinstance(comment, _Call):
         if comment.name != "c" or any(k is None or not isinstance(v, str) for k, v in comment.arguments):
@@ -245,22 +230,21 @@ def _r_people(call: _Call, rel: str, data: dict[str, Any], notes: list[tuple[str
         if len(identifiers) > 1:
             raise UnreadableError(rel, "Authors@R repeats ORCID")
         if identifiers:
-            person["@id"] = _orcid(identifiers[0], rel)
+            person["comment"] = {"ORCID": _orcid(identifiers[0], rel)}
     elif comment is not None:
         _strings(comment, rel)
     _strings(fields.get("email"), rel)
     roles = _strings(fields.get("role"), rel)
-    if "aut" in roles:
-        data.setdefault("author", []).append(person)
-    elif "ctb" in roles:
-        data.setdefault("contributor", []).append(person)
-    else:
+    if "aut" in roles:  # an author who also contributed is one author, not a contributor too
+        roles = [role for role in roles if role != "ctb"]
+    elif "ctb" not in roles:
         notes.append(
             ("author", "A person without the R aut or ctb role was omitted; maintainer status alone is not authorship.")
         )
+    return [{**person, "role": roles}]
 
 
-def _r(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) -> None:
+def _r(text: str, rel: str, notes: list[tuple[str, str]]) -> dict[str, Any]:
     fields = _dcf(text, rel)
     encoding = fields.get("Encoding", "UTF-8").lower().replace("_", "-")
     if encoding not in {"utf-8", "utf8", "ascii"}:
@@ -268,27 +252,30 @@ def _r(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) 
     package = fields.get("Package", "")
     if not R_PACKAGE.fullmatch(package):
         raise UnreadableError(rel, "DESCRIPTION needs a valid Package field")
-    data["name"] = f"{package}: {fields['Title']}" if fields.get("Title") else package  # as cffr and codemetar
-    for original, term in [("Description", "description"), ("Version", "version")]:
-        if fields.get(original):
-            data[term] = fields[original]
-    if fields.get("Date") and (released := _r_date(fields["Date"], notes)):
-        data["datePublished"] = released
+    data: dict[str, Any] = dict(fields)
+    data["Package"] = f"{package}: {fields['Title']}" if fields.get("Title") else package  # as cffr and codemetar
+    if fields.get("Date") and not _r_date(fields["Date"], notes):
+        del data["Date"]
     if "Authors@R" in fields:
-        _r_people(_expression(fields["Authors@R"], rel), rel, data, notes)
+        data["Authors@R"] = _r_people(_expression(fields["Authors@R"], rel), rel, notes)
     elif "Author" in fields or "Maintainer" in fields:
         notes.append(
             ("author", "Author and Maintainer prose is not parsed; supply literal Authors@R with explicit roles.")
         )
-    _licence(fields.get("License", ""), data, notes)
+    if licence := _licence(fields.get("License", ""), notes):
+        data["License"] = licence
+    else:
+        data.pop("License", None)
     urls = re.findall(r"https?://[^\s,]+", fields.get("URL", ""))
     repos = _repositories(urls, rel)
+    data.pop("URL", None)
     if len(set(repos)) == 1:
-        data["codeRepository"] = repos[0]
+        data["URL"] = repos[0]
     elif urls:
         notes.append(
             ("codeRepository", "URL does not identify one supported repository URL; review the repository field.")
         )
+    return data
 
 
 def _r_date(value: str, notes: list[tuple[str, str]]) -> str | None:

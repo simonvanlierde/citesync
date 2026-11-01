@@ -12,8 +12,8 @@ from hypothesis import strategies as st
 from citesync.check import check
 from citesync.config import Config
 from citesync.errors import UnreadableError
-from citesync.formats import read_doc
-from citesync.mapping import load_mapping
+from citesync.formats import load, read_doc
+from citesync.mapping import load_mapping, resolve
 from citesync.playground import generate
 from citesync.write import write
 
@@ -158,6 +158,30 @@ def test_julia_cff_name_particle_and_missing_optional_fields(tmp_path: Path):
     assert "identifier" not in doc.record
 
 
+@pytest.mark.parametrize(
+    ("author", "name", "organization"),
+    [
+        (
+            '"Antonie van Leeuwenhoek (Example Lab) <antonie@example.org>"',
+            "Antonie van Leeuwenhoek (Example Lab)",
+            False,
+        ),
+        ('"Tu Youyou (she/her)"', "Tu Youyou (she/her)", False),
+        ('{name = "", family-names = "Tu"}', "Tu", False),
+        ('{given-names = "", name = "Example Lab"}', "Example Lab", True),
+    ],
+)
+def test_julia_authors_read_as_pkg_writes_them(
+    author: str,
+    name: str,
+    organization: bool,  # noqa: FBT001
+    tmp_path: Path,
+):
+    (tmp_path / "Project.toml").write_text(f'name="Lensgrind"\nauthors=[{author}]')
+    person = read_doc(tmp_path, "Project.toml", load_mapping()).record["author"][0]
+    assert (person.name, person.organization) == (name, organization)
+
+
 def test_non_package_julia_environment_transfers_as_a_partial_draft():
     result = generate({"filename": "Project.toml", "text": "[deps]\n", "edit": True})
     assert result["details"]["title"] == ""
@@ -287,3 +311,51 @@ def test_malformed_r_repository_url_is_reported_not_crashed(tmp_path: Path):
     (tmp_path / "DESCRIPTION").write_text("Package: lensgrind\nURL: https://[broken\n")
     with pytest.raises(UnreadableError, match="URL"):
         read_doc(tmp_path, "DESCRIPTION", load_mapping())
+
+
+def test_r_author_who_also_contributed_is_one_author_not_a_contributor(tmp_path: Path):
+    (tmp_path / "DESCRIPTION").write_text(R.replace('role = c("aut", "cre")', 'role = c("aut", "ctb")'))
+    record = read_doc(tmp_path, "DESCRIPTION", load_mapping()).record
+    assert [person.family for person in record["author"]] == ["Skłodowska-Curie"]
+    assert [person.family for person in record["contributor"]] == ["Hopper"]
+
+
+def test_description_reads_through_the_r_description_rows(tmp_path: Path):
+    (tmp_path / "DESCRIPTION").write_text(R + "Date: 2026-10-31\n")
+    data, mapping = load(tmp_path / "DESCRIPTION", "DESCRIPTION"), load_mapping()
+
+    def at(term: str) -> list:
+        return resolve(data, str(mapping["r-description", term]))
+
+    assert at("name") == ["lensgrind: Measure Microscope Optics"]
+    assert at("version") == ["1.4-2"]
+    assert at("author.givenName") == ["Marie"]
+    assert at("author.familyName") == ["Skłodowska-Curie"]
+    assert at("author.@id") == ["https://orcid.org/0000-0002-1825-0097"]
+    assert at("contributor.familyName") == ["Hopper"]
+    assert at("license") == ["GPL-2.0-or-later"]
+    assert at("codeRepository") == ["https://github.com/simonvanlierde/citesync"]
+    assert at("datePublished") == ["2026-10-31"]
+    assert read_doc(tmp_path, "DESCRIPTION", mapping).format == "r-description"
+
+
+def test_project_toml_reads_through_the_julia_rows(tmp_path: Path):
+    (tmp_path / "Project.toml").write_text(JULIA)
+    data, mapping = load(tmp_path / "Project.toml", "Project.toml"), load_mapping()
+
+    def at(term: str) -> list:
+        return resolve(data, str(mapping["julia", term]))
+
+    assert at("name") == ["Lensgrind"]
+    assert at("version") == ["1.4.2"]
+    assert len(at("author")) == 3
+    assert at("author.familyName") == ["Skłodowska-Curie"]
+    assert at("author.@id") == ["0000-0002-1825-0097"]
+    doc = read_doc(tmp_path, "Project.toml", mapping)
+    assert doc.format == "julia"
+    assert [p.name for p in doc.record["author"]] == [
+        "Marie Skłodowska-Curie",
+        "Example Lab",
+        "Antonie van Leeuwenhoek",
+    ]
+    assert [p.organization for p in doc.record["author"]] == [False, True, False]

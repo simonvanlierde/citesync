@@ -1,5 +1,5 @@
 {
- "schema_version": "1.4",
+ "schema_version": "1.6",
  "cases": [
   {
    "name": "key",
@@ -498,6 +498,113 @@
    },
    "expected": [
     "m"
+   ]
+  },
+  {
+   "name": "[k=v] on a list matches an element whose list holds v",
+   "path": "Authors@R[role=aut].given",
+   "document": {
+    "Authors@R": [
+     {
+      "given": "Tu",
+      "role": [
+       "aut",
+       "cre"
+      ]
+     },
+     {
+      "given": "Antonie",
+      "role": [
+       "ctb"
+      ]
+     },
+     {
+      "given": "Marie",
+      "role": "aut"
+     }
+    ]
+   },
+   "expected": [
+    "Tu",
+    "Marie"
+   ]
+  },
+  {
+   "name": "[k=v] never matches an element without k",
+   "path": "credit[typeRole=None].name",
+   "document": {
+    "credit": [
+     {
+      "name": "Tu Youyou"
+     }
+    ]
+   },
+   "expected": []
+  },
+  {
+   "name": "+ reads every part, part by part",
+   "path": "Author + Author-email",
+   "document": {
+    "Author": "Tu Youyou",
+    "Author-email": "Antonie van Leeuwenhoek <antonie@example.org>"
+   },
+   "expected": [
+    "Tu Youyou",
+    "Antonie van Leeuwenhoek <antonie@example.org>"
+   ]
+  },
+  {
+   "name": "+ with one part missing reads the other",
+   "path": "Author + Author-email",
+   "document": {
+    "Author-email": "Marie Skłodowska-Curie <marie@example.org>"
+   },
+   "expected": [
+    "Marie Skłodowska-Curie <marie@example.org>"
+   ]
+  },
+  {
+   "name": "+ binds tighter than |: an empty alternative falls through",
+   "path": "Author + Author-email | Maintainer",
+   "document": {
+    "Maintainer": "Tu Youyou"
+   },
+   "expected": [
+    "Tu Youyou"
+   ]
+  },
+  {
+   "name": "prefixed keys",
+   "path": "dcterms:creator[].foaf:name",
+   "document": {
+    "dcterms:creator": [
+     {
+      "foaf:name": "Antonie van Leeuwenhoek"
+     }
+    ]
+   },
+   "expected": [
+    "Antonie van Leeuwenhoek"
+   ]
+  },
+  {
+   "name": "PKG-INFO with Source and Home-page resolves one URL",
+   "path": "Project-URL[label=source].url | Project-URL[label=repository].url | Home-page",
+   "document": {
+    "Home-page": "https://example.org/carberry",
+    "Project-URL": [
+     {
+      "label": "documentation",
+      "url": "https://example.org/docs"
+     },
+     {
+      "label": "source",
+      "url": "https://example.org/carberry.git"
+     }
+    ]
+   },
+   "expected": [
+    "https://example.org/carberry.git"
    ]
   }
  ]

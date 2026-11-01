@@ -180,8 +180,6 @@ def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
     fields: dict[str, str] = {}
     for term, value in values.items():
         names = str(rows["bibtex", term] or "").split(" | ")
-        if term == "codeRepository" and "url" not in names:
-            names.append("url")  # NOTE: until codemeta-drift's row reads `repository | url`
         for name in names if value else ():
             text = value.replace("{", "%7B").replace("}", "%7D") if term in verbatim else value
             fields.setdefault(name, str(day[0]) if name == "year" and day else text)
