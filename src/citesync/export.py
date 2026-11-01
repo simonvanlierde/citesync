@@ -14,7 +14,7 @@ from typing import Any
 from citesync.check import Finding
 from citesync.config import Config
 from citesync.errors import CheckError
-from citesync.formats import Doc, Person
+from citesync.formats import Doc, Person, inside
 
 # suffix: format; the longest suffix is tried first, so citation.csl.json is never plain JSON
 SUFFIXES = {".csl.json": "csl-json", ".apa.txt": "apa", ".bib": "bibtex", ".jsonld": "jsonld"}
@@ -75,14 +75,25 @@ def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
     if not rec.get("name"):
         msg = "no file gives a title, which a citation needs"
         raise CheckError(msg)
-    day, notes = None, []
-    if date := rec.get("datePublished"):
-        try:
-            day = dt.date.fromisoformat(date)
-        except ValueError:
-            if fmt != "jsonld":  # JSON-LD carries the date as written
-                notes.append("BibTeX, CSL-JSON and APA: release date omitted because it is not a full YYYY-MM-DD date.")
+    day, notes = _date(rec.get("datePublished")), []
+    if rec.get("datePublished") and day is None and fmt != "jsonld":  # JSON-LD carries the date as written
+        notes.append(
+            "BibTeX, CSL-JSON and APA: release date omitted because it is not a YYYY, YYYY-MM or YYYY-MM-DD date."
+        )
     return _WRITERS[fmt](rec, day), notes
+
+
+def _date(value: str | None) -> tuple[int, ...] | None:
+    """``2026-10-31`` as ``(2026, 10, 31)``, ``2026`` as ``(2026,)``; None for anything else."""
+    match = re.fullmatch(r"(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?", value or "")
+    if not match:
+        return None
+    parts = tuple(int(p) for p in match.groups() if p)
+    try:
+        dt.date(*parts, *(1,) * (3 - len(parts)))
+    except ValueError:
+        return None
+    return parts
 
 
 def citations(rec: dict[str, Any]) -> tuple[dict[str, str], list[str]]:
@@ -115,14 +126,22 @@ def stale(root: Path, docs: list[Doc], config: Config) -> list[Finding]:
         return [Finding(path, None, "export-stale", "can't be made: no file gives a title") for path in config.exports]
     for path in config.exports:
         file = root / path
-        if not file.is_file():
+        if not writable(root, path):
+            found.append(Finding(path, None, "export-stale", "can't be written: not a file inside the repo root"))
+        elif not file.is_file():
             found.append(Finding(path, None, "export-stale", "missing"))
         elif file.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n") != text(path, rec):
             found.append(Finding(path, None, "export-stale", "differs from what the source gives"))
     return found
 
 
-def _bibtex(rec: dict[str, Any], day: dt.date | None) -> str:
+def writable(root: Path, path: str) -> bool:
+    """Whether ``write`` may make the export: inside the repo root, and a file or nothing yet."""
+    file = root / path
+    return inside(root, path) and (file.is_file() or not file.exists())
+
+
+def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
     authors = []
     for p in _people(rec):
         if p.organization or not p.family:
@@ -131,15 +150,15 @@ def _bibtex(rec: dict[str, Any], day: dt.date | None) -> str:
             authors.append("{" + tex(p.family) + "}" + (", {" + tex(p.given) + "}" if p.given else ""))
     fields = {"title": "{" + tex(rec["name"]) + "}", "author": " and ".join(authors)}
     for term, field in (("identifier", "doi"), ("codeRepository", "url")):
-        if value := rec.get(term):
-            fields[field] = tex(value)
+        if value := rec.get(term):  # biblatex reads these verbatim, so only braces would break the entry
+            fields[field] = value.replace("{", "%7B").replace("}", "%7D")
     fields["note"] = tex("Software" + (f", version {rec['version']}" if rec.get("version") else ""))
     if day:
-        fields["year"] = str(day.year)
+        fields["year"] = str(day[0])
     return f"@misc{{{key(rec)},\n" + "".join(f"  {k} = {{{v}}},\n" for k, v in fields.items()) + "}\n"
 
 
-def _csl(rec: dict[str, Any], day: dt.date | None) -> str:
+def _csl(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
     authors = []
     for p in _people(rec):
         if p.organization or not p.family:
@@ -151,11 +170,11 @@ def _csl(rec: dict[str, Any], day: dt.date | None) -> str:
         if value := rec.get(term):
             csl[field] = value
     if day:
-        csl["issued"] = {"date-parts": [[day.year, day.month, day.day]]}
+        csl["issued"] = {"date-parts": [list(day)]}
     return json.dumps([csl], indent=2, ensure_ascii=False) + "\n"
 
 
-def _apa(rec: dict[str, Any], day: dt.date | None) -> str:
+def _apa(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
     """An APA 7 software reference: ``Family, G. (2026). Title (Version 1.0) [Computer software]. URL``."""
     names = [_apa_name(p) for p in _people(rec)]
     if len(names) > 20:  # APA 7: the first 19, an ellipsis, then the last
@@ -165,7 +184,7 @@ def _apa(rec: dict[str, Any], day: dt.date | None) -> str:
     else:
         authors = "".join(names)
     work = f"{rec['name']}" + (f" (Version {rec['version']})" if rec.get("version") else "") + " [Computer software]."
-    year = f"({day.year if day else 'n.d.'})."
+    year = f"({day[0] if day else 'n.d.'})."
     # APA 7: with no author, the title takes the author's place
     text = f"{authors}{'' if authors.endswith('.') else '.'} {year} {work}" if authors else f"{work} {year}"
     doi = rec.get("identifier")
@@ -180,7 +199,7 @@ def _apa_name(p: Person) -> str:
     return f"{p.family}, {initials}" if initials else p.family
 
 
-def _jsonld(rec: dict[str, Any], _day: dt.date | None) -> str:
+def _jsonld(rec: dict[str, Any], _day: tuple[int, ...] | None) -> str:
     """schema.org ``SoftwareSourceCode`` with the plain schema.org context, which search engines read."""
     data: dict[str, Any] = {"@context": "https://schema.org", "@type": "SoftwareSourceCode", "name": rec["name"]}
     for term in ("description", "version", "codeRepository", "datePublished"):
@@ -214,7 +233,9 @@ def _people(rec: dict[str, Any]) -> list[Person]:
 
 def _initials(given: str | None) -> str:
     """``Marie`` as ``M.``, ``Jean-Paul`` as ``J.-P.``, ``Tu Youyou``'s ``Youyou`` as ``Y.``."""
-    return " ".join("-".join(f"{part[0]}." for part in word.split("-") if part) for word in (given or "").split())
+    return " ".join(
+        "-".join(f"{part[0].upper()}." for part in word.split("-") if part) for word in (given or "").split()
+    )
 
 
 _WRITERS = {"bibtex": _bibtex, "csl-json": _csl, "apa": _apa, "jsonld": _jsonld}

@@ -105,9 +105,32 @@ def test_apa_without_author_date_or_doi() -> None:
     text, notes = render("apa", {"name": "lensgrind", "codeRepository": "https://example.org/lensgrind"})
     assert text == "lensgrind [Computer software]. (n.d.). https://example.org/lensgrind\n"
     assert notes == []
-    assert render("apa", {"name": "lensgrind", "author": (TU,), "datePublished": "2026-10"})[1] == [
-        "BibTeX, CSL-JSON and APA: release date omitted because it is not a full YYYY-MM-DD date."
+    assert render("apa", {"name": "lensgrind", "author": (TU,), "datePublished": "Oct 2026"})[1] == [
+        "BibTeX, CSL-JSON and APA: release date omitted because it is not a YYYY, YYYY-MM or YYYY-MM-DD date."
     ]
+
+
+def test_a_year_alone_is_a_release_date() -> None:
+    rec = {"name": "lensgrind", "author": (TU,), "datePublished": "2026"}
+    assert render("apa", rec) == ("Tu, Y. (2026). lensgrind [Computer software].\n", [])
+    assert "  year = {2026},\n" in render("bibtex", rec)[0]
+    assert json.loads(render("csl-json", rec | {"datePublished": "2026-10"})[0])[0]["issued"] == {
+        "date-parts": [[2026, 10]]
+    }
+    assert render("apa", rec | {"datePublished": "2026-02-30"})[0].startswith("Tu, Y. (n.d.).")
+
+
+def test_apa_initials_are_capitals() -> None:
+    elise = Person("élise Dupont", given="élise", family="Dupont")
+    assert render("apa", {"name": "x", "author": (elise,)})[0].startswith("Dupont, É. (n.d.).")
+
+
+def test_bibtex_doi_and_url_stay_verbatim() -> None:
+    bib = render("bibtex", {"name": "x", "identifier": "10.5555/a_b", "codeRepository": "https://example.com/a%20b#x"})[
+        0
+    ]
+    assert "  doi = {10.5555/a_b},\n" in bib
+    assert "  url = {https://example.com/a%20b#x},\n" in bib
 
 
 def test_jsonld_is_plain_schema_org() -> None:
@@ -242,6 +265,29 @@ def test_no_title_is_a_finding_not_a_crash(tmp_path: Path, run: "Run") -> None:
     assert not (tmp_path / "citation.bib").exists()
     code, _, err = run("export", "--root", str(tmp_path), "--format", "bibtex")
     assert (code, err) == (2, "citesync: no file gives a title, which a citation needs\n")
+
+
+def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "citation.apa.txt").write_text("hi\n", encoding="utf-8")
+    (root / "out").symlink_to(elsewhere)
+    (root / "dir.jsonld").mkdir()
+    exports = '["citation.bib", "out/citation.apa.txt", "dir.jsonld"]'
+    (root / "citesync.toml").write_text(f"exports = {exports}\n", encoding="utf-8")
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 1
+    for path in ("out/citation.apa.txt", "dir.jsonld"):
+        assert f"{path}: error[export-stale] can't be written: not a file inside the repo root" in out
+    code, out, err = run("write", "--diff", "--root", str(root))
+    assert "hi" not in out
+    assert "unexpected error" not in err
+    code, out, err = run("write", "--root", str(root))
+    assert code == 1
+    assert "unexpected error" not in err
+    assert (root / "citation.bib").is_file()
+    assert (elsewhere / "citation.apa.txt").read_text(encoding="utf-8") == "hi\n"
 
 
 def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> None:

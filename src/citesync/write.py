@@ -137,7 +137,11 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
         done.add((rel, None))
     # an export is made whole from the docs as read, the source first, as check compares
     rec = export.record(docs)
-    exports = {path: export.text(path, rec) for path in config.exports if (path, None) in fix and rec.get("name")}
+    exports = {
+        path: export.text(path, rec)
+        for path in config.exports
+        if (path, None) in fix and rec.get("name") and export.writable(root, path)
+    }
     texts |= exports
     done |= {(path, None) for path in exports}
     if not dry_run:
