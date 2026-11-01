@@ -19,6 +19,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The field mapping uses [codemeta-drift 0.5.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.5.0), with its schema 1.4 contract and rows for PKG-INFO, R DESCRIPTION, Julia and BibTeX. The paths citesync reads are unchanged.
 - PKG-INFO and METADATA take the description from Summary only, not the README in Description or the body, and the repository from a Project-URL labelled source, repository, sourcecode or github before Home-page ([distribution metadata](docs/formats.md)).
 - BibTeX and CSL-JSON citation keys come from the title, such as `credit-matrix`, instead of `software`.
+- BibTeX citations are biblatex-software `@software` entries with the version, licence, DOI, SWHID, abstract and keywords, named as codemeta-drift's bibtex rows name them. Plain BibTeX styles print them as `@misc` ([citation exports](docs/export.md)).
 - An R DESCRIPTION gives the citation name as `Package: Title`, as cffr and codemetar do, instead of the title alone ([R and Julia imports](docs/formats.md#r-and-julia-imports)).
 - A Julia Project.toml no longer gives a description or licence: the format has neither field, so keys added by hand aren't read ([R and Julia imports](docs/formats.md#r-and-julia-imports)).
 
