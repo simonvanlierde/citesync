@@ -64,6 +64,7 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         "# files: not set, so every citation file present\n"
         "# manifests: not set, so every release manifest at the repo root\n"
         "write-manifests = []\n"
+        "# zenodo-contributor-type: not set, so new contributors need a hand edit\n"
         "keywords-case-sensitive = false\n"
         "keywords-ignore-separators = false\n"
         "ignore = []\n"
@@ -160,3 +161,18 @@ def test_the_walk_stops_at_the_git_root(
     monkeypatch.chdir(inner / "src")
     assert main(["check"]) == 2
     assert "CITATION.cff" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("value", ['"editor"', '""', "7", "true", "[]", "{}"])
+def test_invalid_zenodo_contributor_type(value: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "citesync.toml").write_text(f"zenodo-contributor-type = {value}\n", encoding="utf-8")
+    assert main(["config", "--root", str(tmp_path)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "zenodo-contributor-type must be one of" in captured.err
+
+
+def test_zenodo_contributor_type_is_rendered(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "citesync.toml").write_text('zenodo-contributor-type = "Other"\n', encoding="utf-8")
+    assert main(["config", "--root", str(tmp_path)]) == 0
+    assert 'zenodo-contributor-type = "Other"' in capsys.readouterr().out

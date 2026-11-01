@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 from ruamel.yaml import YAML
 
-from citesync.formats import CITATION_FILES, MANIFESTS
+from citesync.formats import CITATION_FILES, IMPORTS, MANIFESTS
 
 HOOK = YAML(typ="safe").load(Path(__file__).parent.parent / ".pre-commit-hooks.yaml")[0]
-NAMES = [*CITATION_FILES, *MANIFESTS, "citesync.toml", ".citesync.toml"]
+NAMES = [*CITATION_FILES, *MANIFESTS, *IMPORTS, "citesync.toml", ".citesync.toml"]
 
 
 @pytest.mark.parametrize("name", NAMES)

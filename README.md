@@ -41,12 +41,17 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 
 - [How check works](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md): the fields, files, options and exit codes.
 - [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it changes and what it leaves alone.
-- [Supported files](https://github.com/simonvanlierde/citesync/blob/main/docs/formats.md): which files citesync reads, updates and creates.
+- [Supported files](https://github.com/simonvanlierde/citesync/blob/main/docs/formats.md): which files citesync reads, updates and creates, including read-only Python distribution metadata.
 - [How init works](https://github.com/simonvanlierde/citesync/blob/main/docs/init.md): where a new CITATION.cff takes each field from.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
 - [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes, and every key.
+- [Use citation exports with Pandoc](https://github.com/simonvanlierde/citesync/blob/main/docs/pandoc.md): cite software from the playground’s CSL-JSON or BibTeX files.
 - [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): JSON, GitHub annotations and SARIF.
 - [Tested on real repositories](https://github.com/simonvanlierde/citesync/blob/main/docs/tested-repositories.md): what citesync reports on five public repositories.
+
+## Browser playground
+
+Generate citation files from existing metadata or basic project details, without installing Python. [Run the playground locally](https://github.com/simonvanlierde/citesync/blob/main/playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
 
 ## Pre-commit hook
 
@@ -61,14 +66,15 @@ repos:
       - id: citesync-write
 ```
 
-The `citesync` hook runs when a commit changes one of the six metadata files or a citesync config, at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
+The `citesync` hook runs when a commit changes a supported metadata file or a citesync config, at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
 
 ## Development
 
-You need [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
+You need [uv](https://docs.astral.sh/uv/), [just](https://just.systems), Node.js 26 and [pnpm](https://pnpm.io/).
 
 ```sh
 uv sync
+pnpm install --frozen-lockfile
 uv tool install prek   # once per machine
 prek install           # git hooks
 ```

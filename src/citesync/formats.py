@@ -1,4 +1,4 @@
-"""Read each of the six files into one record keyed by CodeMeta terms.
+"""Read citation, package and distribution metadata into one record keyed by CodeMeta terms.
 
 The mapping says where a term sits. The adapters here only reshape what a path
 can't express (Cargo workspace inheritance, npm strings that may be objects,
@@ -22,7 +22,8 @@ from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms,
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {"pyproject.toml": "pep621", "Cargo.toml": "cargo", "package.json": "npm"}
-FORMAT_OF = CITATION_FILES | MANIFESTS
+IMPORTS = {"PKG-INFO": "pep621", "METADATA": "pep621"}
+FORMAT_OF = CITATION_FILES | MANIFESTS | IMPORTS
 CODEMETA_VERSIONS = ("2.0", "3.0", "3.1", "4.0")
 CFF_VERSIONS = ("1.2.0",)
 
@@ -78,6 +79,7 @@ class Doc:
             ``[build-system]``, a private package.json.
         readable: False for a file citesync couldn't read, whose record is empty.
         dangling_roles: For codemeta.json, (list, ORCID) for each Role whose person isn't listed.
+        import_notes: (term, message) for distribution values omitted during import.
         zenodo_gaps: For a CITATION.cff with no .zenodo.json beside it, (key, rule id) for each
             key Zenodo refuses or drops when it archives a release.
     """
@@ -91,6 +93,7 @@ class Doc:
     readable: bool = True
     dangling_roles: tuple[tuple[str, str], ...] = ()
     zenodo_gaps: tuple[tuple[str, str], ...] = ()
+    import_notes: tuple[tuple[str, str], ...] = ()
 
     @property
     def is_citation(self) -> bool:
@@ -102,7 +105,7 @@ def format_of(path: str) -> str:
     """The format id of a file, from its name.
 
     Raises:
-        CheckError: when the name is none of the six files.
+        CheckError: when the filename is not supported.
     """
     fmt = FORMAT_OF.get(PurePosixPath(path).name)
     if fmt is None:
@@ -116,8 +119,11 @@ def inside(root: Path, rel: str) -> bool:
     return (root / rel).resolve().is_relative_to(root.resolve())
 
 
-def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
+def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors: bool = False) -> Doc:
     """Read ``rel`` under ``root`` into its record.
+
+    ``keep_empty_contributors`` preserves a Zenodo target's explicit empty contributors
+    list, so a configured contributor type can fill it. Never set it for the source.
 
     Raises:
         UnreadableError: when the file resolves outside ``root``, can't be read or parsed, has a format version
@@ -145,7 +151,19 @@ def read_doc(root: Path, rel: str, mapping: Mapping) -> Doc:
                 record[term] = value
     except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
         raise UnreadableError(rel, f"unexpected shape ({err})") from err
-    return Doc(rel, fmt, record, slots(fmt, mapping), version, release, dangling_roles=roles, zenodo_gaps=gaps)
+    if keep_empty_contributors and fmt == "zenodo" and data.get("contributors") == []:
+        record["contributor"] = ()
+    return Doc(
+        rel,
+        fmt,
+        record,
+        slots(fmt, mapping),
+        version,
+        release,
+        dangling_roles=roles,
+        zenodo_gaps=gaps,
+        import_notes=tuple(data.get("_import_notes", ())) if PurePosixPath(rel).name in IMPORTS else (),
+    )
 
 
 def zenodo_gaps(cff: dict[str, Any]) -> tuple[tuple[str, str], ...]:
@@ -203,13 +221,15 @@ def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
-def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901 - one branch per way a file fails
-    """Parse the TOML, JSON or YAML file at ``path``, named ``rel`` in errors.
+def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one branch per way a file fails
+    """Parse metadata at ``path`` as TOML, JSON, YAML or distribution headers, named ``rel`` in errors.
 
     Raises:
         UnreadableError: when it can't be read or parsed, or its top level isn't a mapping.
     """
     try:
+        if path.name in IMPORTS and path.stat().st_size > 1_000_000:
+            raise UnreadableError(rel, "use a metadata file smaller than 1 MB")
         text = path.read_text(encoding="utf-8")
     except OSError as err:
         raise UnreadableError(rel, f"cannot read: {err.strerror}") from err
@@ -217,6 +237,10 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901 - one branch per
         raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
     if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
         raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
+    if path.name in IMPORTS:
+        from citesync.core_metadata import parse  # noqa: PLC0415 - other formats do not need email parsing
+
+        return parse(text, rel)
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)

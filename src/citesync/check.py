@@ -105,7 +105,14 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
     docs, unreadable = [], [Finding(p, None, "file-missing", "listed under files") for p in missing(root, config)]
     for path in discover(root, config):
         try:
-            docs.append(read_doc(root, path, mapping))
+            docs.append(
+                read_doc(
+                    root,
+                    path,
+                    mapping,
+                    keep_empty_contributors=config.zenodo_contributor_type is not None and path != config.source,
+                )
+            )
         except UnreadableError as err:
             unreadable.append(Finding(err.path, None, "unreadable", err.message, err.line, err.column))
             fmt = format_of(path)
@@ -202,6 +209,8 @@ def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set
             orcids = ", ".join(orcid for k, orcid in doc.dangling_roles if k == key)
             detail = f"a Role points at {orcids}, which no Person in author or contributor has"
             found.add(Finding(doc.path, key, "role-dangling", detail))
+        for term, message in doc.import_notes:
+            found.add(Finding(doc.path, term, "metadata-omitted", message))
         for key, rule in doc.zenodo_gaps:
             found.add(Finding(doc.path, key, rule, ZENODO_GAPS[rule]))
     for term in TERMS:

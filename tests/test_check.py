@@ -3,7 +3,6 @@
 import io
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -1046,19 +1045,19 @@ def test_control_characters_are_escaped(fmt: str, tmp_path: Path, run: "Run") ->
     (tmp_path / "codemeta.json").write_text(_codemeta(keywords=["\x1b]0;x\x07\x9b"]), encoding="utf-8")
     code, out, _ = run("check", "--root", str(tmp_path), "--format", fmt)
     assert code == 1
-    assert not re.search("[\x00-\x09\x0b-\x1f\x7f-\x9f]", out)
+    assert all(ord(char) == 10 or 32 <= ord(char) < 127 or ord(char) > 159 for char in out)
     assert "\\x1b]0;x\\x07\\x9b" in out
 
 
 def test_a_non_utf8_stdout_prints_utf8(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A Windows pipe is cp1252, which can't encode a CJK title: printing it must not fail the check."""
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
-    (tmp_path / "codemeta.json").write_text(_codemeta(name="\u6bdb\u6cfd\u4e1c"), encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(name="\u5c60\u5466\u5466"), encoding="utf-8")
     raw = io.BytesIO()
     monkeypatch.setattr("sys.stdout", io.TextIOWrapper(raw, encoding="cp1252"))
     assert main(["check", "--root", str(tmp_path)]) == 1
     sys.stdout.flush()
-    assert "\u6bdb\u6cfd\u4e1c" in raw.getvalue().decode("utf-8")
+    assert "\u5c60\u5466\u5466" in raw.getvalue().decode("utf-8")
 
 
 def test_ignore_drops_findings_and_warns_when_unused(tmp_path: Path, run: "Run") -> None:
