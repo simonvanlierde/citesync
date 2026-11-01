@@ -1,4 +1,5 @@
 import { detectFormats } from "./detect.mjs";
+import { byName, picker } from "./picker.mjs";
 
 const $ = (selector) => document.querySelector(selector);
 let mode = "file";
@@ -16,6 +17,8 @@ let startupTimeout;
 let queued = false;
 let blocked = false;
 let namesDraft;
+let reviewNames;
+let namesChecked; // the review names the person marked as right, so the box stays closed for them
 let resultRevision = -1;
 let fileHint;
 let originalFile;
@@ -375,7 +378,7 @@ function render() {
     ]) {
       const group = document.createElement("optgroup");
       group.label = label;
-      for (const filename of Object.keys(files)) {
+      for (const filename of Object.keys(files).sort(byName)) {
         group.append(
           new Option(
             label === "Citation files" ? outputLabels[filename] || filename : `${filename} (incomplete)`,
@@ -388,14 +391,20 @@ function render() {
   }
   selectOutput(outputNames.includes(selected) ? selected : "CITATION.cff");
   $("#name-review").hidden = result.review.length === 0;
+  reviewNames = result.review.map(({ original }) => original).join("\n");
   if (!namesDraft) {
+    const checked = namesChecked === reviewNames;
     const uncertain = result.review.some(
       ({ original }) =>
         original.trim().split(/\s+/).length !== 2 ||
         /[,;.\d]|\p{Script=Han}|\p{Script=Hangul}|\p{Script=Hiragana}|\p{Script=Katakana}/u.test(original),
     );
-    $("#name-review").open = uncertain;
-    $("#review-title").textContent = uncertain ? "Check the name split (optional)" : "Author names";
+    $("#name-review").open = uncertain && !checked;
+    $("#review-title").textContent = checked
+      ? `Author names · ${result.review.length} checked`
+      : uncertain
+        ? "Check the name split (optional)"
+        : "Author names";
   }
   if (!namesDraft) {
     $("#review-fields").replaceChildren();
@@ -640,6 +649,18 @@ $("#review-fields").addEventListener("input", () => {
   );
   invalidate(false);
 });
+function namesRight() {
+  namesChecked = reviewNames;
+  $("#review-title").textContent = `Author names · ${reviewNames.split("\n").length} checked`;
+}
+$("#review-title").addEventListener("click", () => {
+  if ($("#name-review").open) namesRight(); // closing the box counts as checking the names
+});
+$("#names-right").addEventListener("click", () => {
+  namesRight();
+  $("#name-review").open = false;
+  $("#review-title").focus();
+});
 $("#example").addEventListener("click", () => {
   const chosen = $("#source-format").value;
   const detected = detectFormats($("#input").value);
@@ -696,6 +717,8 @@ for (const button of document.querySelectorAll(".code-copy")) {
   });
 }
 authorRow();
+picker($("#source-format"));
+picker($("#output-file"));
 
 startWorker();
 worker.postMessage({ type: "warmup" });

@@ -66,7 +66,7 @@ def main() -> None:
 
 
 def _site(manifest: dict[str, object]) -> None:
-    assets = ("style.css", "main.mjs", "detect.mjs", "worker.mjs", "runtime.json")
+    assets = ("style.css", "main.mjs", "detect.mjs", "picker.mjs", "worker.mjs", "runtime.json")
     digest = hashlib.sha256(json.dumps(manifest).encode())
     for name in assets:
         digest.update((OUTPUT / name).read_bytes())

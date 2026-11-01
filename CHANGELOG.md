@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The playground's input and output file lists are grouped, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
+
 ## [0.4.0] - 2026-11-01
 
 ### Added

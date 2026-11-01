@@ -2,6 +2,10 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const syntaxMessage = /line|expected|parse/i;
+async function choose(page, id, value) {
+  await page.locator(`#${id}-search`).click();
+  await page.locator(`#${id}-list [role="option"][data-value="${value}"]`).click();
+}
 async function accessible(page) {
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 }
@@ -27,25 +31,24 @@ test("automatic detection, live name corrections, exports, form and parse recove
   await expect(page.locator("#output")).toContainText("family-names: van Leeuwenhoek");
   await expect(page.locator("#review-0-family")).toBeFocused();
   await expect(page.locator("#zip")).toBeEnabled();
-  await page.locator("#output-file").selectOption("citation.bib");
+  await choose(page, "output-file", "citation.bib");
   await expect(page.locator("#output")).toContainText("@software{lensgrind,");
-  await page.locator("#output-file").selectOption("citation.csl.json");
+  await choose(page, "output-file", "citation.csl.json");
   await expect(page.locator("#output")).toContainText('"type": "software"');
-  await page.locator("#output-file").selectOption("citation.apa.txt");
+  await choose(page, "output-file", "citation.apa.txt");
   await expect(page.locator("#output")).toContainText("[Computer software]");
-  await page.locator("#output-file").selectOption("codemeta.json");
+  await choose(page, "output-file", "codemeta.json");
   await expect(page.locator("#output")).toContainText('"familyName": "van Leeuwenhoek"');
-  await page.locator("#output-file").selectOption("CITATION.cff");
+  await choose(page, "output-file", "CITATION.cff");
   const download = page.waitForEvent("download");
   await page.locator("#zip").click();
   expect((await download).suggestedFilename()).toBe("citesync-files.zip");
   await page.locator("#input").fill("[project\n");
   await expect(page.locator("#zip")).toBeDisabled();
-  await page.locator("#source-format").focus();
-  await page.locator("#source-format").selectOption("pyproject.toml");
+  await choose(page, "source-format", "pyproject.toml");
   await expect(page.locator("#message")).toContainText(syntaxMessage);
   await expect(page.locator("#input")).toHaveValue("[project\n");
-  await expect(page.locator("#source-format")).toBeFocused();
+  await expect(page.locator("#source-format-search")).toBeFocused();
   await accessible(page);
   await page.getByRole("tab", { name: "Enter details" }).click();
   await page.locator("#title").fill("lensgrind");
@@ -67,7 +70,7 @@ test("automatic detection, live name corrections, exports, form and parse recove
     await accessible(page);
     await page.screenshot({ fullPage: true, path: testInfo.outputPath(`ready-${width}-${scheme}.png`) });
   }
-  await page.locator("#output-file").selectOption("package.json");
+  await choose(page, "output-file", "package.json");
   await expect(page.locator("#output")).toContainText('"private": true');
   await expect(page.locator("#template-warning")).toContainText("Metadata only");
   await accessible(page);
@@ -146,16 +149,16 @@ test("examples follow the selected format and name editing stays optional", asyn
     "Cargo.toml",
     "package.json",
   ]) {
-    await page.locator("#source-format").selectOption(filename);
+    await choose(page, "source-format", filename);
     await page.locator("#example").click();
     await expect(page.locator("#source-format")).toHaveValue(filename);
     await expect(page.locator("#output")).toContainText("lensgrind", { timeout: 90000 });
     await expect(page.locator("#status")).not.toContainText("Updating");
     await expect(page.locator("#message")).toBeEmpty();
     if (filename === ".zenodo.json") {
-      await page.locator("#output-file").selectOption(filename);
+      await choose(page, "output-file", filename);
       await expect(page.locator("#output")).toContainText('"upload_type": "software"');
-      await page.locator("#output-file").selectOption("CITATION.cff");
+      await choose(page, "output-file", "CITATION.cff");
     }
   }
   await expect(page.locator("#copy")).toBeEnabled();
@@ -165,10 +168,10 @@ test("examples follow the selected format and name editing stays optional", asyn
   await page.locator("#review-0-family").fill("van Leeuwenhoek");
   await expect(page.locator("#output")).toContainText("van Leeuwenhoek");
   await expect(page.locator("#copy")).toBeEnabled();
-  await page.locator("#output-file").selectOption("package.json");
+  await choose(page, "output-file", "package.json");
   await expect(page.locator("#output")).toContainText('"private": true');
   await expect(page.locator("#template-warning")).toBeVisible();
-  await page.locator("#output-file").selectOption("CITATION.cff");
+  await choose(page, "output-file", "CITATION.cff");
   await expect(page.locator("#template-warning")).toBeHidden();
   await page.getByRole("tab", { name: "Pre-commit", exact: true }).click();
   await expect(page.locator("#snippet-hook")).toContainText("id: citesync");
@@ -191,12 +194,12 @@ test("example switching preserves edits; name review and optional fields do not 
   if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.locator("#example").click();
-  await page.locator("#source-format").selectOption("Cargo.toml");
+  await choose(page, "source-format", "Cargo.toml");
   await expect(page.locator("#input")).toHaveValue(/\[package\]/);
   await page.locator("#input").fill('[package]\nname="my-draft"\nauthors=["Marie Curie"]');
-  await page.locator("#source-format").selectOption("pyproject.toml");
+  await choose(page, "source-format", "pyproject.toml");
   await expect(page.locator("#input")).toHaveValue('[package]\nname="my-draft"\nauthors=["Marie Curie"]');
-  await page.locator("#source-format").selectOption("Cargo.toml");
+  await choose(page, "source-format", "Cargo.toml");
   await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
   await expect(page.locator("#name-review")).not.toHaveAttribute("open", "");
   await expect(page.locator("#notes")).not.toContainText("no file holds a value");
@@ -208,7 +211,7 @@ test("example switching preserves edits; name review and optional fields do not 
   await expect(page.locator("#snippet-status")).toHaveText("Copied.");
   if (browserName === "chromium")
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("uvx citesync init");
-  await page.locator("#output-file").selectOption("package.json");
+  await choose(page, "output-file", "package.json");
   await expect(page.locator("#zip")).toBeHidden();
   await expect(page.locator("#download")).toBeEnabled();
   await accessible(page);
@@ -218,11 +221,11 @@ test("invalid input clears progress", async ({ page }) => {
   await page.goto("/");
   await page.locator("#example").click();
   await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
-  await page.locator("#source-format").selectOption("pyproject.toml");
+  await choose(page, "source-format", "pyproject.toml");
   await page.locator("#input").fill("[project\n");
   await expect(page.locator("#message")).toContainText(syntaxMessage);
   await expect(page.locator("#status")).not.toContainText("Updating");
-  await page.locator("#source-format").selectOption("auto");
+  await choose(page, "source-format", "auto");
   await page.locator("#input").fill("unrecognised metadata");
   await expect(page.locator("#detected-format")).toContainText("not recognised");
   await expect(page.locator("#status")).not.toContainText("Updating");
@@ -236,11 +239,11 @@ test("selecting an output keeps the preview and copy action in place", async ({ 
   await expect(page.locator("#copy")).toBeEnabled();
   for (const width of [1440, 320]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.locator("#output-file").selectOption("CITATION.cff");
+    await choose(page, "output-file", "CITATION.cff");
     const preview = await page.locator("#output").boundingBox();
     const copy = await page.locator("#copy").boundingBox();
     for (const filename of ["citation.bib", "package.json", "Cargo.toml", "pyproject.toml", "codemeta.json"]) {
-      await page.locator("#output-file").selectOption(filename);
+      await choose(page, "output-file", filename);
       const next = await page.locator("#output").boundingBox();
       expect(next.y).toBeCloseTo(preview.y, 0);
       expect(next.height).toBeCloseTo(preview.height, 0);
@@ -318,7 +321,7 @@ test("form validation uses the note colours and technical hints stay visible", a
   );
   await page.locator('#authors [data-part="family"]').fill("Curie");
   await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
-  await page.locator("#output-file").selectOption(".zenodo.json");
+  await choose(page, "output-file", ".zenodo.json");
   await expect(page.locator("#output")).toContainText('"upload_type": "software"');
   await expect(page.locator("#notes")).not.toContainText("requires an existing");
   await page.getByText("Version, licence and repository", { exact: true }).click();
@@ -416,10 +419,10 @@ test("entry tabs use keyboard activation without losing the current draft", asyn
 
 test("Python distribution metadata examples and uploads generate citation files", async ({ page }) => {
   await page.goto("/");
-  await page.locator("#source-format").selectOption("METADATA");
+  await choose(page, "source-format", "METADATA");
   await page.locator("#example").click();
   await expect(page.locator("#output")).toContainText("Skłodowska-Curie", { timeout: 90000 });
-  await page.locator("#source-format").selectOption("PKG-INFO");
+  await choose(page, "source-format", "PKG-INFO");
   await expect(page.locator("#input")).toHaveValue(/Metadata-Version: 2\.6/);
   await page.locator("#file-picker").setInputFiles({
     name: "PKG-INFO",
@@ -427,32 +430,91 @@ test("Python distribution metadata examples and uploads generate citation files"
     buffer: Buffer.from("Metadata-Version: 2.6\nName: optics-kit\nVersion: 2.0.0\nAuthor: Marie Skłodowska-Curie\n"),
   });
   await expect(page.locator("#output")).toContainText("optics-kit");
-  await page.locator("#output-file").selectOption(".zenodo.json");
+  await choose(page, "output-file", ".zenodo.json");
   await expect(page.locator("#output")).toContainText('"upload_type": "software"');
   await accessible(page);
 });
 
 test("R and Julia examples follow the selected format and generate citations", async ({ page }) => {
   await page.goto("/");
-  await page.locator("#source-format").selectOption("DESCRIPTION");
+  await choose(page, "source-format", "DESCRIPTION");
   await page.getByRole("button", { name: "Try an example" }).click();
   await expect(page.locator("#input")).toHaveValue(/Package: lensgrind/);
   await expect(page.locator("#output")).toContainText("Skłodowska-Curie", { timeout: 90000 });
   for (const filename of ["Project.toml", "JuliaProject.toml"]) {
-    await page.locator("#source-format").selectOption(filename);
+    await choose(page, "source-format", filename);
     await expect(page.locator("#input")).toHaveValue(/name = "Lensgrind"/);
     await expect(page.locator("#output")).toContainText("Skłodowska-Curie");
     await expect(page.locator("#copy")).toBeEnabled();
   }
-  await page.locator("#source-format").selectOption("auto");
+  await choose(page, "source-format", "auto");
   await page
     .locator("#input")
     .fill(
       'Package: lensgrind\nTitle: Microscope optics\nVersion: 1.0\nAuthors@R: c(person("Marie", "Curie", role="aut"), person("Grace", "Hopper", role="ctb"))',
     );
   await expect(page.locator("#detected-format")).toHaveText("Detected DESCRIPTION");
-  await page.locator("#output-file").selectOption("codemeta.json");
+  await choose(page, "output-file", "codemeta.json");
   await expect(page.locator("#output")).toContainText('"contributor"');
   await expect(page.locator("#output")).toContainText("Hopper");
   await accessible(page);
+});
+
+test("the file lists are grouped, sorted and searchable, and checked names stay closed", async ({ page }) => {
+  await page.goto("/");
+  const search = page.getByRole("combobox", { name: "Input filename" });
+  await search.click();
+  await expect(page.locator("#source-format-list .picker-group")).toHaveText([
+    "Citation files",
+    "JavaScript",
+    "Julia",
+    "Python",
+    "R",
+    "Rust",
+  ]);
+  await search.fill("python");
+  await expect(page.locator('#source-format-list [role="option"]:visible')).toHaveText([
+    "METADATA",
+    "PKG-INFO",
+    "pyproject.toml",
+  ]);
+  await search.fill("py");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#source-format")).toHaveValue("pyproject.toml");
+  await search.click();
+  await search.fill("toml cargo");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#source-format")).toHaveValue("Cargo.toml");
+  await expect(search).toHaveValue("Cargo.toml");
+  await search.fill("nothing like this");
+  await expect(page.locator("#source-format-list")).toHaveAttribute("data-empty", "true");
+  await page.keyboard.press("Escape");
+  await expect(search).toHaveValue("Cargo.toml");
+  await accessible(page);
+  const pyproject =
+    '[project]\nname = "lensgrind"\nversion = "1.4.0"\nauthors = [{name = "Antonie van Leeuwenhoek"}]\n';
+  await choose(page, "source-format", "pyproject.toml");
+  await page.locator("#input").fill(pyproject);
+  await expect(page.locator("#name-review")).toHaveAttribute("open", "", { timeout: 90000 });
+  await page.getByRole("button", { name: "Names look right" }).click();
+  await expect(page.locator("#name-review")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#review-title")).toHaveText("Author names · 1 checked");
+  await page.locator("#input").fill(pyproject.replace("1.4.0", "1.4.1"));
+  await expect(page.locator("#output")).toContainText("1.4.1");
+  await expect(page.locator("#name-review")).not.toHaveAttribute("open", "");
+  const output = page.getByRole("combobox", { name: "Output file" });
+  await output.click();
+  await expect(page.locator('#output-file-list [role="group"]').first().locator('[role="option"]')).toHaveText([
+    "citation.apa.txt — APA reference",
+    "citation.bib — BibTeX",
+    "CITATION.cff — GitHub citation",
+    "citation.csl.json — CSL-JSON",
+    "codemeta.json — Software metadata",
+    "schema.jsonld — Website structured data",
+    ".zenodo.json — Zenodo deposit",
+  ]);
+  await output.fill("bibtex");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#output")).toContainText("@software{lensgrind,");
 });
