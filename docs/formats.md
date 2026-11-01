@@ -26,7 +26,7 @@ The [configuration reference](config.md) lists the manifest fields that can be u
 
 ## Plugin manifests
 
-A Typst package's `typst.toml` and a Quarto extension's `_extension.yml` carry a version and authors that should move with each release. Their fields sit where Cargo.toml and package.json keep theirs, so citesync reads them through the same mapping rows: `typst.toml` gives `version`, `authors`, `license`, `description`, `repository` and `keywords`; `_extension.yml` gives `version` and its one `author`. A Quarto extension lives under `_extensions/<name>/`, so list it under `manifests`:
+A Typst package's `typst.toml` and a Quarto extension's `_extension.yml` carry a version and authors that should move with each release. Their fields sit where Cargo.toml and package.json keep theirs, so citesync reads them through the same mapping rows: `typst.toml` gives `version`, `authors`, `license`, `description`, `repository` and `keywords`; `_extension.yml` gives `version` and its one `author` (an `author` list makes the file `unreadable`). A Quarto extension lives under `_extensions/<name>/`, so list it under `manifests`:
 
 ```toml
 manifests = ["typst/typst.toml", "quarto/_extensions/lensgrind/_extension.yml"]

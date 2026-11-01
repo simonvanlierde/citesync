@@ -100,6 +100,27 @@ def test_each_plugin_manifest_name_is_checked_and_written(tmp_path: Path, run: "
     assert "error[version-mismatch] version: '0.1.0', CITATION.cff has '1.2.3'" in out
     assert run("write", "--root", str(tmp_path))[0] == 0
     assert (tmp_path / "plugin" / name).read_text(encoding="utf-8") == text.format(version="1.2.3")
+    code, out, err = run("check", "--root", str(tmp_path))
+    assert (code, err) == (0, ""), out
+
+
+def test_write_leaves_a_pre_release_out_of_typst_toml(tmp_path: Path, run: "Run") -> None:
+    # Typst takes only major.minor.patch, so a pre-release would make the package unpublishable.
+    root = _repo(tmp_path, "1.2.3")
+    cff = root / "CITATION.cff"
+    cff.write_text(cff.read_text(encoding="utf-8").replace('version: "1.2.3"', 'version: "1.3.0rc1"'), encoding="utf-8")
+    _, out, _ = run("write", "--root", str(root))
+    assert (root / TYPST_PATH).read_text(encoding="utf-8") == TYPST.format(version="1.2.3")
+    assert "1.3.0-rc.1" in out
+    assert (root / QUARTO_PATH).read_text(encoding="utf-8") == QUARTO.format(version="1.3.0-rc.1")
+
+
+def test_typst_toml_ignores_a_cargo_toml_above_it(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path, "1.2.3")
+    (root / "Cargo.toml").write_text("[package\nbroken", encoding="utf-8")
+    (root / "citesync.toml").write_text(f'manifests = ["{TYPST_PATH}"]\n', encoding="utf-8")
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 0, out
 
 
 @pytest.mark.parametrize(("name", "text"), [("_extension.yml", QUARTO), ("package.json", None)])

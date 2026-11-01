@@ -316,7 +316,7 @@ def _is_release(fmt: str, data: dict[str, Any]) -> bool:
 
 
 def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, Any]:
-    if fmt == "cargo":
+    if fmt == "cargo" and PurePosixPath(rel).name == "Cargo.toml":  # a typst.toml has no workspace
         return _adapt_cargo(data, root, rel)
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
         dynamic = set(project.get("dynamic", []))  # a dynamic field is skipped, the rest still checked
