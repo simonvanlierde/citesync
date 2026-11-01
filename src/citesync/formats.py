@@ -427,7 +427,11 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
 
 def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Mapping) -> Any:  # noqa: ANN401
     if term in PEOPLE:
-        people = tuple(p for p in (person(fmt, el, path, mapping, term) for el in resolve(data, path)) if p)
+        found = resolve(data, path)
+        if fmt == "npm" and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
+            msg = f"{term} holds a list, but this file takes one {term}"
+            raise TypeError(msg)
+        people = tuple(p for p in (person(fmt, el, path, mapping, term) for el in found) if p)
         return people or None
     slot = locate(fmt, term, data, path)
     if slot is None:

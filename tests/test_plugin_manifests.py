@@ -86,13 +86,18 @@ def test_write_moves_authors_and_licence_when_opted_in(tmp_path: Path, run: "Run
 
 
 @pytest.mark.parametrize("name", ["typst.toml", "_extension.yml", "_extension.yaml"])
-def test_plugin_manifest_names_are_valid_manifests(tmp_path: Path, run: "Run", name: str) -> None:
+def test_each_plugin_manifest_name_is_checked_and_written(tmp_path: Path, run: "Run", name: str) -> None:
     (tmp_path / "CITATION.cff").write_text((SYNTHETIC / "CITATION.cff").read_text(encoding="utf-8"), encoding="utf-8")
     (tmp_path / "plugin").mkdir()
     text = TYPST if name == "typst.toml" else QUARTO
     (tmp_path / "plugin" / name).write_text(text.format(version="0.1.0"), encoding="utf-8")
-    config = f'manifests = ["plugin/{name}"]\nwrite-manifests = ["version"]\n'
-    (tmp_path / "citesync.toml").write_text(config, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        f'manifests = ["plugin/{name}"]\nwrite-manifests = ["version"]\n', encoding="utf-8"
+    )
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert f"plugin/{name}:" in out
+    assert "error[version-mismatch] version: '0.1.0', CITATION.cff has '1.2.3'" in out
     assert run("write", "--root", str(tmp_path))[0] == 0
     assert (tmp_path / "plugin" / name).read_text(encoding="utf-8") == text.format(version="1.2.3")
     code, out, err = run("check", "--root", str(tmp_path))
@@ -116,3 +121,18 @@ def test_typst_toml_ignores_a_cargo_toml_above_it(tmp_path: Path, run: "Run") ->
     (root / "citesync.toml").write_text(f'manifests = ["{TYPST_PATH}"]\n', encoding="utf-8")
     code, out, _ = run("check", "--root", str(root))
     assert code == 0, out
+
+
+@pytest.mark.parametrize(("name", "text"), [("_extension.yml", QUARTO), ("package.json", None)])
+def test_a_list_author_is_reported_not_skipped(tmp_path: Path, run: "Run", name: str, text: str | None) -> None:
+    shutil.copy(SYNTHETIC / "CITATION.cff", tmp_path / "CITATION.cff")
+    body = (
+        text.format(version="1.2.3").replace("author: Ada Lovelace", "author: [Ada Lovelace, Alan Turing]")
+        if text
+        else '{"name": "synthagree", "version": "1.2.3", "author": ["Ada Lovelace", "Alan Turing"]}'
+    )
+    (tmp_path / name).write_text(body, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(f'manifests = ["{name}"]\n', encoding="utf-8")
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert f"{name}: error[unreadable] unexpected shape (author holds a list, but this file takes one author)" in out

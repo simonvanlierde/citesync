@@ -1707,3 +1707,16 @@ def test_cff_preserves_a_bom_inside_the_final_value(tmp_path: Path, run: "Run") 
     result = YAML(typ="safe").load(target.read_text(encoding="utf-8"))
     assert result["abstract"] == "optics\ufeff"
     assert target.read_bytes().startswith(b"\xef\xbb\xbf")
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root writes into a read-only folder")
+def test_a_folder_it_cannot_write_into_is_a_clear_error(tmp_path: Path, run: "Run") -> None:
+    root = _synthetic(tmp_path / "repo", 'exports = ["ro/citation.bib"]\n')
+    (root / "ro").mkdir()
+    (root / "ro").chmod(stat.S_IRUSR | stat.S_IXUSR)
+    try:
+        code, _, err = run("write", "--root", str(root))
+    finally:
+        (root / "ro").chmod(stat.S_IRWXU)
+    assert (code, err) == (2, "citesync: ro/citation.bib: can't write: Permission denied\n")
+    assert sorted(p.name for p in (root / "ro").iterdir()) == []

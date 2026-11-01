@@ -25,12 +25,12 @@ citesync.jsonsplice.x__edits__mutmut_82  json.dumps reads ensure_ascii as a trut
 citesync.jsonsplice.x__edits__mutmut_105  rfind's start None is 0
 citesync.jsonsplice.x__edits__mutmut_123  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.jsonsplice.x__edits__mutmut_133  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
-citesync.write.x__replace__mutmut_16  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
-citesync.write.x__replace__mutmut_17  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
-citesync.write.x__replace__mutmut_20  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
-citesync.write.x__replace__mutmut_21  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
-citesync.write.x__replace__mutmut_25  "UTF-8" and "utf-8" name the same codec
-citesync.write.x__replace__mutmut_34  the umask is set only to read it, and restored on the next line
+citesync.write.x__replace__mutmut_19  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
+citesync.write.x__replace__mutmut_24  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
+citesync.write.x__replace__mutmut_23  encoding=None writes the locale's encoding, UTF-8 wherever the tests run
+citesync.write.x__replace__mutmut_20  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
+citesync.write.x__replace__mutmut_28  "UTF-8" and "utf-8" name the same codec
+citesync.write.x__replace__mutmut_37  the umask is set only to read it, and restored on the next line
 citesync.write.x__new_codemeta__mutmut_4  a blank's text is never read, only its type
 citesync.write.x__new_codemeta__mutmut_7  a blank's text is never read, only its type
 citesync.write.x__new_codemeta__mutmut_10  a blank's text is never read, only its type
@@ -45,8 +45,8 @@ citesync.write.x__new_codemeta__mutmut_56  _encode reads only the stand-in Doc's
 citesync.write.x__new_codemeta__mutmut_98  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.write.x__yaml__mutmut_8  any width past the longest line keeps every line whole
 citesync.write.x__yaml__mutmut_9  any width past the longest line keeps every line whole
-citesync.write.x__encode__mutmut_64  the codeRepository branch reads neither source nor keyword_key
-citesync.write.x__encode__mutmut_68  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_78  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_82  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__identifier__mutmut_24  a PropertyValue's value or url is a string, and spelling a string never calls decode
 citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__relist__mutmut_10  zip's strict=None is falsy, the same as False
@@ -54,26 +54,26 @@ citesync.write.x__relist__mutmut_13  zip's strict defaults to False
 citesync.write.x__rename__mutmut_57  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__rename__mutmut_60  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__set__mutmut_26  a comment stands after its value, so its new column is never below 1
-citesync.write.x_init__mutmut_29  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_30  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_31  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_32  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_39  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_40  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_41  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_44  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_45  _encode reads only the stand-in Doc's format
-citesync.write.x_init__mutmut_65  a blank's text is never read, only its type
-citesync.write.x_init__mutmut_70  a blank's text is never read, only its type
-citesync.write.x_init__mutmut_75  a blank's text is never read, only its type
-citesync.write.x_init__mutmut_89  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x_init__mutmut_95  a blank's text is never read: "XXXX" has no git+ or .git to keep
-citesync.write.x_init__mutmut_100  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x_init__mutmut_157  any width past the longest line keeps every line whole
-citesync.write.x_init__mutmut_158  any width past the longest line keeps every line whole
-citesync.write.x_init__mutmut_159  mapping=None keeps ruamel's default of 2
-citesync.write.x_init__mutmut_162  mapping's default is 2
-citesync.write.x_init__mutmut_165  init writes no mapping inside a mapping, the only place this indent shows
+citesync.write.x__new_cff__mutmut_5  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_6  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_7  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_8  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_15  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_16  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_17  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_20  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_21  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_41  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_46  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_51  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_65  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x__new_cff__mutmut_71  a blank's text is never read: "XXXX" has no git+ or .git to keep
+citesync.write.x__new_cff__mutmut_76  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x__new_cff__mutmut_133  any width past the longest line keeps every line whole
+citesync.write.x__new_cff__mutmut_134  any width past the longest line keeps every line whole
+citesync.write.x__new_cff__mutmut_135  mapping=None keeps ruamel's default of 2
+citesync.write.x__new_cff__mutmut_138  mapping's default is 2
+citesync.write.x__new_cff__mutmut_141  init writes no mapping inside a mapping, the only place this indent shows
 citesync.check.x_read_docs__mutmut_55  readable is only read as a truth value, and None is falsy like False
 citesync.write.x__apply__mutmut_42  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
 citesync.write.x__apply__mutmut_98  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
@@ -97,21 +97,27 @@ citesync.write.x__new_zenodo__mutmut_6  a blank string selects the output shape;
 citesync.write.x__new_zenodo__mutmut_60  the encoder reads only the stand-in Doc format
 citesync.write.x__new_zenodo__mutmut_61  release is not read by citation-format encoders
 citesync.write.x__new_zenodo__mutmut_70  release is not read by citation-format encoders
-citesync.write.x__people__mutmut_125  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_128  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_132  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_133  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_129  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_209  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
-citesync.write.x__people__mutmut_58  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_61  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_213  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__people__mutmut_65  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_66  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_62  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_90  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_93  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_97  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_98  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_94  matches has one entry per person, so strict never fires
-citesync.write.x__rewrite__mutmut_14  only JSON CodeMeta reads context
-citesync.write.x__rewrite__mutmut_16  only Zenodo reads the default contributor type
-citesync.write.x__rewrite__mutmut_52  only JSON CodeMeta reads context
-citesync.write.x__rewrite__mutmut_54  only Zenodo reads the default contributor type
-citesync.write.x_write__mutmut_121  without a context, no (file, @context) error exists for done to mark fixed
-citesync.write.x_write__mutmut_62  UTF-8 and utf-8 name the same codec
-citesync.write.x_write__mutmut_67  the Unicode escape differs only in hex letter case and denotes the same BOM
-citesync.write.x_write__mutmut_70  the Unicode escape differs only in hex letter case and denotes the same BOM
+citesync.write.x__rewrite__mutmut_20  only JSON CodeMeta reads context
+citesync.write.x__rewrite__mutmut_22  only Zenodo reads the default contributor type
+citesync.write.x__rewrite__mutmut_58  only JSON CodeMeta reads context
+citesync.write.x__rewrite__mutmut_60  only Zenodo reads the default contributor type
+citesync.write.x_write__mutmut_128  without a context, no (file, @context) error exists for done to mark fixed
+citesync.write.x_write__mutmut_69  UTF-8 and utf-8 name the same codec
+citesync.write.x_write__mutmut_74  the Unicode escape differs only in hex letter case and denotes the same BOM
+citesync.write.x_write__mutmut_77  the Unicode escape differs only in hex letter case and denotes the same BOM
+citesync.write.x_citation_file__mutmut_33  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_34  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_46  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_47  _encode reads only the stand-in Doc's format
+citesync.write.x__replace__mutmut_2  the loop sets rel before anything in it can raise, so its start value is never read
+citesync.write.x__replace__mutmut_3  the loop sets rel before anything in it can raise, so its start value is never read

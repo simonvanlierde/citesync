@@ -22,7 +22,7 @@ from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain, url
 
 JSON_VERSION = 1
-# citesync.export.FORMATS, spelled out so the parser needs no import of that module
+# the keys of citesync.export._WRITERS, spelled out so the parser needs no import of that module
 _EXPORT_FORMATS = ("bibtex", "csl-json", "apa", "jsonld")
 _CITATION_FILES = ("cff", "codemeta", "zenodo")  # made by write's builders, so never under exports
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
@@ -100,7 +100,8 @@ def _directory(value: str) -> Path:
 
 
 _DESCRIPTION = """Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
-(pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file."""
+(pyproject.toml, Cargo.toml, package.json, typst.toml, _extension.yml) agree, and rewrite them
+to match one source file."""
 _EPILOG = f"""exit codes:
   0  no error finding (warnings and info don't fail)
   1  an error finding; with write --diff, a change to make or a file it can't read
@@ -292,19 +293,23 @@ def _export(root: Path, config: Config, fmt: str) -> int:
     from citesync.check import read_docs  # noqa: PLC0415
     from citesync.export import record, render  # noqa: PLC0415
     from citesync.mapping import load_mapping  # noqa: PLC0415
+    from citesync.write import _merged, citation_file, union  # noqa: PLC0415
 
-    docs, read = read_docs(root, config, load_mapping())
-    if not docs[0].readable:
-        bad = next(f for f in read if f.file == docs[0].path and f.rule == "unreadable")
-        msg = f"{bad.where}: {bad.message}"
-        raise CheckError(msg)
-    if fmt in _CITATION_FILES:
-        from citesync.write import citation_file  # noqa: PLC0415
-
-        text, skipped = citation_file(fmt, root, config, replace(docs[0], record=record(docs)), load_mapping())
+    mapping = load_mapping()
+    if fmt == "cff":  # built as init builds it, so it needs no CITATION.cff to read
+        text, skipped = citation_file(fmt, root, config, _merged(root, config, mapping), mapping)
         notes = [f"leaving out {term}: {why}" for term, why in skipped.items()]
     else:
-        text, notes = render(fmt, record(docs))
+        docs, read = read_docs(root, config, mapping)
+        if not docs[0].readable:
+            bad = next(f for f in read if f.file == docs[0].path and f.rule == "unreadable")
+            msg = f"{bad.where}: {bad.message}"
+            raise CheckError(msg)
+        if fmt in _CITATION_FILES:
+            text, skipped = citation_file(fmt, root, config, replace(docs[0], record=union(docs, config)), mapping)
+            notes = [f"leaving out {term}: {why}" for term, why in skipped.items()]
+        else:
+            text, notes = render(fmt, record(docs))
     sys.stdout.write(text)
     for note in notes:
         print(note, file=sys.stderr)

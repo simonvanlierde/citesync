@@ -68,7 +68,7 @@ repos:
       - id: citesync-write
 ```
 
-The `citesync` hook runs when a commit changes a supported metadata file or a citesync config, at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
+The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
 
 ## Development
 
