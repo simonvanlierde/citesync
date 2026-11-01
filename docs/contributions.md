@@ -59,5 +59,23 @@ write leaves that contributor list intact. Set
 An existing empty target list opts in; an absent list stays absent. A passing check
 does not establish that every contribution has reached every format.
 
-This example checks the citesync boundary using the current pinned mapping. It
-does not run CRediT Matrix or prove a complete export-and-deposit workflow.
+The hand-written fixture checks the citesync boundary without installing Matrix.
+The [Matrix consumer CI job](../.github/workflows/matrix-consumer.yml) separately
+builds and packs the exact merged producer revision `a8a55c6`, then runs the same
+people through both installed CLIs. It uses the native Matrix roster and its
+hand-checked attribution expectation, with source hashes recorded in the
+[fixture notes](../tests/contracts/contributions/README.md).
+
+To run the producer check locally, unpack a `credit-matrix` package tarball and run:
+
+```sh
+CREDIT_MATRIX_CLI=/absolute/path/to/package/dist/cli.js uv run --frozen pytest tests/test_matrix_consumer.py
+```
+
+The CLI must include Matrix #185. The published npm v0.9.0 package is too old;
+the v0.10.0 release candidate and the CI's pinned source build both pass. The
+consumer job uses the merged source pin while v0.10.0 is prepared, so PR checks
+do not depend on a future registry upload. After publication, the registry tarball
+can be checked with the same command. Tests also verify the existing explicit
+`zenodo-contributor-type` opt-in, preserve existing types, and leave an absent
+contributor field absent. This checks citation files, not a live Zenodo deposit.
