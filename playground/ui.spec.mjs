@@ -6,7 +6,7 @@ async function accessible(page) {
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 }
 
-test("automatic detection, live name corrections, exports, form and parse recovery", async ({ page }) => {
+test("automatic detection, live name corrections, exports, form and parse recovery", async ({ page }, testInfo) => {
   const errors = [];
   const downloads = [];
   page.on("download", (download) => downloads.push(download));
@@ -63,7 +63,7 @@ test("automatic detection, live name corrections, exports, form and parse recove
     await page.emulateMedia({ colorScheme: scheme });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     await accessible(page);
-    await page.screenshot({ fullPage: true, path: `test-results/ready-${width}-${scheme}.png` });
+    await page.screenshot({ fullPage: true, path: testInfo.outputPath(`ready-${width}-${scheme}.png`) });
   }
   await page.locator("#output-file").selectOption("package.json");
   await expect(page.locator("#output")).toContainText('"private": true');
@@ -72,7 +72,7 @@ test("automatic detection, live name corrections, exports, form and parse recove
   await page.setViewportSize({ width: 320, height: 1000 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await accessible(page);
-  await page.screenshot({ path: "test-results/package-templates-mobile.png", fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("package-templates-mobile.png"), fullPage: true });
   await expect(page.locator("#zip")).toBeHidden();
   const template = page.waitForEvent("download");
   await page.locator("#download").click();
@@ -183,8 +183,10 @@ test("examples follow the selected format and name editing stays optional", asyn
 test("example switching preserves edits; name review and optional fields do not block copying", async ({
   page,
   context,
+  browserName,
 }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  // Clipboard-read permission grants are not portable across engines.
+  if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.locator("#example").click();
   await page.locator("#source-format").selectOption("Cargo.toml");
@@ -197,9 +199,13 @@ test("example switching preserves edits; name review and optional fields do not 
   await expect(page.locator("#name-review")).not.toHaveAttribute("open", "");
   await expect(page.locator("#notes")).not.toContainText("no file holds a value");
   await page.locator("#copy").click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("my-draft");
+  await expect(page.locator("#message")).toHaveText("Copied CITATION.cff.");
+  if (browserName === "chromium")
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("my-draft");
   await page.getByRole("button", { name: "Copy code", exact: true }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("uvx citesync init");
+  await expect(page.locator("#snippet-status")).toHaveText("Copied.");
+  if (browserName === "chromium")
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("uvx citesync init");
   await page.locator("#output-file").selectOption("package.json");
   await expect(page.locator("#zip")).toBeHidden();
   await expect(page.locator("#download")).toBeEnabled();
