@@ -240,33 +240,88 @@ def test_r_and_julia_templates_read_back_through_the_imports():
     from citesync.playground_exports import package_templates  # noqa: PLC0415
     from citesync.research_metadata import parse  # noqa: PLC0415
 
-    curie = Person("Marie Skłodowska-Curie", "Marie", "Skłodowska-Curie", "https://orcid.org/0000-0002-1825-0097")
+    curie = Person(
+        "Marie Skłodowska-Curie", "Marie", "Skłodowska-Curie", "0000-0002-1825-0097"
+    )  # bare, as records hold it
     record = {
-        "name": 'lensgrind: Grind "Lenses"',
+        "name": "lensgrind: Grind: Lenses",
         "version": "1.4.0",
         "description": "Measure\n  microscope optics.",
         "license": "GPL-3.0-or-later",
         "codeRepository": "https://github.com/example/lensgrind",
-        "author": (curie, Person("Example Lab", organization=True)),
+        "author": (
+            curie,
+            Person("Example Lab", organization=True),
+            Person('Ant "Q" \\ Leeuwenhoek', 'Ant "Q" \\', "Leeuwenhoek"),
+            Person("Tu", family="Tu"),
+            Person(None, orcid="0000-0002-1825-0097"),
+        ),
         "contributor": (Person("Tu Youyou", "Youyou", "Tu"),),
     }
     templates, notes = package_templates(record)
     r = parse(templates["DESCRIPTION"], "DESCRIPTION")
-    assert (r["name"], r["version"], r["license"]) == ('lensgrind: Grind "Lenses"', "1.4.0", "GPL-3.0-or-later")
+    assert (r["name"], r["version"], r["license"]) == ("lensgrind: Grind: Lenses", "1.4.0", "GPL-3.0-or-later")
     assert (r["description"], r["codeRepository"]) == (
         "Measure microscope optics.",
         "https://github.com/example/lensgrind",
     )
-    assert r["author"][0] == {
-        "@type": "Person",
-        "givenName": "Marie",
-        "familyName": "Skłodowska-Curie",
-        "@id": "https://orcid.org/0000-0002-1825-0097",
-    }
+    assert r["author"] == [
+        {
+            "@type": "Person",
+            "givenName": "Marie",
+            "familyName": "Skłodowska-Curie",
+            "@id": "https://orcid.org/0000-0002-1825-0097",
+        },
+        {"@type": "Person", "givenName": "Example Lab"},
+        {"@type": "Person", "givenName": 'Ant "Q" \\', "familyName": "Leeuwenhoek"},
+        {"@type": "Person", "familyName": "Tu"},
+    ]
     assert [p.get("familyName") for p in r["contributor"]] == ["Tu"]
-    assert "DESCRIPTION: give the maintainer the role cre and an email, as CRAN asks." in notes
     julia = parse(templates["Project.toml"], "Project.toml")
     assert julia["version"] == "1.4.0"
-    assert julia["author"][0]["@id"] == "https://orcid.org/0000-0002-1825-0097"
-    assert (julia["author"][1]["@type"], julia["author"][1]["name"]) == ("Organization", "Example Lab")
-    assert "Project.toml: name omitted; a Julia package name is an identifier, such as Lensgrind." in notes
+    assert 'orcid = "https://orcid.org/0000-0002-1825-0097"' in templates["Project.toml"]
+    assert [(p["@type"], p.get("familyName")) for p in julia["author"]] == [
+        ("Person", "Skłodowska-Curie"),
+        ("Organization", "Example Lab"),
+        ("Person", "Leeuwenhoek"),
+        ("Person", "Tu"),
+    ]
+    for note in (
+        "DESCRIPTION: give the maintainer the role cre and an email, as CRAN asks.",
+        "DESCRIPTION: check License against R's licence names; MIT and BSD add + file LICENSE.",
+        "Project.toml: name omitted; a Julia package name is an identifier, such as Lensgrind.",
+        "Project.toml: add the uuid Pkg generates for a new package.",
+    ):
+        assert note in notes
+
+
+@pytest.mark.parametrize(
+    ("spdx", "r"),
+    [
+        ("GPL-3.0-or-later", "GPL (>= 3)"),
+        ("GPL-2.0-only", "GPL-2"),
+        ("LGPL-2.1-or-later", "LGPL (>= 2.1)"),
+        ("AGPL-3.0-only", "AGPL-3"),
+        ("GPL-3.0-or-later OR MIT", "GPL (>= 3) | MIT"),
+    ],
+)
+def test_the_r_template_spells_licences_as_r_does(spdx: str, r: str):
+    from citesync.playground_exports import package_templates  # noqa: PLC0415
+    from citesync.research_metadata import parse  # noqa: PLC0415
+
+    description = package_templates({"name": "lensgrind: Grind Lenses", "license": spdx})[0]["DESCRIPTION"]
+    assert f"License: {r}\n" in description
+    assert parse(description, "DESCRIPTION")["license"] == spdx
+
+
+def test_an_author_given_only_by_orcid_keeps_every_file():
+    codemeta = {
+        "@context": "https://w3id.org/codemeta/3.0",
+        "name": "lensgrind",
+        "author": [
+            {"@type": "Person", "givenName": "Marie", "familyName": "Curie"},
+            {"@id": "https://orcid.org/0000-0002-1825-0097"},
+        ],
+    }
+    result = generate({"filename": "codemeta.json", "text": json.dumps(codemeta)})
+    assert {"CITATION.cff", "DESCRIPTION", "Project.toml"} <= result["files"].keys() | result["templates"].keys()

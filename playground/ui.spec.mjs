@@ -518,6 +518,8 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
   await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText([
     "Project.toml — Julia (incomplete)",
   ]);
+  await output.fill("description");
+  await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText(["DESCRIPTION — R (incomplete)"]);
   await output.fill("bibtex");
   await page.keyboard.press("Enter");
   await expect(page.locator("#output")).toContainText("@software{lensgrind,");
@@ -537,5 +539,9 @@ test("opening a file list scrolls the list, not the page", async ({ page }) => {
   await search.focus(); // the keyboard opens the list without Playwright scrolling to a click target
   await page.keyboard.press("ArrowDown");
   await expect(page.locator("#output-file-list")).toBeVisible();
+  // the test only means something while the open list runs past the bottom of the window
+  expect(
+    await page.evaluate(() => document.querySelector("#output-file-list").getBoundingClientRect().bottom > innerHeight),
+  ).toBe(true);
   expect(await page.evaluate(() => scrollY)).toBe(before);
 });

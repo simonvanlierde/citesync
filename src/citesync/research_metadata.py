@@ -14,6 +14,9 @@ from packaging.licenses import InvalidLicenseExpression, canonicalize_license_ex
 from citesync.errors import UnreadableError
 from citesync.formats import cff_person, codemeta_orcid
 
+R_PACKAGE = re.compile(r"[A-Za-z][A-Za-z0-9.]*[A-Za-z0-9]")
+"""A valid R package name, as the DESCRIPTION import and template both check it."""
+
 
 def parse(text: str, rel: str) -> dict[str, Any]:
     """Read static DESCRIPTION or Project.toml text; never run R, Julia or package code."""
@@ -263,7 +266,7 @@ def _r(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) 
     if encoding not in {"utf-8", "utf8", "ascii"}:
         raise UnreadableError(rel, "Save DESCRIPTION as UTF-8 and update Encoding before importing")
     package = fields.get("Package", "")
-    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9.]*[A-Za-z0-9]", package):
+    if not R_PACKAGE.fullmatch(package):
         raise UnreadableError(rel, "DESCRIPTION needs a valid Package field")
     data["name"] = f"{package}: {fields['Title']}" if fields.get("Title") else package  # as cffr and codemetar
     for original, term in [("Description", "description"), ("Version", "version")]:
