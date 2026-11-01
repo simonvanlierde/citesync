@@ -1,0 +1,504 @@
+{
+ "schema_version": "1.4",
+ "cases": [
+  {
+   "name": "key",
+   "path": "package.name",
+   "document": {
+    "package": {
+     "name": "carberry"
+    }
+   },
+   "expected": [
+    "carberry"
+   ]
+  },
+  {
+   "name": "key to an object",
+   "path": "package",
+   "document": {
+    "package": {
+     "name": "carberry"
+    }
+   },
+   "expected": [
+    {
+     "name": "carberry"
+    }
+   ]
+  },
+  {
+   "name": "missing key",
+   "path": "package.version",
+   "document": {
+    "package": {
+     "name": "carberry"
+    }
+   },
+   "expected": []
+  },
+  {
+   "name": "missing first key",
+   "path": "nothing.here",
+   "document": {
+    "package": {}
+   },
+   "expected": []
+  },
+  {
+   "name": "key below a scalar",
+   "path": "package.name.first",
+   "document": {
+    "package": {
+     "name": "carberry"
+    }
+   },
+   "expected": []
+  },
+  {
+   "name": "list, each element",
+   "path": "authors[]",
+   "document": {
+    "authors": [
+     {
+      "name": "Tu Youyou",
+      "orcid": "x"
+     },
+     {
+      "name": "Antonie van Leeuwenhoek"
+     },
+     "loose"
+    ]
+   },
+   "expected": [
+    {
+     "name": "Tu Youyou",
+     "orcid": "x"
+    },
+    {
+     "name": "Antonie van Leeuwenhoek"
+    },
+    "loose"
+   ]
+  },
+  {
+   "name": "list, key of each element, in order",
+   "path": "authors[].name",
+   "document": {
+    "authors": [
+     {
+      "name": "Tu Youyou",
+      "orcid": "x"
+     },
+     {
+      "name": "Antonie van Leeuwenhoek"
+     },
+     "loose"
+    ]
+   },
+   "expected": [
+    "Tu Youyou",
+    "Antonie van Leeuwenhoek"
+   ]
+  },
+  {
+   "name": "element without the key is skipped",
+   "path": "authors[].orcid",
+   "document": {
+    "authors": [
+     {
+      "name": "Tu Youyou",
+      "orcid": "x"
+     },
+     {
+      "name": "Antonie van Leeuwenhoek"
+     },
+     "loose"
+    ]
+   },
+   "expected": [
+    "x"
+   ]
+  },
+  {
+   "name": "[] on a value that is not a list",
+   "path": "package[].name",
+   "document": {
+    "package": {
+     "name": "carberry"
+    }
+   },
+   "expected": []
+  },
+  {
+   "name": "[] on an empty list",
+   "path": "authors[].name",
+   "document": {
+    "authors": []
+   },
+   "expected": []
+  },
+  {
+   "name": "[k=v] keeps every match, in order",
+   "path": "identifiers[type=doi].value",
+   "document": {
+    "identifiers": [
+     {
+      "type": "url",
+      "value": "https://example.org"
+     },
+     {
+      "type": "doi",
+      "value": "10.5555/a"
+     },
+     {
+      "type": "doi",
+      "value": "10.5555/b"
+     },
+     "loose"
+    ]
+   },
+   "expected": [
+    "10.5555/a",
+    "10.5555/b"
+   ]
+  },
+  {
+   "name": "[k=v] with no match",
+   "path": "identifiers[type=isbn].value",
+   "document": {
+    "identifiers": [
+     {
+      "type": "url",
+      "value": "https://example.org"
+     },
+     {
+      "type": "doi",
+      "value": "10.5555/a"
+     },
+     {
+      "type": "doi",
+      "value": "10.5555/b"
+     },
+     "loose"
+    ]
+   },
+   "expected": []
+  },
+  {
+   "name": "[k=v] with a dot and a hyphen in the value",
+   "path": "ids[type=cff-1.2].value",
+   "document": {
+    "ids": [
+     {
+      "type": "cff-1.2",
+      "value": "v"
+     },
+     {
+      "type": "cff-1",
+      "value": "w"
+     }
+    ]
+   },
+   "expected": [
+    "v"
+   ]
+  },
+  {
+   "name": "[k=v] on a number reads it as text",
+   "path": "ids[n=2].value",
+   "document": {
+    "ids": [
+     {
+      "n": 1,
+      "value": "a"
+     },
+     {
+      "n": 2,
+      "value": "b"
+     }
+    ]
+   },
+   "expected": [
+    "b"
+   ]
+  },
+  {
+   "name": "[@k=v] filter key",
+   "path": "author[@type=Person].name",
+   "document": {
+    "author": [
+     {
+      "@type": "Organization",
+      "name": "o"
+     },
+     {
+      "@type": "Person",
+      "name": "p"
+     }
+    ]
+   },
+   "expected": [
+    "p"
+   ]
+  },
+  {
+   "name": "key starting with @",
+   "path": "@id",
+   "document": {
+    "@id": "https://example.org/x"
+   },
+   "expected": [
+    "https://example.org/x"
+   ]
+  },
+  {
+   "name": "@ key after a dot",
+   "path": "repository.@url",
+   "document": {
+    "repository": {
+     "@url": "https://example.org/r",
+     "url": "no"
+    }
+   },
+   "expected": [
+    "https://example.org/r"
+   ]
+  },
+  {
+   "name": "@ key below a list",
+   "path": "author[].@id",
+   "document": {
+    "author": [
+     {
+      "@id": "a"
+     },
+     {
+      "name": "n"
+     },
+     {
+      "@id": "b"
+     }
+    ]
+   },
+   "expected": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "name": "@ inside a key (R Authors@R)",
+   "path": "Authors@R",
+   "document": {
+    "Authors@R": "person(\"Marie\", \"Curie\")"
+   },
+   "expected": [
+    "person(\"Marie\", \"Curie\")"
+   ]
+  },
+  {
+   "name": "nested lists are flattened in order",
+   "path": "groups[].members[].name",
+   "document": {
+    "groups": [
+     {
+      "kind": "core",
+      "members": [
+       {
+        "name": "a"
+       },
+       {
+        "name": "b"
+       }
+      ]
+     },
+     {
+      "kind": "extra",
+      "members": [
+       {
+        "name": "c"
+       }
+      ]
+     },
+     {
+      "kind": "core"
+     }
+    ]
+   },
+   "expected": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  {
+   "name": "filter, then a nested list",
+   "path": "groups[kind=core].members[].name",
+   "document": {
+    "groups": [
+     {
+      "kind": "core",
+      "members": [
+       {
+        "name": "a"
+       },
+       {
+        "name": "b"
+       }
+      ]
+     },
+     {
+      "kind": "extra",
+      "members": [
+       {
+        "name": "c"
+       }
+      ]
+     },
+     {
+      "kind": "core"
+     }
+    ]
+   },
+   "expected": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "name": "nested filters",
+   "path": "groups[kind=core].members[name=b].name",
+   "document": {
+    "groups": [
+     {
+      "kind": "core",
+      "members": [
+       {
+        "name": "a"
+       },
+       {
+        "name": "b"
+       }
+      ]
+     },
+     {
+      "kind": "extra",
+      "members": [
+       {
+        "name": "c"
+       }
+      ]
+     },
+     {
+      "kind": "core"
+     }
+    ]
+   },
+   "expected": [
+    "b"
+   ]
+  },
+  {
+   "name": "alternatives: the first that exists wins",
+   "path": "urls.Source | urls.Repository | urls.Homepage",
+   "document": {
+    "urls": {
+     "Repository": "https://example.org/r",
+     "Homepage": "https://example.org"
+    }
+   },
+   "expected": [
+    "https://example.org/r"
+   ]
+  },
+  {
+   "name": "alternatives: both exist, only the first is read",
+   "path": "urls.Homepage | urls.Repository",
+   "document": {
+    "urls": {
+     "Repository": "https://example.org/r",
+     "Homepage": "https://example.org"
+    }
+   },
+   "expected": [
+    "https://example.org"
+   ]
+  },
+  {
+   "name": "alternatives: none exist",
+   "path": "urls.A | urls.B",
+   "document": {
+    "urls": {
+     "Repository": "https://example.org/r",
+     "Homepage": "https://example.org"
+    }
+   },
+   "expected": []
+  },
+  {
+   "name": "alternatives: an empty list falls through",
+   "path": "empty[] | urls.Homepage",
+   "document": {
+    "empty": [],
+    "urls": {
+     "Repository": "https://example.org/r",
+     "Homepage": "https://example.org"
+    }
+   },
+   "expected": [
+    "https://example.org"
+   ]
+  },
+  {
+   "name": "alternatives: a filter with no match falls through",
+   "path": "authors[name=nobody].name | urls.Homepage",
+   "document": {
+    "authors": [
+     {
+      "name": "Tu Youyou",
+      "orcid": "x"
+     },
+     {
+      "name": "Antonie van Leeuwenhoek"
+     },
+     "loose"
+    ],
+    "urls": {
+     "Repository": "https://example.org/r",
+     "Homepage": "https://example.org"
+    }
+   },
+   "expected": [
+    "https://example.org"
+   ]
+  },
+  {
+   "name": "alternatives: elements without the key fall through",
+   "path": "authors[].orcid | urls.Homepage",
+   "document": {
+    "authors": [
+     {
+      "name": "n"
+     }
+    ],
+    "urls": {
+     "Repository": "https://example.org/r",
+     "Homepage": "https://example.org"
+    }
+   },
+   "expected": [
+    "https://example.org"
+   ]
+  },
+  {
+   "name": "alternatives with @ keys",
+   "path": "Authors@R | Maintainer",
+   "document": {
+    "Maintainer": "m"
+   },
+   "expected": [
+    "m"
+   ]
+  }
+ ]
+}

@@ -39,7 +39,7 @@ def person_terms(term: str) -> tuple[str, str, str]:
 
 PERSON_TERMS = tuple(sub for term in PEOPLE for sub in person_terms(term))
 
-_STEP = re.compile(r"^(@?[A-Za-z_][A-Za-z0-9_-]*)(?:\[\]|\[(@?[A-Za-z_][A-Za-z0-9_-]*)=([A-Za-z0-9_.-]+)\])?$")
+_STEP = re.compile(r"^(@?[A-Za-z_][A-Za-z0-9_@-]*)(?:\[\]|\[(@?[A-Za-z_][A-Za-z0-9_@-]*)=([A-Za-z0-9_.-]+)\])?$")
 
 type Mapping = dict[tuple[str, str], str | None]
 """(format, term) to path, or None when the format has no place for the term."""
@@ -92,7 +92,7 @@ def _parse(path: str) -> list[list[tuple[str, str | None, str | None, bool]]]:
     alternatives = []
     for alternative in path.split(" | "):
         steps = []
-        for step in alternative.split("."):
+        for step in re.split(r"\.(?![^\[\]]*\])", alternative):  # a dot inside [k=v] is part of the value
             match = _STEP.match(step)
             if not match:
                 msg = f"mapping path {path!r}: bad step {step!r}"
