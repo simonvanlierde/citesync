@@ -119,10 +119,15 @@ def write(
             done |= {(doc.path, t) for t in changed if t not in reasons}
     version = config.codemeta_version or NEW_CODEMETA_VERSION
     for rel in missing(root, config) if source.readable else ():
-        if format_of(rel) == "codemeta" and (rel, None) in fix:
+        fmt = format_of(rel)
+        if fmt not in {"codemeta", "zenodo"} or (rel, None) not in fix:
+            continue
+        if fmt == "codemeta":
             texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
-            skipped |= {(rel, term): reason for term, reason in reasons.items()}
-            done.add((rel, None))
+        else:
+            texts[rel], reasons = _new_zenodo(rel, source, mapping, key)
+        skipped |= {(rel, term): reason for term, reason in reasons.items()}
+        done.add((rel, None))
     if not dry_run:
         for rel in texts:  # read_doc refuses an existing file outside; this catches a dangling link to one
             if not inside(root, rel):
@@ -331,6 +336,41 @@ def _new_codemeta(
         value = {"@type": "PropertyValue", "propertyID": "SWHID", "value": codecs.swhid_encode(swhid)}
         values["identifier"] = [values["identifier"], value] if "identifier" in values else value
     return json.dumps(data | values, indent=2, ensure_ascii=False) + "\n", skipped
+
+
+def _new_zenodo(
+    rel: str, source: Doc, mapping: Mapping, keyword_key: Callable[[str], str]
+) -> tuple[str, dict[str, str]]:
+    """GitHub release metadata holding the source's fields; report fields Zenodo can't represent."""
+    blank = {
+        "name": ("title", ""),
+        "description": ("description", ""),
+        "author": ("creators", []),
+        "contributor": ("contributors", []),
+        "version": ("version", ""),
+        "license": ("license", ""),
+        "datePublished": ("publication_date", ""),
+        "identifier": ("doi", ""),
+        "keywords": ("keywords", []),
+        "codeRepository": ("related_identifiers", ""),
+        "swhid": ("related_identifiers", ""),
+    }
+    doc = Doc(rel, "zenodo", {}, frozenset(), None, release=True)
+    values, skipped = _encode_terms(doc, source, {t: old for t, (_, old) in blank.items()}, mapping, keyword_key)
+    if any(not person.name for person in source.record.get("author", ())):
+        values.pop("author", None)
+        skipped["author"] = "Zenodo needs a name for each creator"
+    related = []
+    for term, relation, scheme in (
+        ("codeRepository", "isSupplementTo", "url"),
+        ("swhid", "isIdenticalTo", "swh"),
+    ):
+        if term in values:
+            related.append({"identifier": values.pop(term), "relation": relation, "scheme": scheme})
+    data = {"upload_type": "software", **{blank[term][0]: value for term, value in values.items()}}
+    if related:
+        data["related_identifiers"] = related
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n", skipped
 
 
 def _encode_terms(
