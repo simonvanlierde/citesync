@@ -64,7 +64,7 @@ def test_imports_create_citations_without_rewriting_the_source(filename: str, te
     )
     write(tmp_path, config)
     data = json.loads((tmp_path / "codemeta.json").read_text())
-    assert data["name"] == ("Measure Microscope Optics" if filename == "DESCRIPTION" else "Lensgrind")
+    assert data["name"] == ("lensgrind: Measure Microscope Optics" if filename == "DESCRIPTION" else "Lensgrind")
     assert data["author"][0]["familyName"] == "Skłodowska-Curie"
     assert data["author"][0]["@id"] == "https://orcid.org/0000-0002-1825-0097"
     assert "00000000-0000-0000-0000-000000000001" not in json.dumps(data)
@@ -78,6 +78,22 @@ def test_imports_create_citations_without_rewriting_the_source(filename: str, te
         assert data["contributor"][0]["familyName"] == "Hopper"
         assert "Lovelace" not in json.dumps(data)
         assert json.loads(result["files"]["codemeta.json"])["contributor"][0]["familyName"] == "Hopper"
+
+
+@pytest.mark.parametrize(
+    ("title", "name"),
+    [("Title: Measure Microscope Optics\n", "lensgrind: Measure Microscope Optics"), ("", "lensgrind")],
+)
+def test_r_name_is_package_and_title_as_r_tools_write_it(title: str, name: str, tmp_path: Path):
+    (tmp_path / "DESCRIPTION").write_text(f"Package: lensgrind\n{title}Version: 1.0\n")
+    assert read_doc(tmp_path, "DESCRIPTION", load_mapping()).record["name"] == name
+
+
+def test_julia_fields_outside_its_spec_are_not_read(tmp_path: Path):
+    (tmp_path / "Project.toml").write_text(JULIA.replace("[deps]", 'description = "Grinds lenses."\n[deps]'))
+    record = read_doc(tmp_path, "Project.toml", load_mapping()).record
+    assert "license" not in record
+    assert "description" not in record
 
 
 @pytest.mark.parametrize(

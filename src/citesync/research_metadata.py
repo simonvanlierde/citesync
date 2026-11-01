@@ -22,7 +22,7 @@ def parse(text: str, rel: str) -> dict[str, Any]:
     if rel.rsplit("/", 1)[-1] == "DESCRIPTION":
         _r(text, rel, data, notes)
     else:
-        _julia(text, rel, data, notes)
+        _julia(text, rel, data)
     data["_import_notes"] = notes
     return data
 
@@ -33,22 +33,22 @@ def _text(value: object, field: str, rel: str) -> str:
     return value.strip()
 
 
-def _licence(value: str, data: dict[str, Any], notes: list[tuple[str, str]], *, r: bool = False) -> None:
+def _licence(value: str, data: dict[str, Any], notes: list[tuple[str, str]]) -> None:
+    """An R License field as an SPDX expression, or a note when it can't be one."""
     if not value:
         return
-    if r:
-        aliases = {"BSD_2_clause": "BSD-2-Clause", "BSD_3_clause": "BSD-3-Clause"}
-        value = " OR ".join(aliases.get(part.strip(), part.strip()) for part in value.split("|"))
-        value = re.sub(
-            r"\b(GPL|LGPL|AGPL)\s*\(\s*(>=|==)\s*(\d+(?:\.\d+)?)\s*\)",
-            lambda m: f"{m[1]}-{m[3] if '.' in m[3] else m[3] + '.0'}-{'or-later' if m[2] == '>=' else 'only'}",
-            value,
-        )
-        value = re.sub(
-            r"\b(GPL|LGPL|AGPL)-(\d+(?:\.\d+)?)(?![\w.-])",
-            lambda m: f"{m[1]}-{m[2] if '.' in m[2] else m[2] + '.0'}-only",
-            value,
-        )
+    aliases = {"BSD_2_clause": "BSD-2-Clause", "BSD_3_clause": "BSD-3-Clause"}
+    value = " OR ".join(aliases.get(part.strip(), part.strip()) for part in value.split("|"))
+    value = re.sub(
+        r"\b(GPL|LGPL|AGPL)\s*\(\s*(>=|==)\s*(\d+(?:\.\d+)?)\s*\)",
+        lambda m: f"{m[1]}-{m[3] if '.' in m[3] else m[3] + '.0'}-{'or-later' if m[2] == '>=' else 'only'}",
+        value,
+    )
+    value = re.sub(
+        r"\b(GPL|LGPL|AGPL)-(\d+(?:\.\d+)?)(?![\w.-])",
+        lambda m: f"{m[1]}-{m[2] if '.' in m[2] else m[2] + '.0'}-only",
+        value,
+    )
     try:
         expression = canonicalize_license_expression(value)
     except InvalidLicenseExpression:
@@ -71,12 +71,12 @@ def _orcid(value: object, rel: str) -> str:
     return "https://orcid.org/" + orcid
 
 
-def _julia(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) -> None:  # noqa: C901, PLR0912 - validate each optional field and author shape
+def _julia(text: str, rel: str, data: dict[str, Any]) -> None:  # noqa: C901, PLR0912 - validate each optional field and author shape
     try:
         raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as err:
         raise UnreadableError(rel, str(err)) from err
-    for key in ("name", "version", "description"):
+    for key in ("name", "version"):  # Project.toml has no description or license (pkgdocs toml-files)
         if key in raw and (value := _text(raw[key], key, rel)):
             data[key] = value
     if "uuid" in raw:
@@ -84,8 +84,6 @@ def _julia(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str
             UUID(_text(raw["uuid"], "uuid", rel))
         except ValueError as err:
             raise UnreadableError(rel, "uuid must be a Julia package UUID") from err
-    if "license" in raw:
-        _licence(_text(raw["license"], "license", rel), data, notes)
     authors = raw.get("authors", [])
     if not isinstance(authors, list):
         raise UnreadableError(rel, "authors must be an array of names or CFF person/entity tables")
@@ -267,7 +265,7 @@ def _r(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) 
     package = fields.get("Package", "")
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9.]*[A-Za-z0-9]", package):
         raise UnreadableError(rel, "DESCRIPTION needs a valid Package field")
-    data["name"] = fields.get("Title") or package
+    data["name"] = f"{package}: {fields['Title']}" if fields.get("Title") else package  # as cffr and codemetar
     for original, term in [("Description", "description"), ("Version", "version")]:
         if fields.get(original):
             data[term] = fields[original]
@@ -279,7 +277,7 @@ def _r(text: str, rel: str, data: dict[str, Any], notes: list[tuple[str, str]]) 
         notes.append(
             ("author", "Author and Maintainer prose is not parsed; supply literal Authors@R with explicit roles.")
         )
-    _licence(fields.get("License", ""), data, notes, r=True)
+    _licence(fields.get("License", ""), data, notes)
     urls = re.findall(r"https?://[^\s,]+", fields.get("URL", ""))
     repos = _repositories(urls, rel)
     if len(set(repos)) == 1:

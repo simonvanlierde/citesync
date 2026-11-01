@@ -17,6 +17,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - BibTeX and CSL-JSON citation keys come from the title, such as `credit-matrix`, instead of `software`.
+- An R DESCRIPTION gives the citation name as `Package: Title`, as cffr and codemetar do, instead of the title alone ([R and Julia imports](docs/formats.md#r-and-julia-imports)).
+- A Julia Project.toml no longer gives a description or licence: the format has neither field, so keys added by hand aren't read ([R and Julia imports](docs/formats.md#r-and-julia-imports)).
 
 ### Fixed
 
