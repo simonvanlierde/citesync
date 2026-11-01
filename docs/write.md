@@ -26,7 +26,7 @@ files = ["codemeta.json", ".zenodo.json"]
 
 Preview the files with `citesync write --diff`. Run `citesync write` to create them.
 Without that setting, write only updates files that exist. Ignoring `file-missing` also prevents creation.
-[`citesync init`](init.md) creates a CITATION.cff.
+[`citesync init`](init.md) creates a CITATION.cff. Files under `exports` (BibTeX, CSL-JSON, APA, JSON-LD) are made whole from the source each time they go stale ([citation exports](export.md)).
 
 A new codemeta.json gets the configured `codemeta-version`, else 3.0, the version Software Heritage reads.
 A new .zenodo.json gets `upload_type: software` and the supported fields the source holds.
