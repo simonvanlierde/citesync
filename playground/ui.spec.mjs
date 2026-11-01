@@ -544,6 +544,7 @@ test("opening a file list scrolls the list, not the page", async ({ page }) => {
     await page.evaluate(() => document.querySelector("#output-file-list").getBoundingClientRect().bottom > innerHeight),
   ).toBe(true);
   expect(await page.evaluate(() => scrollY)).toBe(before);
+});
 
 test("name corrections survive a source edit, and a refresh keeps a typed search", async ({ page }) => {
   await page.goto("/");
