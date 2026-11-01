@@ -295,7 +295,7 @@ def _rewrite(
     zenodo_contributor_type: str | None,
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
-    if doc.format == "cff-1.2.0":
+    if doc.format == "cff-1.2.0" or doc.path.endswith((".yml", ".yaml")):  # Quarto's _extension.yml
         yaml = _yaml(text)
         data = yaml.load(text)
         skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)

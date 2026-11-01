@@ -10,6 +10,8 @@ Reading, updating and creating a file are separate operations:
 | pyproject.toml | Yes, `[project]` metadata | Selected fields, opt-in | No |
 | Cargo.toml | Yes, package metadata | Selected fields, opt-in | No |
 | package.json | Yes, npm package metadata | Selected fields, opt-in | No |
+| typst.toml | Yes, Typst package metadata, read as Cargo's `[package]` | Selected fields, opt-in | No |
+| _extension.yml / _extension.yaml | Yes, a Quarto extension's `version` and `author`, read as npm's | Selected fields, opt-in | No |
 | DESCRIPTION | Yes, static R package metadata | Never | No |
 | Project.toml / JuliaProject.toml | Yes, Julia metadata | Never | No |
 | PKG-INFO / METADATA | Yes, Python Core Metadata | Never | No |
@@ -20,6 +22,17 @@ to create CITATION.cff. It does not require an existing codemeta.json.
 The [init guide](init.md) explains how fields are combined and names are split.
 The [write guide](write.md) describes file creation, omitted fields and preservation of existing data.
 The [configuration reference](config.md) lists the manifest fields that can be updated.
+
+## Plugin manifests
+
+A Typst package's `typst.toml` and a Quarto extension's `_extension.yml` carry a version and authors that should move with each release. Their fields sit where Cargo.toml and package.json keep theirs, so citesync reads them through the same mapping rows: `typst.toml` gives `version`, `authors`, `license`, `description`, `repository` and `keywords`; `_extension.yml` gives `version` and its one `author`. A Quarto extension lives under `_extensions/<name>/`, so list it under `manifests`:
+
+```toml
+manifests = ["typst/typst.toml", "quarto/_extensions/lensgrind/_extension.yml"]
+write-manifests = ["version"]
+```
+
+A `typst.toml` at the repo root is read by default, as the other manifests are. `write` edits `_extension.yml` through the same YAML round trip as CITATION.cff, so its comments and quoting stay.
 
 Package manifests also control builds, dependencies and publishing. citesync handles their
 citation metadata; it does not generate complete package configurations.

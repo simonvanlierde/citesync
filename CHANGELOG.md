@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Check and update Typst `typst.toml` and Quarto `_extension.yml` plugin manifests, so a release moves their version with CITATION.cff ([plugin manifests](docs/formats.md#plugin-manifests)).
+
 ## [0.3.0] - 2026-11-01
 
 ### Added
