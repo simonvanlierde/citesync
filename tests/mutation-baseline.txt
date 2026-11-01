@@ -45,8 +45,8 @@ citesync.write.x__new_codemeta__mutmut_56  _encode reads only the stand-in Doc's
 citesync.write.x__new_codemeta__mutmut_98  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.write.x__yaml__mutmut_8  any width past the longest line keeps every line whole
 citesync.write.x__yaml__mutmut_9  any width past the longest line keeps every line whole
-citesync.write.x__encode__mutmut_64  the codeRepository branch reads neither source nor keyword_key
-citesync.write.x__encode__mutmut_68  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_78  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_82  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__identifier__mutmut_24  a PropertyValue's value or url is a string, and spelling a string never calls decode
 citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__relist__mutmut_10  zip's strict=None is falsy, the same as False
