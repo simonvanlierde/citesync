@@ -115,7 +115,7 @@ def test_extra_exports_are_separated_from_incomplete_package_templates():
         }
     )
     assert {"citation.bib", "citation.csl.json"} <= result["files"].keys()
-    assert set(result["templates"]) == {"pyproject.toml", "Cargo.toml", "package.json"}
+    assert set(result["templates"]) == {"pyproject.toml", "Cargo.toml", "package.json", "DESCRIPTION", "Project.toml"}
     assert "zip" not in result
     assert "template_zip" not in result
     csl = json.loads(result["files"]["citation.csl.json"])
@@ -233,3 +233,40 @@ def test_partial_files_can_open_in_the_details_form(filename: str, text: str):
     details = generate({"filename": filename, "text": text, "edit": True})["details"]
     assert details["title"] == "partial optics"
     assert details["authors"] == []
+
+
+def test_r_and_julia_templates_read_back_through_the_imports():
+    from citesync.formats import Person  # noqa: PLC0415
+    from citesync.playground_exports import package_templates  # noqa: PLC0415
+    from citesync.research_metadata import parse  # noqa: PLC0415
+
+    curie = Person("Marie Skłodowska-Curie", "Marie", "Skłodowska-Curie", "https://orcid.org/0000-0002-1825-0097")
+    record = {
+        "name": 'lensgrind: Grind "Lenses"',
+        "version": "1.4.0",
+        "description": "Measure\n  microscope optics.",
+        "license": "GPL-3.0-or-later",
+        "codeRepository": "https://github.com/example/lensgrind",
+        "author": (curie, Person("Example Lab", organization=True)),
+        "contributor": (Person("Tu Youyou", "Youyou", "Tu"),),
+    }
+    templates, notes = package_templates(record)
+    r = parse(templates["DESCRIPTION"], "DESCRIPTION")
+    assert (r["name"], r["version"], r["license"]) == ('lensgrind: Grind "Lenses"', "1.4.0", "GPL-3.0-or-later")
+    assert (r["description"], r["codeRepository"]) == (
+        "Measure microscope optics.",
+        "https://github.com/example/lensgrind",
+    )
+    assert r["author"][0] == {
+        "@type": "Person",
+        "givenName": "Marie",
+        "familyName": "Skłodowska-Curie",
+        "@id": "https://orcid.org/0000-0002-1825-0097",
+    }
+    assert [p.get("familyName") for p in r["contributor"]] == ["Tu"]
+    assert "DESCRIPTION: give the maintainer the role cre and an email, as CRAN asks." in notes
+    julia = parse(templates["Project.toml"], "Project.toml")
+    assert julia["version"] == "1.4.0"
+    assert julia["author"][0]["@id"] == "https://orcid.org/0000-0002-1825-0097"
+    assert (julia["author"][1]["@type"], julia["author"][1]["name"]) == ("Organization", "Example Lab")
+    assert "Project.toml: name omitted; a Julia package name is an identifier, such as Lensgrind." in notes

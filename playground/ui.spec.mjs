@@ -514,6 +514,10 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
     "schema.jsonld — Website structured data",
     ".zenodo.json — Zenodo deposit",
   ]);
+  await output.fill("julia");
+  await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText([
+    "Project.toml — Julia (incomplete)",
+  ]);
   await output.fill("bibtex");
   await page.keyboard.press("Enter");
   await expect(page.locator("#output")).toContainText("@software{lensgrind,");
