@@ -2,7 +2,10 @@
   "@context": "https://w3id.org/codemeta/3.0",
   "@type": "SoftwareSourceCode",
   "name": "citesync",
-  "description": "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, rewrite them to match one source file, and start a CITATION.cff from them, using the CodeMeta crosswalks",
+  "softwareVersion": "0.3.0",
+  "datePublished": "2026-11-01",
+  "url": "https://simonvanlierde.com/citesync/",
+  "description": "citesync generates and synchronizes software citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. Imports include Python, Rust, npm, R and Julia package metadata; the playground also exports BibTeX and CSL-JSON.",
   "author": [
     {
       "@type": "Person",
@@ -15,7 +18,7 @@
   "codeRepository": "https://github.com/simonvanlierde/citesync",
   "issueTracker": "https://github.com/simonvanlierde/citesync/issues",
   "license": "https://spdx.org/licenses/Apache-2.0",
-  "programmingLanguage": "Python",
+  "programmingLanguage": ["Python", "JavaScript"],
   "identifier": "https://doi.org/10.5281/zenodo.23779706",
   "keywords": ["citation", "CITATION.cff", "codemeta", "zenodo", "software-metadata", "pre-commit"]
 }

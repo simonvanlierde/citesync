@@ -73,13 +73,13 @@ uvx citesync write   # update the other citation files
 uvx citesync check   # check that the files agree</pre></div></div>
 <div role="tabpanel" id="snippet-hook" aria-labelledby="use-hook" hidden><p>Add to <code>.pre-commit-config.yaml</code>, then run <code>prek install</code> or <code>pre-commit install</code>.</p><div class="code-block"><button type="button" class="code-copy" aria-label="Copy code" title="Copy code"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg></button><pre tabindex="0" aria-label="Pre-commit configuration">repos:
   - repo: https://github.com/simonvanlierde/citesync
-    rev: v0.2.0
+    rev: v0.3.0
     hooks:
       - id: citesync</pre></div></div>
 <div role="tabpanel" id="snippet-ci" aria-labelledby="use-ci" hidden><p>Add these steps to a GitHub Actions job running on <code>ubuntu-latest</code> with your citation files committed.</p><div class="code-block"><button type="button" class="code-copy" aria-label="Copy code" title="Copy code"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg></button><pre tabindex="0" aria-label="GitHub Actions steps">steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
   - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-  - run: uvx --from citesync==0.2.0 citesync check</pre></div></div>
+  - run: uvx --from citesync==0.3.0 citesync check</pre></div></div>
 <span id="snippet-status" class="hint" role="status"></span>
 <a class="usage-docs" href="https://github.com/simonvanlierde/citesync#readme">Setup and configuration</a>
 </section>
