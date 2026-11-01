@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The field mapping uses [codemeta-drift 0.4.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.4.0), with original crosswalk cells and its schema 1.3 contract. Field paths remain unchanged.
+
 ### Added
 
 - Read extracted Python PKG-INFO and METADATA files as sources in the CLI and playground, without building or importing packages. These files remain read-only ([supported files](docs/formats.md#python-distribution-metadata)).

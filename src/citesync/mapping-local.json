@@ -1,626 +1,728 @@
 {
-  "schema_version": "1.2",
+  "schema_version": "1.3",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "rows": [
     {
       "format": "cff-1.2.0",
       "term": "name",
       "path": "title",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "title"
     },
     {
       "format": "cff-1.2.0",
       "term": "version",
       "path": "version",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "version"
     },
     {
       "format": "cff-1.2.0",
       "term": "author",
       "path": "authors[]",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "authors"
     },
     {
       "format": "cff-1.2.0",
       "term": "author.givenName",
       "path": "authors[].given-names",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "person.given-names"
     },
     {
       "format": "cff-1.2.0",
       "term": "author.familyName",
       "path": "authors[].family-names",
       "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
-      "comment": "CFF keeps a name particle and suffix apart: the family name is name-particle, family-names and name-suffix joined by spaces, so Antonie van Leeuwenhoek has family-names Leeuwenhoek and name-particle van, and a family name of van Leeuwenhoek."
+      "comment": "CFF keeps a name particle and suffix apart: the family name is name-particle, family-names and name-suffix joined by spaces, so Antonie van Leeuwenhoek has family-names Leeuwenhoek and name-particle van, and a family name of van Leeuwenhoek.",
+      "crosswalk_cell": "person.family-names"
     },
     {
       "format": "cff-1.2.0",
       "term": "author.@id",
       "path": "authors[].orcid",
-      "source": "curated:the cell lists person.orcid / identifiers / doi; a person's ORCID is orcid"
+      "source": "curated:the cell lists person.orcid / identifiers / doi; a person's ORCID is orcid",
+      "crosswalk_cell": "person.orcid / identifiers / doi"
     },
     {
       "format": "cff-1.2.0",
       "term": "contributor",
       "path": null,
-      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors",
+      "crosswalk_cell": ""
     },
     {
       "format": "cff-1.2.0",
       "term": "contributor.givenName",
       "path": null,
-      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors",
+      "crosswalk_cell": "person.given-names"
     },
     {
       "format": "cff-1.2.0",
       "term": "contributor.familyName",
       "path": null,
-      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors",
+      "crosswalk_cell": "person.family-names"
     },
     {
       "format": "cff-1.2.0",
       "term": "contributor.@id",
       "path": null,
-      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors"
+      "source": "curated:no cell for contributors; CFF 1.2.0 has no contributor list, only authors",
+      "crosswalk_cell": "person.orcid / identifiers / doi"
     },
     {
       "format": "cff-1.2.0",
       "term": "license",
       "path": "license",
-      "source": "curated:the cell lists license / license-url; license-url holds a licence URL, not an SPDX id"
+      "source": "curated:the cell lists license / license-url; license-url holds a licence URL, not an SPDX id",
+      "crosswalk_cell": "license / license-url"
     },
     {
       "format": "cff-1.2.0",
       "term": "identifier",
       "path": "doi | identifiers[type=doi].value",
-      "source": "curated:the cell lists identifiers / person.orcid / doi; the software DOI is doi, or the doi entry of identifiers"
+      "source": "curated:the cell lists identifiers / person.orcid / doi; the software DOI is doi, or the doi entry of identifiers",
+      "crosswalk_cell": "identifiers / person.orcid / doi"
     },
     {
       "format": "cff-1.2.0",
       "term": "swhid",
       "path": "identifiers[type=swh].value",
-      "source": "curated:the cell lists identifiers / person.orcid / doi; a SWHID is the swh entry of identifiers"
+      "source": "curated:the cell lists identifiers / person.orcid / doi; a SWHID is the swh entry of identifiers",
+      "crosswalk_cell": "identifiers / person.orcid / doi"
     },
     {
       "format": "cff-1.2.0",
       "term": "codeRepository",
       "path": "repository-code",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "repository-code"
     },
     {
       "format": "cff-1.2.0",
       "term": "description",
       "path": "abstract",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "abstract"
     },
     {
       "format": "cff-1.2.0",
       "term": "keywords",
       "path": "keywords",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "keywords"
     },
     {
       "format": "cff-1.2.0",
       "term": "datePublished",
       "path": "date-released",
-      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1"
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "date-released"
     },
     {
       "format": "codemeta",
       "term": "name",
       "path": "name",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "version",
       "path": "version",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "author",
       "path": "author[]",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "author.givenName",
       "path": "author[].givenName",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "author.familyName",
       "path": "author[].familyName",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "author.@id",
       "path": "author[].@id",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "contributor",
       "path": "contributor[]",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "contributor.givenName",
       "path": "contributor[].givenName",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "contributor.familyName",
       "path": "contributor[].familyName",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "contributor.@id",
       "path": "contributor[].@id",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "license",
       "path": "license",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "identifier",
       "path": "identifier",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "swhid",
       "path": "identifier",
-      "source": "curated:CodeMeta has no SWHID term; a SWHID sits in identifier, beside the DOI, as a swh:1: string or a PropertyValue (propertyID SWHID) whose value is one"
+      "source": "curated:CodeMeta has no SWHID term; a SWHID sits in identifier, beside the DOI, as a swh:1: string or a PropertyValue (propertyID SWHID) whose value is one",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "codeRepository",
       "path": "codeRepository",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "description",
       "path": "description",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "keywords",
       "path": "keywords",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "codemeta",
       "term": "datePublished",
       "path": "datePublished",
-      "source": "curated:codemeta's own term"
+      "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
     },
     {
       "format": "zenodo",
       "term": "name",
       "path": "title",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "title"
     },
     {
       "format": "zenodo",
       "term": "version",
       "path": "version",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "version"
     },
     {
       "format": "zenodo",
       "term": "author",
       "path": "creators[]",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "creators"
     },
     {
       "format": "zenodo",
       "term": "author.givenName",
       "path": "creators[].name",
-      "source": "curated:no cell; Zenodo keeps one name string per creator, written 'Family, Given'"
+      "source": "curated:no cell; Zenodo keeps one name string per creator, written 'Family, Given'",
+      "crosswalk_cell": ""
     },
     {
       "format": "zenodo",
       "term": "author.familyName",
       "path": "creators[].name",
-      "source": "curated:no cell; Zenodo keeps one name string per creator, written 'Family, Given'"
+      "source": "curated:no cell; Zenodo keeps one name string per creator, written 'Family, Given'",
+      "crosswalk_cell": ""
     },
     {
       "format": "zenodo",
       "term": "author.@id",
       "path": "creators[].orcid",
-      "source": "curated:the cell says ORCID; the .zenodo.json key is orcid"
+      "source": "curated:the cell says ORCID; the .zenodo.json key is orcid",
+      "crosswalk_cell": "ORCID"
     },
     {
       "format": "zenodo",
       "term": "contributor",
       "path": "contributors[]",
-      "source": "curated:no cell; .zenodo.json lists contributors under contributors, each with a name, a type and an optional orcid"
+      "source": "curated:no cell; .zenodo.json lists contributors under contributors, each with a name, a type and an optional orcid",
+      "crosswalk_cell": ""
     },
     {
       "format": "zenodo",
       "term": "contributor.givenName",
       "path": "contributors[].name",
-      "source": "curated:no cell; Zenodo keeps one name string per contributor, written 'Family, Given'"
+      "source": "curated:no cell; Zenodo keeps one name string per contributor, written 'Family, Given'",
+      "crosswalk_cell": ""
     },
     {
       "format": "zenodo",
       "term": "contributor.familyName",
       "path": "contributors[].name",
-      "source": "curated:no cell; Zenodo keeps one name string per contributor, written 'Family, Given'"
+      "source": "curated:no cell; Zenodo keeps one name string per contributor, written 'Family, Given'",
+      "crosswalk_cell": ""
     },
     {
       "format": "zenodo",
       "term": "contributor.@id",
       "path": "contributors[].orcid",
-      "source": "curated:the cell says ORCID; the .zenodo.json key is orcid"
+      "source": "curated:the cell says ORCID; the .zenodo.json key is orcid",
+      "crosswalk_cell": "ORCID"
     },
     {
       "format": "zenodo",
       "term": "license",
       "path": "license",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "license"
     },
     {
       "format": "zenodo",
       "term": "identifier",
       "path": "doi",
       "source": "curated:the cell says id, the Zenodo record id; the DOI field is doi",
-      "comment": "The GitHub integration mints the DOI and normally leaves doi unset in .zenodo.json."
+      "comment": "The GitHub integration mints the DOI and normally leaves doi unset in .zenodo.json.",
+      "crosswalk_cell": "id"
     },
     {
       "format": "zenodo",
       "term": "swhid",
       "path": "related_identifiers[scheme=swh].identifier",
       "source": "curated:the cell says id, the Zenodo record id; a SWHID is the identifier of the related_identifiers entry with scheme swh",
-      "comment": "scheme is optional: Zenodo detects it from the identifier. Also read an entry with no scheme whose identifier starts swh:1: as the SWHID."
+      "comment": "scheme is optional: Zenodo detects it from the identifier. Also read an entry with no scheme whose identifier starts swh:1: as the SWHID.",
+      "crosswalk_cell": "id"
     },
     {
       "format": "zenodo",
       "term": "codeRepository",
       "path": "related_identifiers[relation=isSupplementTo].identifier",
-      "source": "curated:the cell says related_identifiers.isSupplementTo, a relation, not a key; the URL is the identifier of the entry with that relation"
+      "source": "curated:the cell says related_identifiers.isSupplementTo, a relation, not a key; the URL is the identifier of the entry with that relation",
+      "crosswalk_cell": "related_identifiers.isSupplementTo"
     },
     {
       "format": "zenodo",
       "term": "description",
       "path": "description",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "description"
     },
     {
       "format": "zenodo",
       "term": "keywords",
       "path": "keywords",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "keywords"
     },
     {
       "format": "zenodo",
       "term": "datePublished",
       "path": "publication_date",
-      "source": "crosswalk:crosswalks/Zenodo.csv@3.1"
+      "source": "crosswalk:crosswalks/Zenodo.csv@3.1",
+      "crosswalk_cell": "publication_date"
     },
     {
       "format": "pep621",
       "term": "name",
       "path": "project.name",
-      "source": "curated:no PEP 621 crosswalk upstream"
+      "source": "curated:no PEP 621 crosswalk upstream",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "version",
       "path": "project.version",
-      "source": "curated:no PEP 621 crosswalk upstream"
+      "source": "curated:no PEP 621 crosswalk upstream",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "author",
       "path": "project.authors[]",
-      "source": "curated:no PEP 621 crosswalk upstream"
+      "source": "curated:no PEP 621 crosswalk upstream",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "author.givenName",
       "path": "project.authors[].name",
-      "source": "curated:no PEP 621 crosswalk upstream; an author has one name string"
+      "source": "curated:no PEP 621 crosswalk upstream; an author has one name string",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "author.familyName",
       "path": "project.authors[].name",
-      "source": "curated:no PEP 621 crosswalk upstream; an author has one name string"
+      "source": "curated:no PEP 621 crosswalk upstream; an author has one name string",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "author.@id",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no person identifier"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no person identifier",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "contributor",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has authors and maintainers, no contributors"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has authors and maintainers, no contributors",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "contributor.givenName",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "contributor.familyName",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "contributor.@id",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no contributors",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "license",
       "path": "project.license",
       "source": "curated:no PEP 621 crosswalk upstream",
-      "comment": "An SPDX expression string since PEP 639. The legacy {text = ...} or {file = ...} table is the same key in an older shape."
+      "comment": "An SPDX expression string since PEP 639. The legacy {text = ...} or {file = ...} table is the same key in an older shape.",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "identifier",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no DOI field"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no DOI field",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "swhid",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no SWHID field"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no SWHID field",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "codeRepository",
       "path": "project.urls.Source | project.urls.Repository | project.urls.Homepage",
-      "source": "curated:no PEP 621 crosswalk upstream"
+      "source": "curated:no PEP 621 crosswalk upstream",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "description",
       "path": "project.description",
-      "source": "curated:no PEP 621 crosswalk upstream"
+      "source": "curated:no PEP 621 crosswalk upstream",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "keywords",
       "path": "project.keywords",
-      "source": "curated:no PEP 621 crosswalk upstream"
+      "source": "curated:no PEP 621 crosswalk upstream",
+      "crosswalk_cell": null
     },
     {
       "format": "pep621",
       "term": "datePublished",
       "path": null,
-      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no release date"
+      "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no release date",
+      "crosswalk_cell": null
     },
     {
       "format": "cargo",
       "term": "name",
       "path": "package.name",
-      "source": "curated:the cell says package.authors; the crate name is package.name"
+      "source": "curated:the cell says package.authors; the crate name is package.name",
+      "crosswalk_cell": "package.authors"
     },
     {
       "format": "cargo",
       "term": "version",
       "path": "package.version",
-      "source": "crosswalk:crosswalks/Cargo.csv@3.1"
+      "source": "crosswalk:crosswalks/Cargo.csv@3.1",
+      "crosswalk_cell": "package.version"
     },
     {
       "format": "cargo",
       "term": "author",
       "path": "package.authors[]",
-      "source": "crosswalk:crosswalks/Cargo.csv@3.1"
+      "source": "crosswalk:crosswalks/Cargo.csv@3.1",
+      "crosswalk_cell": "package.authors"
     },
     {
       "format": "cargo",
       "term": "author.givenName",
       "path": "package.authors[]",
-      "source": "curated:no cell; Cargo keeps one 'Name <email>' string per author"
+      "source": "curated:no cell; Cargo keeps one 'Name <email>' string per author",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "author.familyName",
       "path": "package.authors[]",
-      "source": "curated:no cell; Cargo keeps one 'Name <email>' string per author"
+      "source": "curated:no cell; Cargo keeps one 'Name <email>' string per author",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "author.@id",
       "path": null,
-      "source": "curated:no cell; Cargo has no person identifier"
+      "source": "curated:no cell; Cargo has no person identifier",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "contributor",
       "path": null,
-      "source": "curated:the cell says package.authors, which holds the authors; Cargo has no contributor list"
+      "source": "curated:the cell says package.authors, which holds the authors; Cargo has no contributor list",
+      "crosswalk_cell": "package.authors"
     },
     {
       "format": "cargo",
       "term": "contributor.givenName",
       "path": null,
-      "source": "curated:no cell; Cargo has no contributor list"
+      "source": "curated:no cell; Cargo has no contributor list",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "contributor.familyName",
       "path": null,
-      "source": "curated:no cell; Cargo has no contributor list"
+      "source": "curated:no cell; Cargo has no contributor list",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "contributor.@id",
       "path": null,
-      "source": "curated:no cell; Cargo has no contributor list"
+      "source": "curated:no cell; Cargo has no contributor list",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "license",
       "path": "package.license",
-      "source": "crosswalk:crosswalks/Cargo.csv@3.1"
+      "source": "crosswalk:crosswalks/Cargo.csv@3.1",
+      "crosswalk_cell": "package.license"
     },
     {
       "format": "cargo",
       "term": "identifier",
       "path": null,
-      "source": "curated:no cell; Cargo has no DOI field"
+      "source": "curated:no cell; Cargo has no DOI field",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "swhid",
       "path": null,
-      "source": "curated:no cell; Cargo has no SWHID field"
+      "source": "curated:no cell; Cargo has no SWHID field",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "codeRepository",
       "path": "package.repository",
-      "source": "crosswalk:crosswalks/Cargo.csv@3.1"
+      "source": "crosswalk:crosswalks/Cargo.csv@3.1",
+      "crosswalk_cell": "package.repository"
     },
     {
       "format": "cargo",
       "term": "description",
       "path": "package.description",
-      "source": "curated:no cell; Cargo has package.description"
+      "source": "curated:no cell; Cargo has package.description",
+      "crosswalk_cell": ""
     },
     {
       "format": "cargo",
       "term": "keywords",
       "path": "package.keywords",
-      "source": "curated:the cell says package.keyword; Cargo's key is package.keywords"
+      "source": "curated:the cell says package.keyword; Cargo's key is package.keywords",
+      "crosswalk_cell": "package.keyword"
     },
     {
       "format": "cargo",
       "term": "datePublished",
       "path": null,
-      "source": "curated:no cell; Cargo.toml has no release date"
+      "source": "curated:no cell; Cargo.toml has no release date",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "name",
       "path": "name",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "name"
     },
     {
       "format": "npm",
       "term": "version",
       "path": "version",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "version"
     },
     {
       "format": "npm",
       "term": "author",
       "path": "author",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "author"
     },
     {
       "format": "npm",
       "term": "author.givenName",
       "path": "author.name",
-      "source": "curated:no cell; the crosswalk's person name row says author.name, one name string"
+      "source": "curated:no cell; the crosswalk's person name row says author.name, one name string",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "author.familyName",
       "path": "author.name",
-      "source": "curated:no cell; the crosswalk's person name row says author.name, one name string"
+      "source": "curated:no cell; the crosswalk's person name row says author.name, one name string",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "author.@id",
       "path": null,
-      "source": "curated:no cell; package.json has no person identifier"
+      "source": "curated:no cell; package.json has no person identifier",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "contributor",
       "path": "contributors[]",
-      "source": "curated:the cell says contributors; package.json keeps a list of people there"
+      "source": "curated:the cell says contributors; package.json keeps a list of people there",
+      "crosswalk_cell": "contributors"
     },
     {
       "format": "npm",
       "term": "contributor.givenName",
       "path": "contributors[].name",
-      "source": "curated:no cell; package.json keeps one name string per person, as for author"
+      "source": "curated:no cell; package.json keeps one name string per person, as for author",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "contributor.familyName",
       "path": "contributors[].name",
-      "source": "curated:no cell; package.json keeps one name string per person, as for author"
+      "source": "curated:no cell; package.json keeps one name string per person, as for author",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "contributor.@id",
       "path": null,
-      "source": "curated:no cell; package.json has no person identifier"
+      "source": "curated:no cell; package.json has no person identifier",
+      "crosswalk_cell": ""
     },
     {
       "format": "npm",
       "term": "license",
       "path": "license",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "license"
     },
     {
       "format": "npm",
       "term": "identifier",
       "path": null,
-      "source": "curated:the cell says name, the package name; package.json has no DOI field"
+      "source": "curated:the cell says name, the package name; package.json has no DOI field",
+      "crosswalk_cell": "name"
     },
     {
       "format": "npm",
       "term": "swhid",
       "path": null,
-      "source": "curated:the cell says name, the package name; package.json has no SWHID field"
+      "source": "curated:the cell says name, the package name; package.json has no SWHID field",
+      "crosswalk_cell": "name"
     },
     {
       "format": "npm",
       "term": "codeRepository",
       "path": "repository",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "repository"
     },
     {
       "format": "npm",
       "term": "description",
       "path": "description",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "description"
     },
     {
       "format": "npm",
       "term": "keywords",
       "path": "keywords",
-      "source": "crosswalk:crosswalks/NodeJS.csv@3.1"
+      "source": "crosswalk:crosswalks/NodeJS.csv@3.1",
+      "crosswalk_cell": "keywords"
     },
     {
       "format": "npm",
       "term": "datePublished",
       "path": null,
-      "source": "curated:no cell; package.json has no release date"
+      "source": "curated:no cell; package.json has no release date",
+      "crosswalk_cell": ""
     }
   ]
 }
