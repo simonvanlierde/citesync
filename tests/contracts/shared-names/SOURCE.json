@@ -1,0 +1,9 @@
+{
+  "source_repository": "https://github.com/simonvanlierde/credit-matrix",
+  "source_path": "conformance/names/people-v1.json",
+  "source_revision_kind": "git-blob",
+  "source_revision": "7be834fc45197d9b42778911411065918803bd60",
+  "sha256": "8c0cfdf2a92fc61c81dd428236b7be2862dea80e2837bc141f9f47279eeeda78",
+  "license": "MIT",
+  "license_file": "LICENSE"
+}

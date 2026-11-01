@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "particle",
+      "display": "Antonie van Leeuwenhoek",
+      "matrix": {
+        "firstName": "Antonie",
+        "middleName": "",
+        "surname": "van Leeuwenhoek",
+        "initials": "AL"
+      },
+      "cff": {
+        "given-names": "Antonie",
+        "name-particle": "van",
+        "family-names": "Leeuwenhoek"
+      },
+      "codemeta": {
+        "givenName": "Antonie",
+        "familyName": "van Leeuwenhoek"
+      },
+      "equivalent_names": ["Antonie van Leeuwenhoek", "van Leeuwenhoek Antonie"]
+    },
+    {
+      "id": "comma",
+      "display": "van Leeuwenhoek, Antonie",
+      "matrix": {
+        "firstName": "Antonie",
+        "middleName": "",
+        "surname": "van Leeuwenhoek",
+        "initials": "AL"
+      },
+      "cff": {
+        "given-names": "Antonie",
+        "name-particle": "van",
+        "family-names": "Leeuwenhoek"
+      },
+      "codemeta": {
+        "givenName": "Antonie",
+        "familyName": "van Leeuwenhoek"
+      },
+      "equivalent_names": ["Antonie van Leeuwenhoek"],
+      "zenodo_name": "van Leeuwenhoek, Antonie"
+    },
+    {
+      "id": "hyphen",
+      "display": "Marie Skłodowska-Curie",
+      "matrix": {
+        "firstName": "Marie",
+        "middleName": "",
+        "surname": "Skłodowska-Curie",
+        "initials": "MS"
+      },
+      "cff": {
+        "given-names": "Marie",
+        "family-names": "Skłodowska-Curie"
+      },
+      "codemeta": {
+        "givenName": "Marie",
+        "familyName": "Skłodowska-Curie"
+      },
+      "equivalent_names": ["Marie Skłodowska-Curie"]
+    },
+    {
+      "id": "nfd",
+      "display": "Henri Poincaré",
+      "matrix": {
+        "firstName": "Henri",
+        "middleName": "",
+        "surname": "Poincaré",
+        "initials": "HP"
+      },
+      "cff": {
+        "given-names": "Henri",
+        "family-names": "Poincaré"
+      },
+      "codemeta": {
+        "givenName": "Henri",
+        "familyName": "Poincaré"
+      },
+      "equivalent_names": ["Henri Poincaré"]
+    },
+    {
+      "id": "family-first",
+      "display": "Wu Chien-Shiung",
+      "matrix": {
+        "firstName": "Chien-Shiung",
+        "middleName": "",
+        "surname": "Wu",
+        "initials": "CW"
+      },
+      "cff": {
+        "given-names": "Chien-Shiung",
+        "family-names": "Wu"
+      },
+      "codemeta": {
+        "givenName": "Chien-Shiung",
+        "familyName": "Wu"
+      },
+      "equivalent_names": ["Wu Chien-Shiung", "Chien-Shiung Wu"]
+    },
+    {
+      "id": "cjk",
+      "display": "吳健雄",
+      "matrix": {
+        "firstName": "健雄",
+        "middleName": "",
+        "surname": "吳",
+        "initials": "健吳"
+      },
+      "cff": {
+        "given-names": "健雄",
+        "family-names": "吳"
+      },
+      "codemeta": {
+        "givenName": "健雄",
+        "familyName": "吳"
+      },
+      "equivalent_names": ["吳健雄"]
+    },
+    {
+      "id": "suffix",
+      "display": "Josiah Carberry Jr.",
+      "matrix": {
+        "firstName": "Josiah",
+        "middleName": "",
+        "surname": "Carberry",
+        "initials": "JC"
+      },
+      "cff": {
+        "given-names": "Josiah",
+        "family-names": "Carberry",
+        "name-suffix": "Jr."
+      },
+      "codemeta": {
+        "givenName": "Josiah",
+        "familyName": "Carberry Jr."
+      },
+      "equivalent_names": ["Josiah Carberry Jr."],
+      "orcid": "https://orcid.org/0000-0002-1825-0097"
+    }
+  ],
+  "orcid_cases": [
+    {
+      "input": "https://orcid.org/0000-0002-1825-0097",
+      "normalized": "0000-0002-1825-0097",
+      "checksum_valid": true
+    },
+    {
+      "input": "0000-0002-1825-0098",
+      "normalized": "0000-0002-1825-0098",
+      "checksum_valid": false
+    }
+  ]
+}
