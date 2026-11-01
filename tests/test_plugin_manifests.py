@@ -100,3 +100,18 @@ def test_each_plugin_manifest_name_is_checked_and_written(tmp_path: Path, run: "
     assert "error[version-mismatch] version: '0.1.0', CITATION.cff has '1.2.3'" in out
     assert run("write", "--root", str(tmp_path))[0] == 0
     assert (tmp_path / "plugin" / name).read_text(encoding="utf-8") == text.format(version="1.2.3")
+
+
+@pytest.mark.parametrize(("name", "text"), [("_extension.yml", QUARTO), ("package.json", None)])
+def test_a_list_author_is_reported_not_skipped(tmp_path: Path, run: "Run", name: str, text: str | None) -> None:
+    shutil.copy(SYNTHETIC / "CITATION.cff", tmp_path / "CITATION.cff")
+    body = (
+        text.format(version="1.2.3").replace("author: Ada Lovelace", "author: [Ada Lovelace, Alan Turing]")
+        if text
+        else '{"name": "synthagree", "version": "1.2.3", "author": ["Ada Lovelace", "Alan Turing"]}'
+    )
+    (tmp_path / name).write_text(body, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(f'manifests = ["{name}"]\n', encoding="utf-8")
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert f"{name}: error[unreadable] unexpected shape (author holds a list, but this file takes one author)" in out

@@ -21,6 +21,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - `citesync init` keeps every author when package.json is the source and codemeta.json or .zenodo.json lists more than one ([init](docs/init.md)).
+- `citesync write` names the file it can't write and why, such as one in a read-only folder, instead of reporting an unexpected error ([writing](docs/write.md)).
+- An `author` list in package.json is reported as `unreadable` instead of being skipped without a finding ([checks](docs/check.md)).
 
 ## [0.3.0] - 2026-11-01
 

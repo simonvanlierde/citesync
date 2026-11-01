@@ -150,7 +150,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
                 msg = f"{rel}: resolves outside the repo root, so write won't write it"
                 raise CheckError(msg)
             (root / rel).parent.mkdir(parents=True, exist_ok=True)  # a listed docs/codemeta.json may be the first there
-        _replace({root / rel: text for rel, text in texts.items()})
+        _replace(root, texts)
     fixed = [f for f in errors if (f.file, f.term) in done]
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"], fixed
 
@@ -180,7 +180,7 @@ def init(
     source = _merged(root, config, mapping)
     text, skipped = _new_cff(root, source, config, mapping)
     if not dry_run:
-        _replace({root / "CITATION.cff": text})
+        _replace(root, {"CITATION.cff": text})
     splits = []
     for p in source.record["author"]:  # _merged makes sure there is one
         given, family = _split_name(p.name)
@@ -302,18 +302,22 @@ def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]
     return "edit it by hand"
 
 
-def _replace(texts: dict[Path, str]) -> None:
-    """Write each text to a temporary file beside its path, then move them all into place.
+def _replace(root: Path, texts: dict[str, str]) -> None:
+    """Write each text to a temporary file beside its path under ``root``, then move them all into place.
 
     A symlink's target is written, and the link stays. A failure before the moves leaves every
     file as it was; only a failed move (a rename within one directory) leaves earlier ones moved.
+
+    Raises:
+        CheckError: when a file can't be written, such as one in a read-only folder.
     """
-    temps: dict[Path, Path] = {}
+    temps: dict[Path, tuple[str, Path]] = {}
+    rel = ""
     try:
-        for link, text in texts.items():
-            path = link.resolve()
+        for rel, text in texts.items():
+            path = (root / rel).resolve()
             fd, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
-            temps[Path(name)] = path
+            temps[Path(name)] = rel, path
             with os.fdopen(fd, "w", encoding="utf-8", newline="") as file:
                 file.write(text)
             if path.exists():
@@ -322,8 +326,11 @@ def _replace(texts: dict[Path, str]) -> None:
                 umask = os.umask(0)
                 os.umask(umask)
                 Path(name).chmod(0o666 & ~umask)
-        for tmp, path in temps.items():
+        for tmp, (rel, path) in temps.items():  # noqa: B007 - the except below names rel
             tmp.replace(path)
+    except OSError as err:
+        msg = f"{rel}: can't write: {err.strerror}"
+        raise CheckError(msg) from err
     finally:
         for tmp in temps:
             tmp.unlink(missing_ok=True)  # moved ones are gone already
