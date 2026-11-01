@@ -46,7 +46,7 @@ Browser tests use `/usr/bin/google-chrome`; set `CHROME_PATH` to another Chrome 
 
 The playground workflow builds and tests pull requests. On main it deploys the same build to GitHub Pages. In the repository's Settings → Pages, choose **GitHub Actions** as the build source before the first deployment. PR browser screenshots are available in the `playground-browser-results` artifact.
 
-Search and sharing metadata are in the initial HTML: a descriptive title, format-specific description, canonical URL and Open Graph/Twitter tags. The canonical deployment URL is <https://simonvanlierde.com/citesync/>, following the account's GitHub Pages domain. It will become live after Pages is configured and the UI is merged; metadata alone does not establish indexing.
+Search and sharing metadata are in the initial HTML: a descriptive title, format-specific description, canonical URL and Open Graph/Twitter tags. The canonical deployment URL is <https://simonvanlierde.com/citesync/>, following the account's GitHub Pages domain. The site is deployed through GitHub Actions with HTTPS enforced; metadata alone does not establish indexing.
 
 The build also writes `site/`, with content-versioned JavaScript, styles, worker and wheel URLs. This keeps cached assets from different deployments together. The public runtime manifest and wheels use normal HTTP caching; citation drafts are never cached. CI runs the browser tests against that deployment bundle.
 

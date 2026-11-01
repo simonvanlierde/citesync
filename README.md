@@ -51,7 +51,7 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 
 ## Browser playground
 
-Generate citation files from existing metadata or basic project details, without installing Python. [Run the playground locally](https://github.com/simonvanlierde/citesync/blob/main/playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
+Generate citation files from existing metadata or basic project details, without installing Python. [Open the playground](https://simonvanlierde.com/citesync/) or [run it locally](https://github.com/simonvanlierde/citesync/blob/main/playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
 
 ## Pre-commit hook
 
