@@ -10,7 +10,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - The field mapping uses [codemeta-drift 0.6.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.6.0), which adds rows for DataCite, typst.toml and Quarto extensions among others, and mapping paths can now combine parts with `+` and filter on a member of a list.
-- The playground's input and output file lists are grouped, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
+- The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
 
 ## [0.4.0] - 2026-11-01
 
