@@ -33,7 +33,7 @@ manifests = ["typst/typst.toml", "quarto/_extensions/lensgrind/_extension.yml"]
 write-manifests = ["version"]
 ```
 
-A `typst.toml` at the repo root is read by default, as the other manifests are. `write` edits `_extension.yml` through the same YAML round trip as CITATION.cff, so its comments and quoting stay.
+A `typst.toml` or `_extension.yml` at the repo root is read by default, as the other manifests are. `write` edits `_extension.yml` through the same YAML round trip as CITATION.cff, so its comments and quoting stay.
 
 Package manifests also control builds, dependencies and publishing. citesync handles their
 citation metadata; it does not generate complete package configurations.

@@ -377,6 +377,14 @@ def test_no_export_finding_while_the_source_is_unreadable(tmp_path: Path, run: "
     assert "export-stale" not in run("check", "--root", str(root))[1]
 
 
+def test_export_findings_keep_the_other_findings(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    (root / ".zenodo.json").write_text('{"title": ', encoding="utf-8")
+    out = run("check", "--root", str(root))[1]
+    assert "error[export-stale]" in out
+    assert ".zenodo.json:1:11: error[unreadable]" in out
+
+
 def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "CITATION.cff").write_text("cff-version: [\n", encoding="utf-8")
     code, out, err = run("export", "--root", str(tmp_path), "--format", "apa")
@@ -406,6 +414,53 @@ def test_export_prints_a_citation_file_that_check_accepts(
     assert code == 0, report
 
 
+def test_export_follows_the_citation_file_settings(tmp_path: Path, run: "Run") -> None:
+    root = tmp_path / "repo"
+    shutil.copytree(FIXTURES / "synthetic-agree", root)
+    (root / "citesync.toml").write_text(
+        'codemeta-version = "2.0"\nzenodo-contributor-type = "Researcher"\n', encoding="utf-8"
+    )
+    codemeta = json.loads(run("export", "--root", str(root), "--format", "codemeta")[1])
+    assert codemeta["@context"] == "https://w3id.org/codemeta/2.0"
+    zenodo = json.loads(run("export", "--root", str(root), "--format", "zenodo")[1])
+    assert zenodo["contributors"]
+    assert {c["type"] for c in zenodo["contributors"]} == {"Researcher"}
+
+
+PYPROJECT = """\
+[project]
+name = "lensgrind"
+version = "1.0.0"
+description = "Grinds lenses."
+keywords = ["alpha"]
+authors = [{name = "Antonie van Leeuwenhoek"}]
+"""
+
+
+def test_export_cff_is_the_file_init_writes(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
+    package = {"name": "lensgrind", "version": "1.0.0", "keywords": ["beta"], "author": "Antonie van Leeuwenhoek"}
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    code, out, err = run("export", "--root", str(tmp_path), "--format", "cff")  # no CITATION.cff, no config
+    assert code == 0, err
+    assert "  - alpha\n  - beta\n" in out
+    (tmp_path / "CITATION.cff").write_text(out, encoding="utf-8")
+    code, report, _ = run("check", "--root", str(tmp_path))
+    assert code == 0, report
+
+
+@pytest.mark.parametrize("fmt", ["cff", "zenodo"])
+def test_export_keeps_every_author_when_npm_is_the_source(tmp_path: Path, run: "Run", fmt: str) -> None:
+    (tmp_path / "package.json").write_text('{"name": "lensgrind", "version": "1.0.0"}', encoding="utf-8")
+    people = [{"@type": "Person", "givenName": g, "familyName": f} for g, f in (("Tu", "Youyou"), ("Alan", "Turing"))]
+    codemeta = {"@context": "https://w3id.org/codemeta/3.0", "name": "lensgrind", "author": people}
+    (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('source = "package.json"\n', encoding="utf-8")
+    code, out, err = run("export", "--root", str(tmp_path), "--format", fmt)
+    assert code == 0, err
+    assert "Turing" in out
+
+
 def test_export_says_what_a_citation_file_leaves_out(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "codemeta.json").write_text(
         json.dumps(
@@ -426,14 +481,23 @@ def test_export_says_what_a_citation_file_leaves_out(tmp_path: Path, run: "Run")
     assert err.startswith("leaving out license: ")
 
 
-def test_export_cff_needs_an_author(tmp_path: Path, run: "Run") -> None:
+@pytest.mark.parametrize(
+    ("fmt", "terms", "needs"),
+    [
+        ("cff", '"name": "x"', "no authors in codemeta.json, and CITATION.cff needs one"),
+        (
+            "codemeta",
+            '"author": [{"@type": "Person", "name": "Ada Lovelace"}]',
+            "no file gives a title, which the codemeta file needs",
+        ),
+    ],
+)
+def test_export_says_what_a_citation_file_needs(tmp_path: Path, run: "Run", fmt: str, terms: str, needs: str) -> None:
     (tmp_path / "codemeta.json").write_text(
-        '{"@context": "https://w3id.org/codemeta/3.0", "name": "x"}', encoding="utf-8"
+        f'{{"@context": "https://w3id.org/codemeta/3.0", {terms}}}', encoding="utf-8"
     )
     (tmp_path / "citesync.toml").write_text('source = "codemeta.json"\n', encoding="utf-8")
-    code, out, err = run("export", "--root", str(tmp_path), "--format", "cff")
-    assert (code, out) == (2, "")
-    assert "author" in err
+    assert run("export", "--root", str(tmp_path), "--format", fmt) == (2, "", f"citesync: {needs}\n")
 
 
 _FORMAT = {

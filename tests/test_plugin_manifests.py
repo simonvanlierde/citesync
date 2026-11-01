@@ -86,11 +86,17 @@ def test_write_moves_authors_and_licence_when_opted_in(tmp_path: Path, run: "Run
 
 
 @pytest.mark.parametrize("name", ["typst.toml", "_extension.yml", "_extension.yaml"])
-def test_plugin_manifest_names_are_valid_manifests(tmp_path: Path, run: "Run", name: str) -> None:
+def test_each_plugin_manifest_name_is_checked_and_written(tmp_path: Path, run: "Run", name: str) -> None:
     (tmp_path / "CITATION.cff").write_text((SYNTHETIC / "CITATION.cff").read_text(encoding="utf-8"), encoding="utf-8")
     (tmp_path / "plugin").mkdir()
     text = TYPST if name == "typst.toml" else QUARTO
-    (tmp_path / "plugin" / name).write_text(text.format(version="1.2.3"), encoding="utf-8")
-    (tmp_path / "citesync.toml").write_text(f'manifests = ["plugin/{name}"]\n', encoding="utf-8")
-    code, out, err = run("check", "--root", str(tmp_path))
-    assert (code, err) == (0, ""), out
+    (tmp_path / "plugin" / name).write_text(text.format(version="0.1.0"), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        f'manifests = ["plugin/{name}"]\nwrite-manifests = ["version"]\n', encoding="utf-8"
+    )
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert f"plugin/{name}:" in out
+    assert "error[version-mismatch] version: '0.1.0', CITATION.cff has '1.2.3'" in out
+    assert run("write", "--root", str(tmp_path))[0] == 0
+    assert (tmp_path / "plugin" / name).read_text(encoding="utf-8") == text.format(version="1.2.3")

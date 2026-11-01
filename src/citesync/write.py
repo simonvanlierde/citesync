@@ -192,13 +192,14 @@ def init(
 def citation_file(fmt: str, root: Path, config: Config, source: Doc, mapping: Mapping) -> tuple[str, dict[str, str]]:
     """A new CITATION.cff (``cff``), codemeta.json or .zenodo.json holding ``source``'s terms, and what it left out.
 
+    For ``cff``, ``source`` comes from :func:`_merged`, which makes sure of a title and authors.
+
     Raises:
-        CheckError: when the source gives no title, or CITATION.cff no authors.
+        CheckError: when the source gives no title.
     """
-    for term, needed in (("name", True), ("author", fmt == "cff")):
-        if needed and not source.record.get(term):
-            msg = f"no file gives {'a title' if term == 'name' else 'any author'}, which the {fmt} file needs"
-            raise CheckError(msg)
+    if not source.record.get("name"):
+        msg = f"no file gives a title, which the {fmt} file needs"
+        raise CheckError(msg)
     if fmt == "cff":
         return _new_cff(root, source, config, mapping)
     key = keyword_key(config)
@@ -264,20 +265,27 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
     if bad := next((f for f in read if f.rule == "unreadable"), None):
         msg = f"{bad.where}: {bad.message}"
         raise CheckError(msg)
-    record: dict[str, Any] = {}
-    words: dict[str, str] = {}  # check wants every manifest's keywords in CITATION.cff, so all files give them
-    for doc in docs:
-        for term, value in doc.record.items():
-            record.setdefault(term, value)
-        for word in doc.record.get("keywords", ()):
-            words.setdefault(keyword_key(config)(word), word)
-    if words:
-        record["keywords"] = tuple(words.values())
+    record = union(docs, config)
     for term, cff_key in (("name", "title"), ("author", "authors")):
         if term not in record:
             msg = f"no {cff_key} in {', '.join(d.path for d in docs)}, and CITATION.cff needs one"
             raise CheckError(msg)
     return replace(docs[0], record=record)
+
+
+def union(docs: list[Doc], config: Config) -> dict[str, Any]:
+    """Each term from the first doc that holds it, as :func:`citesync.export.record` gives, and every doc's keywords.
+
+    check wants each manifest's keywords in a citation file, so all files give them.
+    """
+    record = export.record(docs)
+    words: dict[str, str] = {}
+    for doc in docs:
+        for word in doc.record.get("keywords", ()):
+            words.setdefault(keyword_key(config)(word), word)
+    if words:
+        record["keywords"] = tuple(words.values())
+    return record
 
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
@@ -654,7 +662,8 @@ def _people(
     items = list(old) if isinstance(old, list) else [old]
     decoded = [person(fmt, el, path, mapping, term) for el in items]
     npm = term == "author" and "npm" in {fmt, source.format}
-    people: tuple[Person, ...] = source.record[term][:1] if npm else source.record[term]
+    # only npm itself has one author slot: a new file from a merged npm-format source takes them all
+    people: tuple[Person, ...] = source.record[term][:1] if npm and fmt == "npm" else source.record[term]
     matches = _matches(decoded, people)
     used = {i for i in matches if i is not None}
     if fmt == "zenodo" and term == "contributor" and None in matches and zenodo_contributor_type is None:

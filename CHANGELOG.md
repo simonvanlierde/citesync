@@ -18,6 +18,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - BibTeX and CSL-JSON citation keys come from the title, such as `credit-matrix`, instead of `software`.
 
+### Fixed
+
+- `citesync init` keeps every author when package.json is the source and codemeta.json or .zenodo.json lists more than one ([init](docs/init.md)).
+
 ## [0.3.0] - 2026-11-01
 
 ### Added

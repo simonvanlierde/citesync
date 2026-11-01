@@ -1,4 +1,4 @@
-"""The hook in .pre-commit-hooks.yaml runs when any file citesync reads changes, and only then."""
+"""The hook in .pre-commit-hooks.yaml runs when any file citesync reads or exports may change, and only then."""
 
 import re
 from pathlib import Path
@@ -6,10 +6,20 @@ from pathlib import Path
 import pytest
 from ruamel.yaml import YAML
 
+from citesync.export import DEFAULT_NAMES
 from citesync.formats import CITATION_FILES, IMPORTS, MANIFESTS
 
 HOOK = YAML(typ="safe").load(Path(__file__).parent.parent / ".pre-commit-hooks.yaml")[0]
-NAMES = [*CITATION_FILES, *MANIFESTS, *IMPORTS, "citesync.toml", ".citesync.toml"]
+# an export may have any name with its suffix, such as docs/lensgrind.bib
+NAMES = [
+    *CITATION_FILES,
+    *MANIFESTS,
+    *IMPORTS,
+    "citesync.toml",
+    ".citesync.toml",
+    *DEFAULT_NAMES.values(),
+    "lensgrind.bib",
+]
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -18,7 +28,7 @@ def test_files_pattern_matches_at_any_depth(name: str, folder: str) -> None:
     assert re.search(HOOK["files"], folder + name)
 
 
-@pytest.mark.parametrize("path", ["README.md", "xCITATION.cff", "package.json.bak", "uv.lock"])
+@pytest.mark.parametrize("path", ["README.md", "xCITATION.cff", "package.json.bak", "uv.lock", "citation.bib.bak"])
 def test_files_pattern_skips_other_files(path: str) -> None:
     assert not re.search(HOOK["files"], path)
 

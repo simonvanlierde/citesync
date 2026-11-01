@@ -932,7 +932,8 @@ docs: https://github.com/simonvanlierde/citesync/blob/main/docs
 usage: citesync [-h] [-V] command ...
 
 Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
-(pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file.
+(pyproject.toml, Cargo.toml, package.json, typst.toml, _extension.yml) agree, and rewrite them
+to match one source file.
 
 positional arguments:
   command
