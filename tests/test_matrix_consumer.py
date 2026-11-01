@@ -1,7 +1,6 @@
-"""Run the packed Matrix CLI and carry its attribution through the installed citesync CLI."""
+"""Run the installed Matrix CLI and carry its attribution through the installed citesync CLI."""
 
 import json
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -14,12 +13,11 @@ from tests.test_contribution_contract import CONTRACT, FILES, cli, snapshot
 
 @pytest.fixture
 def matrix_repo(tmp_path: Path) -> Path:
-    configured = os.environ.get("CREDIT_MATRIX_CLI")
-    if configured is None:
-        pytest.skip("Set CREDIT_MATRIX_CLI to a packed package's dist/cli.js; the Matrix consumer CI job does this")
-    producer = Path(configured).resolve()
-    assert producer.is_file(), f"Matrix CLI does not exist: {producer}"
-    result = subprocess.run(  # noqa: S603 - the developer/CI selects the packed producer CLI
+    package = Path(__file__).resolve().parents[1] / "node_modules/credit-matrix"
+    if not package.exists():
+        pytest.skip("Run pnpm install to enable the Matrix integration tests")
+    producer = package / "dist/cli.js"
+    result = subprocess.run(  # noqa: S603 - the pinned CLI is a development dependency
         ["node", str(producer), "statement", str(CONTRACT / "matrix-roster.json"), "--format", "codemeta"],  # noqa: S607
         capture_output=True,
         text=True,

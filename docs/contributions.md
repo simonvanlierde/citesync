@@ -60,22 +60,17 @@ An existing empty target list opts in; an absent list stays absent. A passing ch
 does not establish that every contribution has reached every format.
 
 The hand-written fixture checks the citesync boundary without installing Matrix.
-The [Matrix consumer CI job](../.github/workflows/matrix-consumer.yml) separately
-builds and packs the exact merged producer revision `a8a55c6`, then runs the same
-people through both installed CLIs. It uses the native Matrix roster and its
-hand-checked attribution expectation, with source hashes recorded in the
-[fixture notes](../tests/contracts/contributions/README.md).
-
-To run the producer check locally, unpack a `credit-matrix` package tarball and run:
+The existing [playground CI job](../.github/workflows/pages.yml) also runs the
+Matrix integration tests using `credit-matrix@0.10.0`, pinned in `package.json`
+and `pnpm-lock.yaml`. Run the same check locally:
 
 ```sh
-CREDIT_MATRIX_CLI=/absolute/path/to/package/dist/cli.js uv run --frozen pytest tests/test_matrix_consumer.py
+pnpm install --frozen-lockfile
+uv run --frozen pytest tests/test_matrix_consumer.py
 ```
 
-The CLI must include Matrix #185. The published npm v0.9.0 package is too old;
-the v0.10.0 release candidate and the CI's pinned source build both pass. The
-consumer job uses the merged source pin while v0.10.0 is prepared, so PR checks
-do not depend on a future registry upload. After publication, the registry tarball
-can be checked with the same command. Tests also verify the existing explicit
-`zenodo-contributor-type` opt-in, preserve existing types, and leave an absent
-contributor field absent. This checks citation files, not a live Zenodo deposit.
+These tests use Matrix's native roster and hand-checked attribution expectation,
+plus the existing target expectations. They check linked people and roles,
+local identities, idempotence and explicit Zenodo contributor types. The
+[fixture notes](../tests/contracts/contributions/README.md) record provenance.
+This checks citation files, not a live Zenodo deposit.

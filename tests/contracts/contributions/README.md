@@ -41,9 +41,8 @@ Their MIT licence is in `MATRIX-LICENSE`.
 - `matrix-roster.json` SHA-256: `65d930d8c62987f88d3751f9206cfb3a1541838befd90ae79b81d67a807045fb`
 - `matrix-attribution.json` SHA-256: `5f7283afd7d9c6215c0776bacf2f57798ba9143075d8adba835ceec206bee4d0`
 
-The Matrix consumer CI job builds and packs that exact producer commit, then
-runs `tests/test_matrix_consumer.py` against its unpacked CLI. The producer
-expectation is compared before citesync runs; the existing `expected.json`
-remains the independent oracle for CFF and Zenodo. Ordinary Python-only runs
-skip these four tests unless `CREDIT_MATRIX_CLI` selects an unpacked package.
-The dedicated CI job always sets it, and a missing or incompatible CLI fails.
+The existing playground CI job installs the pinned `credit-matrix@0.10.0`
+development dependency and runs `tests/test_matrix_consumer.py`. The producer
+expectation is compared before citesync runs; `expected.json` remains the
+independent oracle for CFF and Zenodo. Python-only runs skip these four tests
+when Node dependencies are not installed.

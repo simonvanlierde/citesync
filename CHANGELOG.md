@@ -13,7 +13,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- A [Matrix consumer check](docs/contributions.md) runs a packed, pinned Credit Matrix CLI
+- A [Matrix consumer check](docs/contributions.md) runs the published Credit Matrix 0.10.0 CLI
   through citesync write/check, including linked roles, local identities and explicit Zenodo contributor types.
 
 - Import R DESCRIPTION and Julia Project.toml metadata in the CLI and playground without running package code. These files remain read-only; unsupported R expressions and ambiguous licence terms are reported ([supported files](docs/formats.md#r-and-julia-imports)).
