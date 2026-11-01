@@ -524,3 +524,14 @@ def test_bibtex_is_a_biblatex_software_entry_named_by_the_rows() -> None:
     assert fields["url"] == "https://example.org/lensgrind"  # plain BibTeX styles print url, not repository
     assert (fields["keywords"], fields["license"]) == ("optics, microscopy", "Apache-2.0")
     assert "note" not in fields
+
+
+@pytest.mark.parametrize("command", [["export", "--format", "cff"], ["init", "--diff"]])
+def test_a_named_source_that_is_missing_is_an_error(tmp_path: Path, run: "Run", command: list[str]) -> None:
+    root = _repo(tmp_path)
+    (root / "codemeta.json").unlink()
+    if command[0] == "init":  # init makes a CITATION.cff only where there is none
+        (root / "CITATION.cff").unlink()
+    code, out, err = run(*command, "--root", str(root), "--source", "codemeta.json")
+    assert (code, out) == (2, "")
+    assert err.startswith("citesync: codemeta.json: the source file is missing")

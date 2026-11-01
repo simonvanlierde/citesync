@@ -1720,3 +1720,14 @@ def test_a_folder_it_cannot_write_into_is_a_clear_error(tmp_path: Path, run: "Ru
         (root / "ro").chmod(stat.S_IRWXU)
     assert (code, err) == (2, "citesync: ro/citation.bib: can't write: Permission denied\n")
     assert sorted(p.name for p in (root / "ro").iterdir()) == []
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root writes into a read-only folder")
+def test_a_folder_it_cannot_create_is_a_clear_error(tmp_path: Path, run: "Run") -> None:
+    root = _synthetic(tmp_path / "repo", 'files = ["CITATION.cff", "sub/codemeta.json"]\n')
+    root.chmod(stat.S_IRUSR | stat.S_IXUSR)
+    try:
+        code, _, err = run("write", "--root", str(root))
+    finally:
+        root.chmod(stat.S_IRWXU)
+    assert (code, err) == (2, "citesync: sub/codemeta.json: can't write: Permission denied\n")
