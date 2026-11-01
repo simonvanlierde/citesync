@@ -7,16 +7,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-01
+
 ### Added
 
-- `citesync export --format apa|bibtex|csl-json|jsonld` prints a citation made from the source. List files under `exports` to have `write` keep them in step and `check` report a stale one ([citation exports](docs/export.md)).
+- `citesync export --format apa|bibtex|csl-json|jsonld` prints a citation made from the source. List files under `exports` to have `write` keep them in step, `check` report a stale one, and the pre-commit hooks run when one changes ([citation exports](docs/export.md)).
 - `citesync export --format cff|codemeta|zenodo` prints the CITATION.cff, codemeta.json or .zenodo.json citesync would make from the source, without writing it ([citation files](docs/export.md#citation-files)).
 - APA 7 references and schema.org JSON-LD for websites, in the CLI and the [playground](https://simonvanlierde.com/citesync/).
-- Check and update Typst `typst.toml` and Quarto `_extension.yml` plugin manifests, so a release moves their version with CITATION.cff ([plugin manifests](docs/formats.md#plugin-manifests)).
+- Check and update Typst `typst.toml` and Quarto `_extension.yml` plugin manifests, so a release moves their version with CITATION.cff; `init` reads them too ([plugin manifests](docs/formats.md#plugin-manifests)).
 
 ### Changed
 
-- The field mapping uses [codemeta-drift 0.5.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.5.0), with its schema 1.4 contract and rows for PKG-INFO, R DESCRIPTION, Julia and BibTeX. The paths citesync reads are unchanged.
+- The field mapping uses [codemeta-drift 0.5.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.5.0), with its schema 1.4 contract and rows for PKG-INFO, R DESCRIPTION, Julia and BibTeX. Its paths for the six formats citesync already read are unchanged.
 - PKG-INFO and METADATA take the description from Summary only, not the README in Description or the body, and the repository from a Project-URL labelled source, repository, sourcecode or github before Home-page ([distribution metadata](docs/formats.md)).
 - BibTeX and CSL-JSON citation keys come from the title, such as `credit-matrix`, instead of `software`.
 - BibTeX citations are biblatex-software `@software` entries with the version, licence, DOI, SWHID, abstract and keywords, named as codemeta-drift's bibtex rows name them. Plain BibTeX styles print them as `@misc` ([citation exports](docs/export.md)).
@@ -138,7 +140,8 @@ To upgrade from 0.1.0:
 - `citesync write`: rewrites the citation files that disagree with the source, and the manifest fields listed in `write-manifests`, keeping comments, key order, formatting and CRLF line ends, and writing through symlinks. Fields a file leaves out stay out. A value a file can't hold without losing something is left for you, with the reason: a compound licence in .zenodo.json, an `AND` licence in CITATION.cff or codemeta.json, a version semver can't spell in Cargo.toml or package.json, a version that isn't PEP 440 in pyproject.toml, or a renamed author whose old entry holds an email or affiliation. It reports the findings left as `check` does, each saying what to do, and never writes an ignored finding or an unreadable file. Exit 0 when the files agree afterwards, 1 when an error finding remains, 2 when it couldn't run and wrote nothing.
 - `citesync write --diff` prints the edits write would make as a unified diff and writes nothing. Exit 0 when there is nothing to change, 1 when there is or when a file can't be read (listed on stderr), as `ruff format --diff` does.
 
-[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/simonvanlierde/citesync/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/simonvanlierde/citesync/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/simonvanlierde/citesync/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/simonvanlierde/citesync/releases/tag/v0.1.0
