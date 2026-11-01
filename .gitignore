@@ -40,3 +40,12 @@ mutants/
 
 # Profiles (just profile)
 profile/
+
+# Browser build and test artifacts
+playground/wheels/
+playground/runtime.json
+playwright-report/
+test-results/
+
+# Versioned playground deployment bundle
+/site/

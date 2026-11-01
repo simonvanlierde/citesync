@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>citesync — software citation file generator</title>
+<meta name="description" content="Generate CITATION.cff, CodeMeta, BibTeX and CSL-JSON from package metadata or project details. Files are processed locally in your browser.">
+<link rel="canonical" href="https://simonvanlierde.com/citesync/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="citesync">
+<meta property="og:title" content="citesync — software citation file generator">
+<meta property="og:description" content="Generate CITATION.cff, CodeMeta, BibTeX and CSL-JSON from package metadata or project details. Files are processed locally in your browser.">
+<meta property="og:url" content="https://simonvanlierde.com/citesync/">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#192229" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="main.mjs"></script>
+</head>
+<body>
+<a class="skip" href="#workspace">Skip to citation files</a>
+<div class="wrap">
+<header><h1>citesync</h1><p>Generate citation files for your software.</p></header>
+<p class="preview-note">Start with a metadata file or a few project details. Your citation files update automatically.</p>
+<main id="workspace" tabindex="-1">
+<div class="workspace">
+<section aria-label="Your project">
+<div class="tabs" id="entry-tabs" role="tablist" aria-label="How to start"><button type="button" id="file-tab" role="tab" aria-selected="true" aria-controls="file-panel">Use a file</button><button type="button" id="form-tab" role="tab" aria-selected="false" aria-controls="form-panel" tabindex="-1">Enter details</button></div>
+<div id="file-panel" role="tabpanel" aria-labelledby="file-tab">
+<div class="panehead"><h2><label for="input">Project metadata</label></h2><label for="source-format" class="sr-only">Input filename</label><select id="source-format"><option value="auto">Detect automatically</option><option>pyproject.toml</option><option>Cargo.toml</option><option>package.json</option><option>CITATION.cff</option><option>codemeta.json</option><option>.zenodo.json</option></select></div>
+<textarea id="input" wrap="off" spellcheck="false" aria-describedby="input-hint message"></textarea>
+<p class="hint" id="detected-format" role="status"></p>
+<p class="hint" id="input-hint">Paste or drop a file, up to 1 MB.</p>
+<div class="file-tools"><button type="button" id="open">Open a file</button><button type="button" class="link" id="example">Try an example</button><input type="file" id="file-picker" hidden accept=".toml,.json,.cff,.txt,.yaml,.yml"></div>
+</div>
+<form class="form" novalidate id="form-panel" role="tabpanel" aria-labelledby="form-tab" aria-describedby="message form-hint" hidden>
+<div class="panehead"><h2>Project details</h2></div>
+<p class="hint" id="form-hint">Edits transfer to a CodeMeta file. Extra CodeMeta fields are kept.</p>
+<label for="title">Software title</label><p class="hint field-hint" id="title-hint">Use the name people should cite</p><input id="title" name="title" required maxlength="500" autocomplete="off" aria-describedby="title-hint">
+<label for="description">Short description <span class="hint">(optional)</span></label><p class="hint field-hint" id="description-hint">One sentence about what the software does</p><input id="description" name="description" maxlength="5000" aria-describedby="description-hint">
+<div id="authors"></div>
+<button type="button" class="link" id="add-author">Add another author</button>
+<details><summary>Version, licence and repository</summary><label for="version">Version</label><p class="hint field-hint" id="version-hint">Example: 1.4.0</p><input id="version" name="version" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100" aria-describedby="version-hint"><details class="field-help"><summary>Which version format?</summary><p>Use your software’s release version. Python templates use <a href="https://packaging.python.org/en/latest/specifications/version-specifiers/">PEP 440</a>; Cargo and npm templates use <a href="https://semver.org/">Semantic Versioning</a>.</p></details><label for="licence">SPDX licence identifier</label><p class="hint field-hint" id="licence-hint">Examples: Apache-2.0 or MIT</p><input id="licence" name="license" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="200" aria-describedby="licence-hint"><details class="field-help"><summary>Find a licence identifier</summary><p>Enter the identifier rather than the licence text. Browse the <a href="https://spdx.org/licenses/">SPDX licence list</a>.</p></details><label for="repo">Repository URL</label><p class="hint field-hint" id="repo-hint">The full address, starting with https://</p><input id="repo" name="repository" type="url" maxlength="2000" aria-describedby="repo-hint"></details>
+</form>
+<p id="runtime" role="status">Preparing the converter… You can start typing.</p>
+<div id="message" role="status" tabindex="-1"></div><button type="button" id="retry" hidden>Retry conversion</button>
+</section>
+<section aria-label="Generated citation files">
+<h2 id="result-title" tabindex="-1">Your files</h2>
+<div id="empty-result"><p>Your files will appear here.</p></div>
+<div id="output-choice" hidden><label for="output-file">Output file</label><select id="output-file"></select></div>
+<details class="review" id="name-review" hidden><summary id="review-title">Author names</summary><p>Names were split automatically. You can correct them here.</p><div id="review-fields"></div></details>
+<div id="output-panel" hidden><pre tabindex="0" id="output" aria-label="Generated file"></pre></div>
+<div class="controls" id="exports" hidden><button type="button" class="primary" id="copy" disabled>Copy this file</button><button type="button" id="download" disabled>Download this file</button><button type="button" class="link" id="zip" disabled>All citation files (.zip)</button></div>
+<p class="status" id="status"></p>
+<p class="hint" id="filename-note" hidden>Save this file as .zenodo.json, including the first dot. Some browsers remove it; the ZIP keeps the exact filenames.</p>
+<div id="template-warning" hidden><p class="hint">Metadata only. Add build settings and dependencies before use.</p><ul id="template-notes"></ul></div>
+<details id="details-notes" hidden><summary>What changed or could not be converted</summary><ul id="notes"></ul></details>
+</section>
+</div>
+<section class="use" aria-labelledby="use-title">
+<h2 id="use-title">Use citesync in your repository</h2>
+<p>Keep citation files in sync as your project changes.</p>
+<div class="tabs" role="tablist" aria-label="Use citesync">
+<button type="button" role="tab" id="use-cli" aria-selected="true" aria-controls="snippet-cli">Command line</button>
+<button type="button" role="tab" id="use-hook" aria-selected="false" aria-controls="snippet-hook" tabindex="-1">Pre-commit</button>
+<button type="button" role="tab" id="use-ci" aria-selected="false" aria-controls="snippet-ci" tabindex="-1">CI</button>
+</div>
+<div role="tabpanel" id="snippet-cli" aria-labelledby="use-cli"><p>Run with <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a> from your repository. Review changes before committing.</p><div class="code-block"><button type="button" class="code-copy" aria-label="Copy code" title="Copy code"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg></button><pre tabindex="0" aria-label="Shell commands">uvx citesync init    # create CITATION.cff if you do not have one
+uvx citesync write   # update the other citation files
+uvx citesync check   # check that the files agree</pre></div></div>
+<div role="tabpanel" id="snippet-hook" aria-labelledby="use-hook" hidden><p>Add to <code>.pre-commit-config.yaml</code>, then run <code>prek install</code> or <code>pre-commit install</code>.</p><div class="code-block"><button type="button" class="code-copy" aria-label="Copy code" title="Copy code"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg></button><pre tabindex="0" aria-label="Pre-commit configuration">repos:
+  - repo: https://github.com/simonvanlierde/citesync
+    rev: v0.2.0
+    hooks:
+      - id: citesync</pre></div></div>
+<div role="tabpanel" id="snippet-ci" aria-labelledby="use-ci" hidden><p>Add these steps to a GitHub Actions job running on <code>ubuntu-latest</code> with your citation files committed.</p><div class="code-block"><button type="button" class="code-copy" aria-label="Copy code" title="Copy code"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg></button><pre tabindex="0" aria-label="GitHub Actions steps">steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+  - run: uvx --from citesync==0.2.0 citesync check</pre></div></div>
+<span id="snippet-status" class="hint" role="status"></span>
+<a class="usage-docs" href="https://github.com/simonvanlierde/citesync#readme">Setup and configuration</a>
+</section>
+</main>
+<footer aria-label="About citesync"><p>Your files are processed in this browser and are not uploaded or saved between visits. Loading the converter requires a network connection.</p><div class="colophon"><div class="colophon-meta"><strong>citesync</strong><span id="version-label"></span><a href="https://github.com/simonvanlierde/citesync/blob/main/LICENSE">Apache-2.0 licence</a></div><nav aria-label="Project links"><a href="https://github.com/simonvanlierde/citesync">GitHub</a><a href="https://github.com/simonvanlierde/citesync#readme">Docs</a><a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a></nav></div></footer>
+<noscript>This playground needs JavaScript and WebAssembly. You can also run citesync from the command line.</noscript>
+</div>
+</body>
+</html>

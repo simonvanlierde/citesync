@@ -48,6 +48,10 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 - [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): JSON, GitHub annotations and SARIF.
 - [Tested on real repositories](https://github.com/simonvanlierde/citesync/blob/main/docs/tested-repositories.md): what citesync reports on five public repositories.
 
+## Browser playground
+
+Generate citation files from existing metadata or basic project details, without installing Python. [Run the playground locally](https://github.com/simonvanlierde/citesync/blob/main/playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
+
 ## Pre-commit hook
 
 For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.pre-commit-config.yaml`:
@@ -65,10 +69,11 @@ The `citesync` hook runs when a commit changes one of the six metadata files or 
 
 ## Development
 
-You need [uv](https://docs.astral.sh/uv/) and [just](https://just.systems).
+You need [uv](https://docs.astral.sh/uv/), [just](https://just.systems), Node.js 26 and [pnpm](https://pnpm.io/).
 
 ```sh
 uv sync
+pnpm install --frozen-lockfile
 uv tool install prek   # once per machine
 prek install           # git hooks
 ```

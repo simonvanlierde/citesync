@@ -11,6 +11,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `citesync write` creates a missing .zenodo.json when `files` lists it. Preview it with `--diff` and review any omitted fields before releasing ([docs/write.md](docs/write.md#create-citation-files)).
 
+- A browser playground generates citation files from an existing metadata file or project details, with automatic previews, input detection, editable name review and ZIP downloads ([playground guide](playground/README.md)). It also exports BibTeX and CSL-JSON, plus separately labelled incomplete Python, Rust and npm package templates.
+
+
 ### Fixed
 
 - CodeMeta person identifiers that are not ORCIDs no longer overwrite ORCIDs in other files. Writes preserve those identifiers and refuse to discard them when removing a person. See the [contribution guide](docs/contributions.md).

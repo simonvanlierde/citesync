@@ -16,6 +16,7 @@ default:
 # The stack checks CI runs. `just hooks` runs the git hooks, which CI also runs.
 check:
     @just py-check
+    @pnpm run check
 
 # Mutation-test the modules in pyproject's [tool.mutmut]. Fails on a survivor not in
 # tests/mutation-baseline.txt, and on a listed one that no longer survives, so the list stays true.
@@ -69,6 +70,7 @@ profile:
 # Fix and format every stack here, as each stack's `fmt` recipe does.
 fmt:
     @just py-fmt
+    @pnpm exec biome check --write playground/*.mjs playwright.config.mjs
 
 # Run every git hook over the whole repo, not just staged files.
 hooks:
@@ -108,3 +110,16 @@ repo-settings:
 # Set the GitHub About box from your answers: description and a topic per stack. Adds topics, never removes yours. Safe to rerun.
 repo-about:
     gh repo edit --description 'Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks' --add-topic python --add-topic citation --add-topic codemeta --add-topic zenodo --add-topic software-metadata --add-topic pre-commit
+
+# Build the current Python wheel and its locked browser dependencies.
+playground-build:
+    uv run playground/build.py
+
+# Build and serve the playground locally; no citation data leaves the browser.
+playground: playground-build
+    uv run --no-project python -m http.server 8468 --bind 127.0.0.1 --directory playground
+
+# Frontend checks; browser tests start their own server.
+playground-check:
+    pnpm run check
+    pnpm run test:browser
