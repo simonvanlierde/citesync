@@ -155,14 +155,14 @@ header a {
 }
 .panehead code {
   font:
-    12px ui-monospace,
+    14px ui-monospace,
     monospace;
   color: var(--muted);
 }
 textarea,
 pre {
   font:
-    14px / 1.7 ui-monospace,
+    15px / 1.7 ui-monospace,
     monospace;
   tab-size: 2;
   scrollbar-color: var(--line) var(--paper);
@@ -265,14 +265,14 @@ details p {
 }
 details code {
   font:
-    13px ui-monospace,
+    14px ui-monospace,
     monospace;
 }
 footer {
   border-top: 1px solid var(--line);
   margin-top: 32px;
   padding: 16px 0 24px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
 }
 footer p {
@@ -367,7 +367,7 @@ footer p {
     padding: 0 18px;
   }
   .tabs button {
-    font-size: 14px;
+    font-size: 15px;
     padding: 10px 9px;
   }
   .panehead {
@@ -453,14 +453,14 @@ fieldset {
   margin: 0;
 }
 .file-tools select {
-  font-size: 14px;
+  font-size: 15px;
 }
 .drop-active {
   outline: 3px dashed var(--accent);
   outline-offset: 4px;
 }
 #runtime {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
   margin-top: 12px;
 }
@@ -490,7 +490,7 @@ fieldset {
   overflow-wrap: anywhere;
 }
 #version-label {
-  font-size: 14px;
+  font-size: 15px;
 }
 textarea[aria-invalid="true"] {
   border-color: var(--note);
@@ -530,7 +530,7 @@ textarea[aria-invalid="true"] {
 .use { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 24px; }
 .use h2 { font: normal 22px Georgia, serif; margin: 0; }
 .use p { font-size: 15px; color: var(--muted); max-width: 70ch; }
-.use pre { font-size: 13px; }
+.use pre { font-size: 15px; }
 .usage-docs { font-size: 15px; display: inline-flex; min-height: 44px; align-items: center; margin-left: 16px; }
 
 .code-block { position: relative; border: 1px solid var(--line); background: var(--wash); }
@@ -578,7 +578,7 @@ textarea[aria-invalid="true"] {
 #status:empty { display: none; }
 #exports { padding-bottom: 8px; }
 #details-notes { margin-top: 12px; }
-.field-hint { margin: 2px 0 6px; font-size: 14px; }
+.field-hint { margin: 2px 0 6px; font-size: 15px; }
 .field-help { margin: 4px 0 12px; padding: 0; border: 0; }
 .field-help summary { color: var(--accent); }
 .field-help p { margin: 0 0 12px; }

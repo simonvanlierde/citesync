@@ -9,6 +9,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The playground uses larger text for file previews, code snippets, hints and footer links.
+
 - The field mapping uses [codemeta-drift 0.4.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.4.0), with original crosswalk cells and its schema 1.3 contract. Field paths remain unchanged.
 
 ### Added

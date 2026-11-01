@@ -109,7 +109,7 @@ repo-settings:
 
 # Set the GitHub About box from your answers: description and a topic per stack. Adds topics, never removes yours. Safe to rerun.
 repo-about:
-    gh repo edit --description 'Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks' --add-topic python --add-topic citation --add-topic codemeta --add-topic zenodo --add-topic software-metadata --add-topic pre-commit
+    gh repo edit --description 'Generate and synchronize software citation files from package metadata. CLI, pre-commit hook and browser playground.' --homepage 'https://simonvanlierde.com/citesync/' --add-topic python --add-topic citation --add-topic codemeta --add-topic zenodo --add-topic software-metadata --add-topic pre-commit
 
 # Build the current Python wheel and its locked browser dependencies.
 playground-build:
