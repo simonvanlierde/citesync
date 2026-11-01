@@ -534,7 +534,7 @@ test("opening a file list scrolls the list, not the page", async ({ page }) => {
   await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
   await choose(page, "output-file", "pyproject.toml");
   const search = page.locator("#output-file-search");
-  await search.scrollIntoViewIfNeeded();
+  await search.evaluate((el) => el.scrollIntoView({ block: "end" })); // at the window's bottom edge, the list must overflow
   const before = await page.evaluate(() => scrollY);
   await search.focus(); // the keyboard opens the list without Playwright scrolling to a click target
   await page.keyboard.press("ArrowDown");
