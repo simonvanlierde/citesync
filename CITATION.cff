@@ -4,7 +4,9 @@
 cff-version: 1.2.0
 message: If you use this software, please cite it as below.
 title: "citesync"
-abstract: "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, rewrite them to match one source file, and start a CITATION.cff from them, using the CodeMeta crosswalks"
+version: "0.3.0"
+date-released: "2026-11-01"
+abstract: "citesync generates and synchronizes software citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. Imports include Python, Rust, npm, R and Julia package metadata; the playground also exports BibTeX and CSL-JSON."
 authors:
   - given-names: "Simon"
     family-names: "van Lierde"

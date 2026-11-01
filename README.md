@@ -11,7 +11,7 @@ Status: experimental. It may change in ways that break your code, without notice
 
 Questions and bugs: see [CONTRIBUTING.md](https://github.com/simonvanlierde/citesync/blob/main/.github/CONTRIBUTING.md).
 
-citesync checks that your software's citation metadata says the same thing everywhere: CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json). It can also rewrite the files so they agree. It knows where each field sits in each file from CodeMeta's crosswalks, as exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
+Generate software citation files from package metadata, then keep them in sync across CITATION.cff, codemeta.json, .zenodo.json and package manifests. Use the CLI, a pre-commit hook or the [browser playground](https://simonvanlierde.com/citesync/). Field mappings come from CodeMeta's crosswalks, as exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
 
 ## Usage
 
@@ -41,7 +41,7 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 
 - [How check works](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md): the fields, files, options and exit codes.
 - [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it changes and what it leaves alone.
-- [Supported files](https://github.com/simonvanlierde/citesync/blob/main/docs/formats.md): which files citesync reads, updates and creates, including read-only Python distribution metadata.
+- [Supported files](https://github.com/simonvanlierde/citesync/blob/main/docs/formats.md): which files citesync reads, updates and creates, including read-only Python distribution, R and Julia metadata.
 - [How init works](https://github.com/simonvanlierde/citesync/blob/main/docs/init.md): where a new CITATION.cff takes each field from.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
 - [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes, and every key.
@@ -60,7 +60,7 @@ For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.
 ```yaml
 repos:
   - repo: https://github.com/simonvanlierde/citesync
-    rev: v0.2.0
+    rev: v0.3.0
     hooks:
       - id: citesync
       - id: citesync-write

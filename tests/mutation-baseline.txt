@@ -37,7 +37,6 @@ citesync.write.x__new_codemeta__mutmut_10  a blank's text is never read, only it
 citesync.write.x__new_codemeta__mutmut_14  a blank's text is never read, only its type
 citesync.write.x__new_codemeta__mutmut_18  the DOI form is picked by a case-blind "http" prefix
 citesync.write.x__new_codemeta__mutmut_22  a blank's text is never read: "XXXX" has no git+ or .git to keep
-citesync.write.x__new_codemeta__mutmut_42  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_44  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_45  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_46  _encode reads only the stand-in Doc's format
@@ -55,8 +54,6 @@ citesync.write.x__relist__mutmut_13  zip's strict defaults to False
 citesync.write.x__rename__mutmut_57  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__rename__mutmut_60  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__set__mutmut_26  a comment stands after its value, so its new column is never below 1
-citesync.write.x_init__mutmut_1  every caller passes dry_run, so its default is never read
-citesync.write.x_init__mutmut_27  _encode reads only the stand-in Doc's format
 citesync.write.x_init__mutmut_29  _encode reads only the stand-in Doc's format
 citesync.write.x_init__mutmut_30  _encode reads only the stand-in Doc's format
 citesync.write.x_init__mutmut_31  _encode reads only the stand-in Doc's format
@@ -95,7 +92,6 @@ citesync.write.x__new_zenodo__mutmut_50  a blank string selects the output shape
 citesync.write.x__new_zenodo__mutmut_53  related identifiers are assembled separately; this stand-in key is never read
 citesync.write.x__new_zenodo__mutmut_54  related identifiers are assembled separately; this stand-in key is never read
 citesync.write.x__new_zenodo__mutmut_55  a blank string selects the output shape; its contents are not read
-citesync.write.x__new_zenodo__mutmut_57  the encoder reads only the stand-in Doc format
 citesync.write.x__new_zenodo__mutmut_59  the encoder reads only the stand-in Doc format
 citesync.write.x__new_zenodo__mutmut_6  a blank string selects the output shape; its contents are not read
 citesync.write.x__new_zenodo__mutmut_60  the encoder reads only the stand-in Doc format
@@ -116,8 +112,6 @@ citesync.write.x__rewrite__mutmut_16  only Zenodo reads the default contributor 
 citesync.write.x__rewrite__mutmut_52  only JSON CodeMeta reads context
 citesync.write.x__rewrite__mutmut_54  only Zenodo reads the default contributor type
 citesync.write.x_write__mutmut_121  without a context, no (file, @context) error exists for done to mark fixed
-citesync.write.x_write__mutmut_149  the stand-in target Doc path is not read by the encoder
-citesync.write.x_write__mutmut_160  the stand-in target Doc path is not read by the encoder
 citesync.write.x_write__mutmut_62  UTF-8 and utf-8 name the same codec
 citesync.write.x_write__mutmut_67  the Unicode escape differs only in hex letter case and denotes the same BOM
 citesync.write.x_write__mutmut_70  the Unicode escape differs only in hex letter case and denotes the same BOM

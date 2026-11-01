@@ -7,33 +7,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- The playground uses larger text for file previews, code snippets, hints and footer links.
-
-- The field mapping uses [codemeta-drift 0.4.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.4.0), with original crosswalk cells and its schema 1.3 contract. Field paths remain unchanged.
+## [0.3.0] - 2026-11-01
 
 ### Added
 
-- A [Matrix consumer check](docs/contributions.md) runs the published Credit Matrix 0.10.0 CLI
-  through citesync write/check, including linked roles, local identities and explicit Zenodo contributor types.
+- Generate citation files in the [browser playground](https://simonvanlierde.com/citesync/) from an existing metadata file or basic project details, with live previews, input detection and editable author names. Export CITATION.cff, CodeMeta, Zenodo metadata, BibTeX and CSL-JSON; Python, Rust and npm outputs are labelled as incomplete package templates ([guide](playground/README.md)).
+- Import Python PKG-INFO/METADATA, R DESCRIPTION and Julia Project.toml/JuliaProject.toml in the CLI and playground without executing package code. Imported files remain read-only; unsupported or omitted values are reported ([supported files](docs/formats.md)).
+- Create a missing .zenodo.json with `citesync write` when `files` lists it. Set `zenodo-contributor-type` to supply a default for new contributors; existing types are preserved ([configuration](docs/config.md), [writing](docs/write.md#create-citation-files)).
+- Use the [contribution handoff guide](docs/contributions.md) for linked CodeMeta people and roles from CRediT Matrix, and the [Pandoc guide](docs/pandoc.md) for software citations from CSL-JSON or BibTeX.
+- A [Matrix consumer check](docs/contributions.md) runs the published Credit Matrix 0.10.0 CLI through citesync write/check, including linked roles, local identities and explicit Zenodo contributor types.
 
-- Import R DESCRIPTION and Julia Project.toml metadata in the CLI and playground without running package code. These files remain read-only; unsupported R expressions and ambiguous licence terms are reported ([supported files](docs/formats.md#r-and-julia-imports)).
+### Changed
 
-- Read extracted Python PKG-INFO and METADATA files as sources in the CLI and playground, without building or importing packages. These files remain read-only ([supported files](docs/formats.md#python-distribution-metadata)).
-
-- Set a default Zenodo contributor type for new contributors, including when creating .zenodo.json; existing contributor types are preserved ([configuration](docs/config.md)).
-
-- `citesync write` creates a missing .zenodo.json when `files` lists it. Preview it with `--diff` and review any omitted fields before releasing ([docs/write.md](docs/write.md#create-citation-files)).
-
-- A browser playground generates citation files from an existing metadata file or project details, with automatic previews, input detection, editable name review and ZIP downloads ([playground guide](playground/README.md)). It also exports BibTeX and CSL-JSON, plus separately labelled incomplete Python, Rust and npm package templates.
+- The field mapping uses [codemeta-drift 0.4.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.4.0), with original crosswalk cells and its schema 1.3 contract. Field paths remain unchanged.
+- The playground uses larger text for file previews, code snippets, hints and footer links.
 
 ### Fixed
 
-- CodeMeta person identifiers that are not ORCIDs no longer overwrite ORCIDs in other files. Writes preserve those identifiers and refuse to discard them when removing a person. See the [contribution guide](docs/contributions.md).
-- People in CodeMeta can use `id` as well as `@id` for their ORCID. Writes preserve the existing spelling and recognize `type` and `id` as person metadata keys.
-  See the [contribution guide](docs/contributions.md) for the checked cross-format example and its limits.
-- `citesync write` keeps a byte order mark at the start of CITATION.cff ([docs/write.md](docs/write.md)).
+- CodeMeta person identifiers that are not ORCIDs no longer overwrite ORCIDs in other files. Writes preserve these identifiers and refuse to remove a person if that would discard them. Both `id`/`@id` and `type`/`@type` spellings are supported ([contribution guide](docs/contributions.md)).
+- `citesync write` preserves a byte order mark at the start of CITATION.cff ([writing](docs/write.md)).
 
 ## [0.2.0] - 2026-10-30
 
@@ -123,6 +115,7 @@ To upgrade from 0.1.0:
 - `citesync write`: rewrites the citation files that disagree with the source, and the manifest fields listed in `write-manifests`, keeping comments, key order, formatting and CRLF line ends, and writing through symlinks. Fields a file leaves out stay out. A value a file can't hold without losing something is left for you, with the reason: a compound licence in .zenodo.json, an `AND` licence in CITATION.cff or codemeta.json, a version semver can't spell in Cargo.toml or package.json, a version that isn't PEP 440 in pyproject.toml, or a renamed author whose old entry holds an email or affiliation. It reports the findings left as `check` does, each saying what to do, and never writes an ignored finding or an unreadable file. Exit 0 when the files agree afterwards, 1 when an error finding remains, 2 when it couldn't run and wrote nothing.
 - `citesync write --diff` prints the edits write would make as a unified diff and writes nothing. Exit 0 when there is nothing to change, 1 when there is or when a file can't be read (listed on stderr), as `ruff format --diff` does.
 
-[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/simonvanlierde/citesync/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/simonvanlierde/citesync/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/simonvanlierde/citesync/releases/tag/v0.1.0

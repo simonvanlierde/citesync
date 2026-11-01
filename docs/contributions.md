@@ -29,7 +29,7 @@ is on Matrix main; use a release that includes it before relying on published pa
 
 [Matrix's integration test](https://github.com/simonvanlierde/credit-matrix/tree/a8a55c648bbb45862d60fbdbd6d51cd75eea3cc3/integrations/codemeta)
 runs its built CLI against citesync revision `2a95043`, which includes the
-codemeta-drift 0.4.0 mapping. Citesync 0.2.0 predates the required identity fixes.
+codemeta-drift 0.4.0 mapping. Use citesync 0.3.0 or later for the required identity fixes.
 The test verifies linked people, role preservation, author/contributor separation,
 repeat-write idempotence and explicit gaps for missing Zenodo contributor types.
 It does not validate a Zenodo deposit.

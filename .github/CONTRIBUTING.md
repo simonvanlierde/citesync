@@ -74,8 +74,11 @@ machines vary too much to fail a build on.
 Every commit in a pull request carries a `Signed-off-by:` line, which says you wrote the
 change or have the right to submit it under this project's license: the
 [Developer Certificate of Origin 1.1](https://developercertificate.org/). `git commit -s`
-adds the line. To add it to commits you already made, run
-`git rebase --signoff upstream/main` (the branch you started from) and force-push the branch.
+adds the line. For an unpushed branch, run `git fetch origin` and then
+`git rebase --signoff origin/main` to add sign-offs to its commits. If the branch is
+already published, coordinate with anyone using it before rewriting it. After checking
+the current remote commit, use `git push --force-with-lease=BRANCH:EXPECTED_SHA origin BRANCH`,
+with your branch name and the remote commit you checked. Never force-push main.
 
 The `dco` workflow checks every pull request from a fork and fails on a commit without the line. Pull requests from a branch in this repository skip it: pushing that branch already needed write access.
 
@@ -83,7 +86,7 @@ The `dco` workflow checks every pull request from a fork and fails on a commit w
 
 Simon van Lierde maintains citesync: reviews pull requests, merges them and
 makes releases. The repository belongs to [simonvanlierde](https://github.com/simonvanlierde)
-on GitHub. A release sets the version in pyproject.toml, adds a `## [X.Y.Z]` section to CHANGELOG.md and pushes the tag `vX.Y.Z`;
+on GitHub. A release sets the version in pyproject.toml and CITATION.cff, updates the citation release date, and runs `uv lock` and `uv run citesync write` to keep the lockfile and codemeta.json in step. Update the pinned versions in the README and playground snippets and add a dated `## [X.Y.Z]` section to CHANGELOG.md. After the release-wide review and checks pass, push the tag `vX.Y.Z`;
 the [release workflow](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#release-workflows) does the rest.
 Only maintainers can merge to `main`. A new maintainer is added by an existing one, by name in this section.
 If no maintainer can continue, the repository is archived with a note in the README,
