@@ -21,7 +21,16 @@ from citesync.errors import CheckError, UnreadableError
 from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
-MANIFESTS = {"pyproject.toml": "pep621", "Cargo.toml": "cargo", "package.json": "npm"}
+MANIFESTS = {
+    "pyproject.toml": "pep621",
+    "Cargo.toml": "cargo",
+    "package.json": "npm",
+    # Plugin manifests hold their fields where Cargo and npm do: typst.toml's [package], and
+    # Quarto's top-level version and one author string, so they read through those rows.
+    "typst.toml": "cargo",
+    "_extension.yml": "npm",
+    "_extension.yaml": "npm",
+}
 IMPORTS = {
     "PKG-INFO": "pep621",
     "METADATA": "pep621",

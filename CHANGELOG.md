@@ -11,6 +11,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `citesync export --format apa|bibtex|csl-json|jsonld` prints a citation made from the source. List files under `exports` to have `write` keep them in step and `check` report a stale one ([citation exports](docs/export.md)).
 - APA 7 references and schema.org JSON-LD for websites, in the CLI and the [playground](https://simonvanlierde.com/citesync/).
+- Check and update Typst `typst.toml` and Quarto `_extension.yml` plugin manifests, so a release moves their version with CITATION.cff ([plugin manifests](docs/formats.md#plugin-manifests)).
 
 ### Changed
 
