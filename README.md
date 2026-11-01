@@ -11,7 +11,7 @@ Status: experimental. It may change in ways that break your code, without notice
 
 Questions and bugs: see [CONTRIBUTING.md](https://github.com/simonvanlierde/citesync/blob/main/.github/CONTRIBUTING.md).
 
-Generate software citation files from package metadata, then keep them in sync across CITATION.cff, codemeta.json, .zenodo.json and package manifests. Use the CLI, a pre-commit hook or the [browser playground](https://simonvanlierde.com/citesync/). Field mappings come from CodeMeta's crosswalks, as exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
+Generate software citation files from package metadata, then keep them in sync across CITATION.cff, codemeta.json, .zenodo.json and package manifests, including [Typst and Quarto plugin manifests](docs/formats.md#plugin-manifests). Use the CLI, a pre-commit hook or the [browser playground](https://simonvanlierde.com/citesync/). Field mappings come from CodeMeta's crosswalks, as exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
 
 ## Usage
 
@@ -62,7 +62,7 @@ For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.
 ```yaml
 repos:
   - repo: https://github.com/simonvanlierde/citesync
-    rev: v0.3.0
+    rev: v0.4.0
     hooks:
       - id: citesync
       - id: citesync-write
