@@ -36,7 +36,7 @@
       "required": ["format", "term", "path", "source"],
       "properties": {
         "format": {
-          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm. A versioned format puts its version in the id.",
+          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, pkg-info, r-description, julia, bibtex. A versioned format puts its version in the id.",
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9.]+)*$"
         },
@@ -46,9 +46,9 @@
           "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.@?[A-Za-z][A-Za-z0-9]*)?$"
         },
         "path": {
-          "description": "Where the value sits in the format's file, or null when the format has no place for it. Grammar: steps joined by '.'; a step is a key, a key followed by '[]' (each element of a list), or a key followed by '[k=v]' (each element whose k equals v). A key may contain letters, digits, '_' and '-', and may start with '@'. ' | ' separates alternatives, read left to right: the first that exists wins. A sub-term path is absolute and starts with its parent term's path. Examples: package.keywords, authors[].given-names, identifiers[type=doi].value, project.urls.Source | project.urls.Repository.",
+          "description": "Where the value sits in the format's file, or null when the format has no place for it. Grammar: steps joined by '.'; a step is a key, a key followed by '[]' (each element of a list), or a key followed by '[k=v]' (each element whose k equals v). A key may contain letters, digits, '_', '-' and '@' (R's Authors@R), and may start with '@'. ' | ' separates alternatives, read left to right: the first that exists wins. A sub-term path is absolute and starts with its parent term's path. Examples: package.keywords, authors[].given-names, identifiers[type=doi].value, project.urls.Source | project.urls.Repository.",
           "type": ["string", "null"],
-          "pattern": "^@?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?(\\.@?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?)*( \\| @?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?(\\.@?[A-Za-z_][A-Za-z0-9_-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_-]*=[A-Za-z0-9_.-]+\\])?)*)*$"
+          "pattern": "^@?[A-Za-z_][A-Za-z0-9_@-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_@-]*=[A-Za-z0-9_.-]+\\])?(\\.@?[A-Za-z_][A-Za-z0-9_@-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_@-]*=[A-Za-z0-9_.-]+\\])?)*( \\| @?[A-Za-z_][A-Za-z0-9_@-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_@-]*=[A-Za-z0-9_.-]+\\])?(\\.@?[A-Za-z_][A-Za-z0-9_@-]*(\\[\\]|\\[@?[A-Za-z_][A-Za-z0-9_@-]*=[A-Za-z0-9_.-]+\\])?)*)*$"
         },
         "source": {
           "description": "Why the row says what it says. 'crosswalk:<file>@<tag>' when the path reads the cell of that CodeMeta crosswalk; 'curated:<reason>' when the row departs from the crosswalk or the crosswalk has no cell.",
