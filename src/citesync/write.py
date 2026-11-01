@@ -46,6 +46,7 @@ from citesync.formats import (
     Doc,
     Person,
     cff_person,
+    codemeta_orcid,
     codemeta_person,
     codemeta_version,
     format_of,
@@ -569,7 +570,9 @@ def _people(fmt: str, old: Any, source: Doc, path: str, mapping: Mapping, term: 
             _rename(fmt, items[i], p, path, mapping, term)
         if q.orcid and p.orcid and q.orcid != p.orcid:
             okey = relative(str(mapping[fmt, f"{term}.@id"]), path)
-            items[i][okey] = _styled(_fields(fmt, p, path, mapping, term)[okey], items[i][okey])
+            value = _fields(fmt, p, path, mapping, term)[okey]
+            okey = "id" if fmt == "codemeta" and okey == "@id" and okey not in items[i] and "id" in items[i] else okey
+            items[i][okey] = _styled(value, items[i][okey])
         out.append(items[i])
     out += [el for i, el in enumerate(items) if i not in used and (npm or decoded[i] is None)]
     if not isinstance(old, list):
@@ -585,6 +588,11 @@ def _extra(fmt: str, element: Any, path: str, mapping: Mapping, term: str) -> st
     if not isinstance(element, dict):
         return None
     names = {relative(at, path) for t in person_terms(term) if (at := mapping[fmt, t])}
+    if fmt == "codemeta":
+        names |= {"id", "type"}
+        for key in ("@id", "id"):
+            if element.get(key) and not codemeta_orcid(element[key]):
+                return key
     return next((str(k) for k in element if k not in names | {"@type", "name", "name-particle", "name-suffix"}), None)
 
 

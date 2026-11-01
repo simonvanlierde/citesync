@@ -71,7 +71,7 @@ citesync.write.x__people__mutmut_92  matches has one entry per person, so strict
 citesync.write.x__people__mutmut_123  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_126  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_127  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_176  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__people__mutmut_205  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__relist__mutmut_10  zip's strict=None is falsy, the same as False
 citesync.write.x__relist__mutmut_13  zip's strict defaults to False
 citesync.write.x__new_person__mutmut_22  a person with no name stops at the CannotWrite in _people before reaching Cargo or npm

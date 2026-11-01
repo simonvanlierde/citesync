@@ -177,11 +177,11 @@ def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:
         for entry in (data[key] if isinstance(data.get(key), list) else [data.get(key)])
         if isinstance(entry, dict)
     ]
-    people = {codecs.orcid_decode(_ld(e, "id")) for _, e in entries if _ld(e, "type") != "Role"}
+    people = {codemeta_orcid(_ld(e, "id")) for _, e in entries if _ld(e, "type") != "Role"}
     found = []
     for key, entry in entries:
         target = entry.get("schema:author")
-        orcid = codecs.orcid_decode(_ld(target, "id") if isinstance(target, dict) else target)
+        orcid = codemeta_orcid(_ld(target, "id") if isinstance(target, dict) else target)
         if _ld(entry, "type") == "Role" and orcid and orcid not in people:
             found.append((key, orcid))
     return tuple(found)
@@ -190,6 +190,12 @@ def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:
 def _ld(node: dict[str, Any], key: str) -> object:
     """``node``'s ``@type`` or ``@id``, or the ``type`` or ``id`` that CodeMeta 3's context makes an alias of it."""
     return node.get(f"@{key}", node.get(key))
+
+
+def codemeta_orcid(value: object) -> str | None:
+    """The ORCID in a CodeMeta node identifier, or None for other URLs, fragments and blank nodes."""
+    bare = codecs.orcid_decode(value)
+    return bare if bare and re.fullmatch(r"[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]", bare) else None
 
 
 def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
@@ -429,12 +435,13 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) 
             return None
         rel = relative(path, parent)
         values = [element] if rel == "" else resolve(element, rel)
+        values = [_ld(element, "id")] if fmt == "codemeta" and rel == "@id" and isinstance(element, dict) else values
         return values[0] if values else None
 
     def text(value: object) -> str | None:
         return (codecs.clean(value) or None) if isinstance(value, str) else None
 
-    orcid = codecs.orcid_decode(sub(orcid_term))
+    orcid = (codemeta_orcid if fmt == "codemeta" else codecs.orcid_decode)(sub(orcid_term))
     given, family = None, None
     if mapping[fmt, given_term] == mapping[fmt, family_term]:
         raw = sub(given_term)

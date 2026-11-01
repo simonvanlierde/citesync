@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: Cite this example when testing the metadata workflow.
+type: software
+title: Example microscopy tools
+version: 1.0.0
+authors:
+  - given-names: M.
+    family-names: Skłodowska-Curie
+    orcid: https://orcid.org/0000-0002-1825-0097
+  - given-names: Antonie
+    name-particle: van
+    family-names: Leeuwenhoek

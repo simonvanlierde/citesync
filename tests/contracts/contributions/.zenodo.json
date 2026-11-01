@@ -1,0 +1,21 @@
+{
+  "title": "Example microscopy tools",
+  "version": "1.0.0",
+  "creators": [
+    {
+      "name": "Skłodowska-Curie, M.",
+      "orcid": "0000-0002-1825-0097",
+      "affiliation": "Example Lab"
+    },
+    {
+      "name": "van Leeuwenhoek, Antonie"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Johnson, Katherine",
+      "type": "DataManager",
+      "affiliation": "Example Lab"
+    }
+  ]
+}

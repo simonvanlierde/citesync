@@ -23,7 +23,8 @@ Some values a file can't hold, such as a licence with `AND` in CITATION.cff, or 
 
 ## Authors and contributors
 
-Contributors are written as authors are.
+Contributors are written as authors are. The [contribution guide](contributions.md)
+shows the checked people/role contract and each format's limits.
 
 - An author whose name or ORCID matches keeps the rest of their entry, such as an email or affiliation. Anyone else gets a new entry.
 - If that would drop an old entry with more than a name and ORCID, for example after a rename, write leaves that file's authors for you to edit.
