@@ -93,7 +93,7 @@ def test_repeated_urls_and_named_contacts_are_retained_by_adapter(tmp_path: Path
     path = tmp_path / "METADATA"
     path.write_text(METADATA)
     data = load(path, "METADATA")["project"]
-    assert len(data["urls"]) == 2
+    assert data["urls"] == {"Source": "https://example.org/lensgrind"}
     assert data["authors"] == [
         {"name": "Marie Skłodowska-Curie", "email": "marie@example.org"},
         {"name": "Antonie van Leeuwenhoek"},
@@ -184,10 +184,49 @@ def test_wheel_metadata_can_use_only_named_email_authors(tmp_path: Path) -> None
     )
     doc = read_doc(tmp_path, "METADATA", load_mapping())
     assert [person.name for person in doc.record["author"]] == ["Marie Skłodowska-Curie"]
-    assert doc.record["description"] == "Measure optics."
+    assert "description" not in doc.record  # the body is the README, not a Summary
 
 
 def test_missing_optional_distribution_fields_stay_absent(tmp_path: Path) -> None:
     path = tmp_path / "METADATA"
     path.write_text("Metadata-Version: 2.6\nName: lensgrind\nVersion: 1.0\n")
     assert read_doc(tmp_path, "METADATA", load_mapping()).record == {"name": "lensgrind", "version": "1.0"}
+
+
+BARE = "Metadata-Version: 2.6\nName: lensgrind\nVersion: 1.0\n"
+
+
+@pytest.mark.parametrize(
+    ("headers", "repository"),
+    [
+        ("Project-URL: Source Code, https://example.org/a\n", "https://example.org/a"),
+        ("Project-URL: source, https://example.org/a\n", "https://example.org/a"),
+        ("Project-URL: GitHub, https://example.org/a\n", "https://example.org/a"),
+        ("Project-URL: Source-Code, https://example.org/a\n", "https://example.org/a"),
+        (
+            "Project-URL: GitHub, https://example.org/b\nProject-URL: Repository, https://example.org/a\n",
+            "https://example.org/a",
+        ),
+        (
+            "Project-URL: Repository, https://example.org/b\nProject-URL: Source, https://example.org/a\n",
+            "https://example.org/a",
+        ),
+        ("Home-page: https://example.org/home\nProject-URL: Source, https://example.org/a\n", "https://example.org/a"),
+        ("Home-page: https://example.org/home\n", "https://example.org/home"),
+        (
+            "Project-URL: Source Code, https://example.org/b\nProject-URL: Repository, https://example.org/a\n",
+            "https://example.org/a",
+        ),
+        ("Project-URL: Documentation, https://example.org/docs\n", None),
+    ],
+)
+def test_repository_comes_from_the_well_known_labels_in_order(
+    headers: str, repository: str | None, tmp_path: Path
+) -> None:
+    (tmp_path / "METADATA").write_text(BARE + headers)
+    assert read_doc(tmp_path, "METADATA", load_mapping()).record.get("codeRepository") == repository
+
+
+def test_description_comes_from_summary_only(tmp_path: Path) -> None:
+    (tmp_path / "METADATA").write_text(BARE + "Description: The whole README.\n\nBody text.\n")
+    assert "description" not in read_doc(tmp_path, "METADATA", load_mapping()).record
