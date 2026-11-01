@@ -518,3 +518,33 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
   await page.keyboard.press("Enter");
   await expect(page.locator("#output")).toContainText("@software{lensgrind,");
 });
+
+test("name corrections survive a source edit, and a refresh keeps a typed search", async ({ page }) => {
+  await page.goto("/");
+  const pyproject =
+    '[project]\nname = "lensgrind"\nversion = "1.4.0"\nauthors = [{name = "Antonie van Leeuwenhoek"}]\n';
+  await choose(page, "source-format", "pyproject.toml");
+  await page.locator("#input").fill(pyproject);
+  await expect(page.locator("#name-review")).toHaveAttribute("open", "", { timeout: 90000 });
+  await page.locator("#review-0-given").fill("Antonie");
+  await page.locator("#review-0-family").fill("van Leeuwenhoek");
+  await expect(page.locator("#output")).toContainText("family-names: van Leeuwenhoek");
+  await page.locator("#input").fill(pyproject.replace("1.4.0", "1.4.2"));
+  await expect(page.locator("#output")).toContainText("1.4.2");
+  await expect(page.locator("#output")).toContainText("family-names: van Leeuwenhoek");
+  await expect(page.locator("#review-0-given")).toHaveValue("Antonie");
+  await page.getByRole("button", { name: "Names look right" }).click();
+  await page.locator("#input").fill(pyproject.replace("1.4.0", "1.4.1"));
+  await expect(page.locator("#output")).toContainText("1.4.1");
+  await expect(page.locator("#output")).toContainText("family-names: van Leeuwenhoek");
+  await expect(page.locator("#name-review")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#copy")).toBeEnabled();
+  const output = page.getByRole("combobox", { name: "Output file" });
+  await output.click();
+  await output.fill("bib");
+  await page.evaluate(() => {
+    document.querySelector("#output-file").value = "CITATION.cff"; // as a finished conversion does
+  });
+  await expect(output).toHaveValue("bib");
+  await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText(["citation.bib — BibTeX"]);
+});

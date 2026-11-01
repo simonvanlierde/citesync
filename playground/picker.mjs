@@ -37,6 +37,7 @@ export function picker(select) {
     input.value = current()?.text ?? "";
   };
   let active;
+  let query = ""; // what the person typed; a click opens the full list while the input shows the chosen name
   const activate = (item) => {
     active?.classList.remove("active");
     active = item;
@@ -48,7 +49,8 @@ export function picker(select) {
     input.setAttribute("aria-activedescendant", item.id);
     item.scrollIntoView({ block: "nearest" });
   };
-  const open = (query) => {
+  const open = (text) => {
+    query = text;
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     for (const group of list.children) {
       let shown = 0;
@@ -115,7 +117,8 @@ export function picker(select) {
       item.setAttribute("aria-selected", String(item.dataset.value === select.value));
     }
     input.size = Math.max(10, ...[...select.options].map((option) => option.text.length)); // as wide as a select
-    show();
+    if (list.hidden) show();
+    else open(query); // a refresh while the list is open keeps what the person typed
   };
   // code sets select.value directly, which fires no event, so the shown text follows the setter
   Object.defineProperty(select, "value", {
