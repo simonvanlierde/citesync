@@ -18,6 +18,10 @@ test("automatic detection, live name corrections, exports, form and parse recove
   await expect(page.locator("#name-review")).toBeVisible({ timeout: 90000 });
   await expect(page.locator("#detected-format")).toHaveText("Detected pyproject.toml");
   expect(downloads).toHaveLength(0);
+  await expect(page.locator("#runtime")).toHaveText("Finishing converter setup… You can keep editing.");
+  await expect(page.locator("#runtime")).toBeHidden();
+  await expect(page.locator('#output-file option[value="CITATION.cff"]')).toHaveText("CITATION.cff — GitHub citation");
+  await expect(page.locator('#output-file option[value=".zenodo.json"]')).toHaveText(".zenodo.json — Zenodo deposit");
   await expect(page.locator("#copy")).toBeEnabled();
   await page.locator("#review-0-family").fill("van Leeuwenhoek");
   await expect(page.locator("#output")).toContainText("family-names: van Leeuwenhoek");

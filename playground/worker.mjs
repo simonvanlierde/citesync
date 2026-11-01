@@ -6,7 +6,7 @@ function load() {
       const [python, { manifest, wheels }] = await Promise.all([
         import(`${runtimeURL}pyodide.mjs`).then(({ loadPyodide }) => loadPyodide({ indexURL: runtimeURL })),
         (async () => {
-          const response = await fetch("./runtime.json", { cache: "no-store" });
+          const response = await fetch("./runtime.json");
           if (!response.ok) throw new Error("The converter build is missing. Reload the page or try again later.");
           const manifest = await response.json();
           const wheels = await Promise.all(
@@ -24,6 +24,7 @@ function load() {
           return { manifest, wheels };
         })(),
       ]);
+      self.postMessage({ type: "setup" });
       for (const { name, content } of wheels) python.FS.writeFile(`/tmp/${name}`, new Uint8Array(content));
       python.globals.set("wheel_names_json", JSON.stringify(manifest.wheels.map(({ name }) => name)));
       await python.runPythonAsync(`

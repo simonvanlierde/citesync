@@ -27,6 +27,13 @@ let savedNames;
 let modeTransition = 0;
 const transfers = new Map();
 const filenames = ["CITATION.cff", "codemeta.json", ".zenodo.json", "pyproject.toml", "Cargo.toml", "package.json"];
+const outputLabels = {
+  "CITATION.cff": "CITATION.cff — GitHub citation",
+  "codemeta.json": "codemeta.json — Software metadata",
+  ".zenodo.json": ".zenodo.json — Zenodo deposit",
+  "citation.bib": "citation.bib — BibTeX",
+  "citation.csl.json": "citation.csl.json — CSL-JSON",
+};
 const examples = {
   "pyproject.toml":
     '[project]\nname = "lensgrind"\nversion = "1.4.0"\ndescription = "Measure microscope optics."\nauthors = [{name = "Antonie van Leeuwenhoek"}]\nlicense = "Apache-2.0"\n',
@@ -185,9 +192,15 @@ function payload() {
   return { details };
 }
 function startWorker() {
+  $("#runtime").hidden = false;
+  $("#runtime").textContent = "Loading the converter… You can keep editing.";
   startupTimeout = setTimeout(failedLoad, 90000);
   worker = new Worker(new URL("./worker.mjs", import.meta.url), { type: "module" });
   worker.onmessage = ({ data }) => {
+    if (data.type === "setup") {
+      $("#runtime").textContent = "Finishing converter setup… You can keep editing.";
+      return;
+    }
     if (data.type === "ready") {
       clearTimeout(startupTimeout);
       ready = true;
@@ -331,7 +344,12 @@ function render() {
       const group = document.createElement("optgroup");
       group.label = label;
       for (const filename of Object.keys(files)) {
-        group.append(new Option(label === "Citation files" ? filename : `${filename} (incomplete)`, filename));
+        group.append(
+          new Option(
+            label === "Citation files" ? outputLabels[filename] || filename : `${filename} (incomplete)`,
+            filename,
+          ),
+        );
       }
       $("#output-file").append(group);
     }

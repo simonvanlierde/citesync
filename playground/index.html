@@ -44,7 +44,7 @@
 <button type="button" class="link" id="add-author">Add another author</button>
 <details><summary>Version, licence and repository</summary><label for="version">Version</label><p class="hint field-hint" id="version-hint">Example: 1.4.0</p><input id="version" name="version" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100" aria-describedby="version-hint"><details class="field-help"><summary>Which version format?</summary><p>Use your software’s release version. Python templates use <a href="https://packaging.python.org/en/latest/specifications/version-specifiers/">PEP 440</a>; Cargo and npm templates use <a href="https://semver.org/">Semantic Versioning</a>.</p></details><label for="licence">SPDX licence identifier</label><p class="hint field-hint" id="licence-hint">Examples: Apache-2.0 or MIT</p><input id="licence" name="license" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="200" aria-describedby="licence-hint"><details class="field-help"><summary>Find a licence identifier</summary><p>Enter the identifier rather than the licence text. Browse the <a href="https://spdx.org/licenses/">SPDX licence list</a>.</p></details><label for="repo">Repository URL</label><p class="hint field-hint" id="repo-hint">The full address, starting with https://</p><input id="repo" name="repository" type="url" maxlength="2000" aria-describedby="repo-hint"></details>
 </form>
-<p id="runtime" role="status">Preparing the converter… You can start typing.</p>
+<p id="runtime" role="status">Loading the converter… You can keep editing.</p>
 <div id="message" role="status" tabindex="-1"></div><button type="button" id="retry" hidden>Retry conversion</button>
 </section>
 <section aria-label="Generated citation files">
