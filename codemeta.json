@@ -2,10 +2,10 @@
   "@context": "https://w3id.org/codemeta/3.0",
   "@type": "SoftwareSourceCode",
   "name": "citesync",
-  "softwareVersion": "0.3.0",
+  "softwareVersion": "0.4.0",
   "datePublished": "2026-11-01",
   "url": "https://simonvanlierde.com/citesync/",
-  "description": "citesync generates and synchronizes software citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. Imports include Python, Rust, npm, R and Julia package metadata; the CLI and playground also export BibTeX, CSL-JSON, APA and JSON-LD citations.",
+  "description": "citesync generates and synchronizes software citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. It also checks and updates Typst and Quarto plugin manifests. Imports include Python, Rust, npm, R and Julia package metadata; the CLI and playground also export BibTeX, CSL-JSON, APA and JSON-LD citations, and the CLI prints CITATION.cff, CodeMeta and Zenodo files made from the source.",
   "author": [
     {
       "@type": "Person",
