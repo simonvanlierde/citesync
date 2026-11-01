@@ -47,7 +47,11 @@ export function picker(select) {
     }
     item.classList.add("active");
     input.setAttribute("aria-activedescendant", item.id);
-    item.scrollIntoView({ block: "nearest" });
+    // scroll the list only: scrollIntoView would also scroll the page when the list runs past the window
+    if (item.offsetTop < list.scrollTop) list.scrollTop = item.offsetTop;
+    else if (item.offsetTop + item.offsetHeight > list.scrollTop + list.clientHeight) {
+      list.scrollTop = item.offsetTop + item.offsetHeight - list.clientHeight;
+    }
   };
   const open = (text) => {
     query = text;
