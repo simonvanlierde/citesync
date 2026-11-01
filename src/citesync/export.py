@@ -15,6 +15,7 @@ from citesync.check import Finding
 from citesync.config import Config
 from citesync.errors import CheckError
 from citesync.formats import Doc, Person
+from citesync.mapping import load_mapping
 
 # suffix: format; the longest suffix is tried first, so citation.csl.json is never plain JSON
 SUFFIXES = {".csl.json": "csl-json", ".apa.txt": "apa", ".bib": "bibtex", ".jsonld": "jsonld"}
@@ -156,8 +157,6 @@ def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
     A row with alternatives (``date | year``) writes each one, so plain BibTeX styles, which print an
     unknown type as ``@misc``, still find the field they read.
     """
-    from citesync.mapping import load_mapping  # noqa: PLC0415 - only the BibTeX export reads the rows
-
     rows = load_mapping()
     authors = []
     for p in _people(rec):

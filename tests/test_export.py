@@ -519,7 +519,7 @@ def test_bibtex_is_a_biblatex_software_entry_named_by_the_rows() -> None:
     fields = parse_string(bib, "bibtex").entries["lensgrind"].fields
     mapping = load_mapping()
     for term in ("name", "version", "license", "identifier", "swhid", "codeRepository", "description", "keywords"):
-        assert str(mapping["bibtex", term]) in fields, term
+        assert set(str(mapping["bibtex", term]).split(" | ")) <= fields.keys(), term
     assert (fields["date"], fields["year"]) == ("2026-10-31", "2026")  # biblatex reads date, plain BibTeX year
     assert fields["url"] == "https://example.org/lensgrind"  # plain BibTeX styles print url, not repository
     assert (fields["keywords"], fields["license"]) == ("optics, microscopy", "Apache-2.0")
