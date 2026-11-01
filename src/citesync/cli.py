@@ -24,6 +24,7 @@ from citesync.rules import DOCS_URL, RULES, explain, url
 JSON_VERSION = 1
 # citesync.export.FORMATS, spelled out so the parser needs no import of that module
 _EXPORT_FORMATS = ("bibtex", "csl-json", "apa", "jsonld")
+_CITATION_FILES = ("cff", "codemeta", "zenodo")  # made by write's builders, so never under exports
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
 _SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
@@ -159,14 +160,17 @@ def _parser() -> argparse.ArgumentParser:
         " holds it: --source, then the files in the order above.",
     )
     init_.add_argument("--diff", action="store_true", help="print the new file as a unified diff and write nothing")
-    export = "print a citation from the source: BibTeX, CSL-JSON, APA or JSON-LD"
+    export = "print a citation or citation file made from the source, writing nothing"
     export_ = sub.add_parser(
         "export",
         parents=[root],
         help=export,
-        description=f"{export[0].upper()}{export[1:]}.\nList files under exports in the config to keep them in step.",
+        description=f"{export[0].upper()}{export[1:]}.\n"
+        "List bibtex, csl-json, apa or jsonld files under exports to keep them in step.",
     )
-    export_.add_argument("--format", choices=_EXPORT_FORMATS, required=True, help="the citation format")
+    export_.add_argument(
+        "--format", choices=_EXPORT_FORMATS + _CITATION_FILES, required=True, help="the citation format"
+    )
     sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", help="list the rules")
     rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
@@ -294,7 +298,13 @@ def _export(root: Path, config: Config, fmt: str) -> int:
         bad = next(f for f in read if f.file == docs[0].path and f.rule == "unreadable")
         msg = f"{bad.where}: {bad.message}"
         raise CheckError(msg)
-    text, notes = render(fmt, record(docs))
+    if fmt in _CITATION_FILES:
+        from citesync.write import citation_file  # noqa: PLC0415
+
+        text, skipped = citation_file(fmt, root, config, replace(docs[0], record=record(docs)), load_mapping())
+        notes = [f"leaving out {term}: {why}" for term, why in skipped.items()]
+    else:
+        text, notes = render(fmt, record(docs))
     sys.stdout.write(text)
     for note in notes:
         print(note, file=sys.stderr)

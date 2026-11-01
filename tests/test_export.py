@@ -384,6 +384,58 @@ def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> N
     assert err.startswith("citesync: CITATION.cff")
 
 
+@pytest.mark.parametrize(
+    ("fmt", "name", "source"),
+    [("cff", "CITATION.cff", "codemeta.json"), ("codemeta", "codemeta.json", None), ("zenodo", ".zenodo.json", None)],
+)
+def test_export_prints_a_citation_file_that_check_accepts(
+    tmp_path: Path, run: "Run", fmt: str, name: str, source: str | None
+) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    start = source or "CITATION.cff"
+    shutil.copy(FIXTURES / "synthetic-agree" / start, root / start)
+    if source:
+        (root / "citesync.toml").write_text(f'source = "{source}"\n', encoding="utf-8")
+    before = sorted(p.name for p in root.iterdir())
+    code, out, err = run("export", "--root", str(root), "--format", fmt)
+    assert code == 0, err
+    assert sorted(p.name for p in root.iterdir()) == before  # it writes nothing
+    (root / name).write_text(out, encoding="utf-8")
+    code, report, _ = run("check", "--root", str(root))
+    assert code == 0, report
+
+
+def test_export_says_what_a_citation_file_leaves_out(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "codemeta.json").write_text(
+        json.dumps(
+            {
+                "@context": "https://w3id.org/codemeta/3.0",
+                "name": "lensgrind",
+                "author": [{"@type": "Person", "givenName": "Marie", "familyName": "Skłodowska-Curie"}],
+                "license": "MIT AND Apache-2.0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "citesync.toml").write_text('source = "codemeta.json"\n', encoding="utf-8")
+    code, out, err = run("export", "--root", str(tmp_path), "--format", "cff")
+    assert code == 0
+    assert "title: lensgrind" in out
+    assert "license" not in out
+    assert err.startswith("leaving out license: ")
+
+
+def test_export_cff_needs_an_author(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "codemeta.json").write_text(
+        '{"@context": "https://w3id.org/codemeta/3.0", "name": "x"}', encoding="utf-8"
+    )
+    (tmp_path / "citesync.toml").write_text('source = "codemeta.json"\n', encoding="utf-8")
+    code, out, err = run("export", "--root", str(tmp_path), "--format", "cff")
+    assert (code, out) == (2, "")
+    assert "author" in err
+
+
 _FORMAT = {
     "citation.bib": "bibtex",
     "citation.csl.json": "csl-json",
