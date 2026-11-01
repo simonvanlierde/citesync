@@ -24,6 +24,7 @@ citesync check --source pyproject.toml
 citesync write --diff               # print what write would change, and change nothing
 citesync write                      # rewrite the other files to agree with the source
 citesync init                       # write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
+citesync export --format apa        # print a citation: apa, bibtex, csl-json or jsonld
 citesync explain version-mismatch   # what a rule checks and how to fix it
 citesync config                     # the config in use, and the file it came from
 ```
@@ -43,9 +44,10 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 - [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it changes and what it leaves alone.
 - [Supported files](https://github.com/simonvanlierde/citesync/blob/main/docs/formats.md): which files citesync reads, updates and creates, including read-only Python distribution, R and Julia metadata.
 - [How init works](https://github.com/simonvanlierde/citesync/blob/main/docs/init.md): where a new CITATION.cff takes each field from.
+- [Citation exports](https://github.com/simonvanlierde/citesync/blob/main/docs/export.md): BibTeX, CSL-JSON, APA and schema.org JSON-LD files kept in step with the source.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
 - [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes, and every key.
-- [Use citation exports with Pandoc](https://github.com/simonvanlierde/citesync/blob/main/docs/pandoc.md): cite software from the playground’s CSL-JSON or BibTeX files.
+- [Use citation exports with Pandoc](https://github.com/simonvanlierde/citesync/blob/main/docs/pandoc.md): cite software from the CSL-JSON or BibTeX files `citesync export` or the playground makes.
 - [Output formats](https://github.com/simonvanlierde/citesync/blob/main/docs/output.md): JSON, GitHub annotations and SARIF.
 - [Tested on real repositories](https://github.com/simonvanlierde/citesync/blob/main/docs/tested-repositories.md): what citesync reports on five public repositories.
 

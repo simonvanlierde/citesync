@@ -122,7 +122,7 @@ def test_extra_exports_are_separated_from_incomplete_package_templates():
     assert csl[0]["type"] == "software"
     assert csl[0]["author"] == [{"family": "Skłodowska-Curie", "given": "Marie"}]
     assert "issued" not in csl[0]
-    assert "@misc{software," in result["files"]["citation.bib"]
+    assert "@misc{lensgrind," in result["files"]["citation.bib"]
     assert "{Skłodowska-Curie}, {Marie}" in result["files"]["citation.bib"]
     import tomllib  # noqa: PLC0415
 

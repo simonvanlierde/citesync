@@ -24,6 +24,7 @@ class Config:
     files: tuple[str, ...] | None = None
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
+    exports: tuple[str, ...] = ()
     zenodo_contributor_type: str | None = None
     keywords_case_sensitive: bool = False
     keywords_ignore_separators: bool = False
@@ -155,6 +156,10 @@ def _path(value: object, names: dict[str, str], origin: str, key: str) -> str:
     if not isinstance(value, str) or PurePosixPath(value).name not in names:
         msg = f"{origin}: {key} must name one of {', '.join(names)}, got {value!r}"
         raise CheckError(msg)
+    return _relative(value, origin, key)
+
+
+def _relative(value: str, origin: str, key: str) -> str:
     path = PurePosixPath(value)
     if path.is_absolute() or ".." in path.parts:
         msg = f"{origin}: {key} {value!r} must be relative to the repo root, inside it"
@@ -203,6 +208,19 @@ def _write_manifests(value: object, origin: str) -> tuple[str, ...]:
     return MANIFEST_TERMS if "all" in items else tuple(items)
 
 
+def _exports(value: object, origin: str) -> tuple[str, ...]:
+    from citesync.export import SUFFIXES, format_of  # noqa: PLC0415 - only when a config lists exports
+
+    if not isinstance(value, list):
+        msg = f"{origin}: exports must be a list of paths"
+        raise CheckError(msg)
+    for item in value:
+        if not isinstance(item, str) or format_of(item) is None:
+            msg = f"{origin}: exports entry {item!r} must end in one of {', '.join(SUFFIXES)}"
+            raise CheckError(msg)
+    return tuple(dict.fromkeys(_relative(item, origin, "exports") for item in value))
+
+
 def _ignore(value: object, origin: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(i, str) for i in value):
         msg = f"{origin}: ignore must be a list of rule ids, got {value!r}"
@@ -225,6 +243,7 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
     "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
     "write-manifests": _write_manifests,
+    "exports": _exports,
     "zenodo-contributor-type": _zenodo_contributor_type,
     "keywords-case-sensitive": lambda value, origin: _bool(value, origin, "keywords-case-sensitive"),
     "keywords-ignore-separators": lambda value, origin: _bool(value, origin, "keywords-ignore-separators"),
@@ -247,6 +266,7 @@ def render(config: Config) -> str:
         if config.manifests is not None
         else "# manifests: not set, so every release manifest at the repo root",
         f"write-manifests = {json.dumps(list(config.write_manifests))}",
+        f"exports = {json.dumps(list(config.exports))}",
         f"zenodo-contributor-type = {json.dumps(config.zenodo_contributor_type)}"
         if config.zenodo_contributor_type is not None
         else "# zenodo-contributor-type: not set, so new contributors need a hand edit",

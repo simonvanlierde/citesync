@@ -45,6 +45,8 @@ const outputLabels = {
   ".zenodo.json": ".zenodo.json — Zenodo deposit",
   "citation.bib": "citation.bib — BibTeX",
   "citation.csl.json": "citation.csl.json — CSL-JSON",
+  "citation.apa.txt": "citation.apa.txt — APA reference",
+  "schema.jsonld": "schema.jsonld — Website structured data",
 };
 const examples = {
   "pyproject.toml":

@@ -13,10 +13,11 @@ from ruamel.yaml import YAML
 from citesync.check import check, keyword_key
 from citesync.config import Config
 from citesync.errors import CheckError
+from citesync.export import citations
 from citesync.formats import FORMAT_OF, IMPORTS, Doc, load, read_doc
 from citesync.formats import person as read_person
 from citesync.mapping import Mapping, load_mapping
-from citesync.playground_exports import bibliography, package_templates
+from citesync.playground_exports import package_templates
 from citesync.write import NEW_CODEMETA_VERSION, _new_codemeta, _split_name, init, write
 
 _FORM_FIELDS = (
@@ -87,9 +88,9 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
     notes += [f"{filename}: {term}: {reason}" for term, reason in source.import_notes]
     notes += [f"{name}: {term}: {reason}" for (name, term), reason in sorted(omitted.items())]
     record = source.record | read_doc(root, "CITATION.cff", mapping).record
-    citations, citation_notes = bibliography(record)
+    exports, citation_notes = citations(record)
     templates, template_notes = package_templates(record)
-    files.update(citations)
+    files.update(exports)
     return {
         "files": files,
         **({"details": _form_details(record, json.loads(files["codemeta.json"]))} if payload.get("edit") else {}),

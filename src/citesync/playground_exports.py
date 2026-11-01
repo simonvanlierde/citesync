@@ -1,6 +1,5 @@
-"""Citation exports and explicitly incomplete package metadata templates for the playground."""
+"""Explicitly incomplete package metadata templates for the playground."""
 
-import datetime as dt
 import json
 import re
 from typing import Any
@@ -10,72 +9,9 @@ from packaging.utils import InvalidName, canonicalize_name
 
 from citesync import codecs
 from citesync.errors import CannotWrite
-from citesync.formats import Person
 
-_TEX = {
-    "\\": r"\textbackslash{}",
-    "{": r"\{",
-    "}": r"\}",
-    "&": r"\&",
-    "%": r"\%",
-    "$": r"\$",
-    "#": r"\#",
-    "_": r"\_",
-    "~": r"\textasciitilde{}",
-    "^": r"\textasciicircum{}",
-}
 _CARGO_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 _NPM_NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*")
-
-
-def tex(text: str) -> str:
-    """Escape a literal UTF-8 metadata value for a braced BibTeX field."""
-    return "".join(_TEX.get(char, char) for char in " ".join(text.split()))
-
-
-def bibliography(record: dict[str, Any]) -> tuple[dict[str, str], list[str]]:
-    """Write BibTeX misc and CSL software citations; never invent a release date."""
-    people: tuple[Person, ...] = record.get("author", ())
-    csl: dict[str, Any] = {"id": "software", "type": "software", "title": record["name"], "author": []}
-    csl["author"], authors = _citation_people(people)
-    fields = {"title": "{" + tex(record["name"]) + "}", "author": " and ".join(authors)}
-    for term, key in (("identifier", "DOI"), ("codeRepository", "URL"), ("version", "version")):
-        if value := record.get(term):
-            csl[key] = value
-    for term, key in (("identifier", "doi"), ("codeRepository", "url")):
-        if value := record.get(term):
-            fields[key] = tex(value)
-    fields["note"] = tex("Software" + (f", version {record['version']}" if record.get("version") else ""))
-    notes = []
-    if date := record.get("datePublished"):
-        try:
-            day = dt.date.fromisoformat(date)
-        except ValueError:
-            notes.append("BibTeX and CSL-JSON: release date omitted because it is not a full YYYY-MM-DD date.")
-        else:
-            csl["issued"] = {"date-parts": [[day.year, day.month, day.day]]}
-            fields["year"] = str(day.year)
-    bib = "@misc{software,\n" + "".join(f"  {key} = {{{value}}},\n" for key, value in fields.items()) + "}\n"
-    return {"citation.bib": bib, "citation.csl.json": json.dumps([csl], indent=2, ensure_ascii=False) + "\n"}, notes
-
-
-def _citation_people(people: tuple[Person, ...]) -> tuple[list[dict[str, str]], list[str]]:
-    names, authors = [], []
-    for person in people:
-        if not person.name:
-            continue
-        if person.organization or not person.family:
-            names.append({"literal": person.name})
-            authors.append("{" + tex(person.name) + "}")
-        else:
-            name = {"family": person.family}
-            author = "{" + tex(person.family) + "}"
-            if person.given:
-                name["given"] = person.given
-                author += ", {" + tex(person.given) + "}"
-            names.append(name)
-            authors.append(author)
-    return names, authors
 
 
 def package_templates(record: dict[str, Any]) -> tuple[dict[str, str], list[str]]:

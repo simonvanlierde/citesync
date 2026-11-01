@@ -26,7 +26,7 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.scalarstring import ScalarString
 from ruamel.yaml.util import load_yaml_guess_indent
 
-from citesync import codecs
+from citesync import codecs, export
 from citesync.check import (
     ZENODO_GAPS,
     Finding,
@@ -73,7 +73,8 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
     where the source holds the term and is what the file was compared with. A field the file
-    leaves out stays out. An unreadable file is never written. A value the file's format can't
+    leaves out stays out. Each file under ``exports`` that ``export-stale`` reports is made again
+    whole. An unreadable file is never written. A value the file's format can't
     spell without losing something is left as it was, its (path, term) mapped to the reason.
     Every new text is made before any file is replaced, so an error leaves the files as they were.
     With ``dry_run``, nothing is replaced.
@@ -87,9 +88,12 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
+    exported = export.stale(root, docs, config)
     # zenodo-license-list sits on a term write may rewrite, but no rewrite turns the list into one licence
     errors = [
-        f for f in findings(docs, unreadable, config)[0] if f.severity == "error" and f.rule != "zenodo-license-list"
+        f
+        for f in findings(docs, [*unreadable, *exported], config)[0]
+        if f.severity == "error" and f.rule != "zenodo-license-list"
     ]
     fix = {(f.file, f.term) for f in errors}
     source, texts, skipped, done = docs[0], {}, {}, set()
@@ -131,6 +135,15 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
             texts[rel], reasons = _new_zenodo(rel, source, mapping, key, config.zenodo_contributor_type)
         skipped |= {(rel, term): reason for term, reason in reasons.items()}
         done.add((rel, None))
+    # an export is made whole from the docs as read, the source first, as check compares
+    rec = export.record(docs)
+    exports = {
+        path: export.text(path, rec)
+        for path in config.exports
+        if (path, None) in fix and rec.get("name") and export.writable(root, path)
+    }
+    texts |= exports
+    done |= {(path, None) for path in exports}
     if not dry_run:
         for rel in texts:  # read_doc refuses an existing file outside; this catches a dangling link to one
             if not inside(root, rel):

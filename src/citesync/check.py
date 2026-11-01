@@ -136,7 +136,12 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
     """Every finding for the repo at ``root``, sorted, the number of files checked, and the unused ignore entries."""
     mapping = load_mapping()
     docs, read = read_docs(root, config, mapping)
-    found, unused = findings(docs, [*read, *version_behind_tag(docs[0], git_tags(root))], config)
+    extra = [*read, *version_behind_tag(docs[0], git_tags(root))]
+    if config.exports:
+        from citesync.export import stale  # noqa: PLC0415
+
+        extra += stale(root, docs, config)
+    found, unused = findings(docs, extra, config)
     if any(f.file and f.term for f in found):  # a check with nothing to point at reads no file twice
         from citesync.positions import place  # noqa: PLC0415
 

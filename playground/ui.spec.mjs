@@ -28,9 +28,11 @@ test("automatic detection, live name corrections, exports, form and parse recove
   await expect(page.locator("#review-0-family")).toBeFocused();
   await expect(page.locator("#zip")).toBeEnabled();
   await page.locator("#output-file").selectOption("citation.bib");
-  await expect(page.locator("#output")).toContainText("@misc{software,");
+  await expect(page.locator("#output")).toContainText("@misc{lensgrind,");
   await page.locator("#output-file").selectOption("citation.csl.json");
   await expect(page.locator("#output")).toContainText('"type": "software"');
+  await page.locator("#output-file").selectOption("citation.apa.txt");
+  await expect(page.locator("#output")).toContainText("[Computer software]");
   await page.locator("#output-file").selectOption("codemeta.json");
   await expect(page.locator("#output")).toContainText('"familyName": "van Leeuwenhoek"');
   await page.locator("#output-file").selectOption("CITATION.cff");
@@ -263,7 +265,7 @@ test("search metadata and project information are present without JavaScript", a
   );
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    /CITATION.cff, CodeMeta, BibTeX and CSL-JSON/,
+    /CITATION.cff, CodeMeta, BibTeX, CSL-JSON, APA and JSON-LD/,
   );
   await expect(page.getByRole("heading", { name: "citesync", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Use citesync in your repository" })).toBeVisible();

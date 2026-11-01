@@ -158,6 +158,14 @@ Only for a citation file named in the `files` setting. Without that setting, cit
 
 To fix: Run `citesync write` to create codemeta.json or .zenodo.json; use `citesync init` for CITATION.cff, or take the file off `files`.
 
+## export-stale
+
+A file listed under `exports` is missing or differs from what the source gives. Severity: error.
+
+Each `exports` entry is a citation made from the source: BibTeX (`.bib`), CSL-JSON (`.csl.json`), APA 7 (`.apa.txt`) or schema.org JSON-LD (`.jsonld`). The file must equal what `citesync export` prints for its format, with CRLF line ends read as LF. A term the source doesn't hold comes from the first other file that holds it. `write` rewrites the whole file, so don't edit an export by hand.
+
+To fix: Run `citesync write`.
+
 ## unreadable
 
 citesync could not read the file. Severity: error.
