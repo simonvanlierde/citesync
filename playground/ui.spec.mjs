@@ -429,3 +429,28 @@ test("Python distribution metadata examples and uploads generate citation files"
   await expect(page.locator("#output")).toContainText('"upload_type": "software"');
   await accessible(page);
 });
+
+test("R and Julia examples follow the selected format and generate citations", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#source-format").selectOption("DESCRIPTION");
+  await page.getByRole("button", { name: "Try an example" }).click();
+  await expect(page.locator("#input")).toHaveValue(/Package: lensgrind/);
+  await expect(page.locator("#output")).toContainText("Skłodowska-Curie", { timeout: 90000 });
+  for (const filename of ["Project.toml", "JuliaProject.toml"]) {
+    await page.locator("#source-format").selectOption(filename);
+    await expect(page.locator("#input")).toHaveValue(/name = "Lensgrind"/);
+    await expect(page.locator("#output")).toContainText("Skłodowska-Curie");
+    await expect(page.locator("#copy")).toBeEnabled();
+  }
+  await page.locator("#source-format").selectOption("auto");
+  await page
+    .locator("#input")
+    .fill(
+      'Package: lensgrind\nTitle: Microscope optics\nVersion: 1.0\nAuthors@R: c(person("Marie", "Curie", role="aut"), person("Grace", "Hopper", role="ctb"))',
+    );
+  await expect(page.locator("#detected-format")).toHaveText("Detected DESCRIPTION");
+  await page.locator("#output-file").selectOption("codemeta.json");
+  await expect(page.locator("#output")).toContainText('"contributor"');
+  await expect(page.locator("#output")).toContainText("Hopper");
+  await accessible(page);
+});

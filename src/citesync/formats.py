@@ -22,7 +22,13 @@ from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms,
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {"pyproject.toml": "pep621", "Cargo.toml": "cargo", "package.json": "npm"}
-IMPORTS = {"PKG-INFO": "pep621", "METADATA": "pep621"}
+IMPORTS = {
+    "PKG-INFO": "pep621",
+    "METADATA": "pep621",
+    "DESCRIPTION": "codemeta",
+    "Project.toml": "codemeta",
+    "JuliaProject.toml": "codemeta",
+}
 FORMAT_OF = CITATION_FILES | MANIFESTS | IMPORTS
 CODEMETA_VERSIONS = ("2.0", "3.0", "3.1", "4.0")
 CFF_VERSIONS = ("1.2.0",)
@@ -98,7 +104,7 @@ class Doc:
     @property
     def is_citation(self) -> bool:
         """CITATION.cff, codemeta.json or .zenodo.json."""
-        return self.format in CITATION_FILES.values()
+        return PurePosixPath(self.path).name not in IMPORTS and self.format in CITATION_FILES.values()
 
 
 def format_of(path: str) -> str:
@@ -238,9 +244,12 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
     if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
         raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
     if path.name in IMPORTS:
-        from citesync.core_metadata import parse  # noqa: PLC0415 - other formats do not need email parsing
+        if IMPORTS[path.name] == "pep621":
+            from citesync.core_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
+        else:
+            from citesync.research_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
 
-        return parse(text, rel)
+        return parse_import(text, rel)
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)

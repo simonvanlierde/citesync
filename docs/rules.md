@@ -10,7 +10,7 @@ The eleven rules from `name-mismatch` to `date-mismatch` compare a field with th
 
 An imported metadata value cannot be represented safely. Severity: warning.
 
-Legacy Core Metadata License text is not assumed to be an SPDX expression. Values that cannot be represented are omitted with this notice; distribution metadata is never rewritten.
+Legacy Core Metadata License text is not assumed to be an SPDX expression. Values that cannot be represented are omitted with this notice; import-only metadata is never rewritten.
 
 To fix: Add an explicit supported value in the source metadata, then generate the citation files again.
 

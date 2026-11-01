@@ -35,6 +35,9 @@ const filenames = [
   "package.json",
   "PKG-INFO",
   "METADATA",
+  "DESCRIPTION",
+  "Project.toml",
+  "JuliaProject.toml",
 ];
 const outputLabels = {
   "CITATION.cff": "CITATION.cff — GitHub citation",
@@ -90,6 +93,21 @@ const examples = {
 examples.METADATA =
   "Metadata-Version: 2.6\nName: lensgrind\nVersion: 1.4.0\nSummary: Measure microscope optics.\nAuthor: Marie Skłodowska-Curie\nLicense-Expression: Apache-2.0\n";
 examples["PKG-INFO"] = examples.METADATA;
+examples.DESCRIPTION = `Package: lensgrind
+Title: Measure Microscope Optics
+Version: 1.4-2
+Description: Measure microscope optics.
+Authors@R: person("Marie", "Skłodowska-Curie", role = c("aut", "cre"))
+License: GPL (>= 2)
+Encoding: UTF-8
+`;
+examples["Project.toml"] = `name = "Lensgrind"
+uuid = "00000000-0000-0000-0000-000000000001"
+version = "1.4.2"
+authors = [{given-names = "Marie", family-names = "Skłodowska-Curie"}]
+`;
+examples["JuliaProject.toml"] = examples["Project.toml"];
+
 function announce(text, { error = false, inputError = false, notice = error } = {}) {
   if ($("#message").textContent !== text) $("#message").textContent = text;
   $("#message").dataset.error = String(error);

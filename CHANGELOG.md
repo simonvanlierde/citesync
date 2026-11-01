@@ -13,6 +13,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Import R DESCRIPTION and Julia Project.toml metadata in the CLI and playground without running package code. These files remain read-only; unsupported R expressions and ambiguous licence terms are reported ([supported files](docs/formats.md#r-and-julia-imports)).
+
 - Read extracted Python PKG-INFO and METADATA files as sources in the CLI and playground, without building or importing packages. These files remain read-only ([supported files](docs/formats.md#python-distribution-metadata)).
 
 - Set a default Zenodo contributor type for new contributors, including when creating .zenodo.json; existing contributor types are preserved ([configuration](docs/config.md)).

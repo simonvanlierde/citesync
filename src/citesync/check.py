@@ -202,7 +202,7 @@ def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set
     source = docs[0]
     for doc in docs:
         configured = config.codemeta_version
-        if configured and doc.readable and doc.format == "codemeta" and doc.version != configured:
+        if configured and doc.readable and doc.is_citation and doc.format == "codemeta" and doc.version != configured:
             detail = f"{doc.version}, configured {configured}"
             found.add(Finding(doc.path, "@context", "context-mismatch", detail))
         for key in dict.fromkeys(key for key, _ in doc.dangling_roles):

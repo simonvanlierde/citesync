@@ -13,7 +13,7 @@ from ruamel.yaml import YAML
 from citesync.check import check, keyword_key
 from citesync.config import Config
 from citesync.errors import CheckError
-from citesync.formats import FORMAT_OF, Doc, load, read_doc
+from citesync.formats import FORMAT_OF, IMPORTS, Doc, load, read_doc
 from citesync.formats import person as read_person
 from citesync.mapping import Mapping, load_mapping
 from citesync.playground_exports import bibliography, package_templates
@@ -42,13 +42,13 @@ def generate(payload: dict[str, Any]) -> dict[str, Any]:
         return _generate(Path(directory), payload)
 
 
-def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C901 - input, review and output paths
     filename = payload.get("filename", "codemeta.json")
     text = payload.get("text", "")
     if "details" in payload:
         filename, text = "codemeta.json", _details(payload["details"], draft=bool(payload.get("draft")))
     if filename not in FORMAT_OF:
-        msg = "Choose a supported citation, package or Python distribution metadata file."
+        msg = "Choose a supported citation or package metadata file."
         raise CheckError(msg)
     if not isinstance(text, str) or len(text.encode("utf-8")) > 1_000_000:
         msg = "Use a metadata file smaller than 1 MB."
@@ -63,6 +63,9 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
             return _partial_details(source, text, mapping)
         msg = "Add a software title and at least one author."
         raise CheckError(msg)
+    if filename in IMPORTS and source.format == "codemeta":
+        document = _new_codemeta("codemeta.json", source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config()))[0]
+        (root / "codemeta.json").write_text(document, encoding="utf-8")
     if filename == "CITATION.cff":
         skipped, splits = {}, []
     else:
@@ -147,7 +150,7 @@ def _details(details: dict[str, Any], *, draft: bool = False) -> str:
 def _partial_details(source: Doc, text: str, mapping: Mapping) -> dict[str, Any]:
     document = (
         text
-        if source.format == "codemeta"
+        if source.format == "codemeta" and source.path not in IMPORTS
         else _new_codemeta("codemeta.json", source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config()))[0]
     )
     return {"details": _form_details(source.record, json.loads(document))}
