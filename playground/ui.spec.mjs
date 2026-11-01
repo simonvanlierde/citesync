@@ -522,3 +522,20 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
   await page.keyboard.press("Enter");
   await expect(page.locator("#output")).toContainText("@software{lensgrind,");
 });
+
+test("opening a file list scrolls the list, not the page", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Enter details" }).click();
+  await page.locator("#title").fill("lensgrind");
+  await page.locator('#authors [data-part="family"]').fill("Curie");
+  await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
+  await choose(page, "output-file", "pyproject.toml");
+  const search = page.locator("#output-file-search");
+  await search.scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => scrollY);
+  await search.focus(); // the keyboard opens the list without Playwright scrolling to a click target
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("#output-file-list")).toBeVisible();
+  expect(await page.evaluate(() => scrollY)).toBe(before);
+});
