@@ -13,6 +13,7 @@ Reading, updating and creating a file are separate operations:
 | DESCRIPTION | Yes, static R package metadata | Never | No |
 | Project.toml / JuliaProject.toml | Yes, Julia metadata | Never | No |
 | PKG-INFO / METADATA | Yes, Python Core Metadata | Never | No |
+| Exports: `.bib`, `.csl.json`, `.apa.txt`, `.jsonld` | Compared whole with what the source gives | Made again whole | `citesync write`, when listed in `exports` ([exports](export.md)) |
 
 Any supported file can be the source. For example, `citesync init` can read a package manifest
 to create CITATION.cff. It does not require an existing codemeta.json.
