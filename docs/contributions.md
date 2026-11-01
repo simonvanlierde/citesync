@@ -16,7 +16,10 @@ CRediT role into a Zenodo contributor type.
 
 CodeMeta 3 defines `type` and `id` as aliases of `@type` and `@id`.
 Citesync reads either spelling for people. When correcting an existing person's
-ORCID, it keeps the existing key spelling. It preserves unknown role URLs too.
+ORCID, it keeps the existing key spelling. Other person identifiers, such as
+profile URLs, fragments and blank-node identifiers, are not ORCIDs. Writes keep
+these identifiers and refuse to remove a person if that would discard them.
+It preserves unknown role URLs too.
 
 The [CRediT Matrix exporter inspected for this contract](https://github.com/simonvanlierde/credit-matrix/blob/b39d3aa992c6779e701a87946cdbf527279e9a69/src/core/export/codemeta.ts)
 returns `type: "Role"`, `schema:author` and `roleName`. Its output belongs beside

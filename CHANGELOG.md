@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- CodeMeta person identifiers that are not ORCIDs no longer overwrite ORCIDs in other files. Writes preserve those identifiers and refuse to discard them when removing a person. See the [contribution guide](docs/contributions.md).
 - People in CodeMeta can use `id` as well as `@id` for their ORCID. Writes preserve the existing spelling and recognize `type` and `id` as person metadata keys.
   See the [contribution guide](docs/contributions.md) for the checked cross-format example and its limits.
 - `citesync write` keeps a byte order mark at the start of CITATION.cff ([docs/write.md](docs/write.md)).

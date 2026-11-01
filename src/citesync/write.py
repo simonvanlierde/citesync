@@ -46,6 +46,7 @@ from citesync.formats import (
     Doc,
     Person,
     cff_person,
+    codemeta_orcid,
     codemeta_person,
     codemeta_version,
     format_of,
@@ -589,6 +590,9 @@ def _extra(fmt: str, element: Any, path: str, mapping: Mapping, term: str) -> st
     names = {relative(at, path) for t in person_terms(term) if (at := mapping[fmt, t])}
     if fmt == "codemeta":
         names |= {"id", "type"}
+        for key in ("@id", "id"):
+            if element.get(key) and not codemeta_orcid(element[key]):
+                return key
     return next((str(k) for k in element if k not in names | {"@type", "name", "name-particle", "name-suffix"}), None)
 
 

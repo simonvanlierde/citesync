@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from hypothesis import example, given
+from hypothesis import strategies as st
 from ruamel.yaml import YAML
+
+from citesync.formats import codemeta_orcid, dangling_roles
 
 if TYPE_CHECKING:
     from tests.conftest import Run
@@ -157,3 +161,66 @@ def test_a_non_codemeta_id_stays_metadata_when_correcting_an_orcid(contribution_
     assert (code, err) == (0, ""), out
     original["creators"][0]["orcid"] = "0000-0002-1825-0097"
     assert json.loads(path.read_text(encoding="utf-8")) == original
+
+
+@pytest.mark.parametrize("key", ["id", "@id"])
+@pytest.mark.parametrize("identifier", ["https://example.org/people/microscopist", "#microscopist", "_:microscopist"])
+def test_other_codemeta_identifiers_never_replace_orcids(contribution_repo: Path, key: str, identifier: str) -> None:
+    root = contribution_repo
+    assert cli(root, "write").returncode == 0
+    path = root / "codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["author"][0].pop("id")
+    data["author"][0][key] = identifier
+    path.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
+    before = snapshot(root)
+    result = cli(root, "write")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert snapshot(root) == before
+
+
+@pytest.mark.parametrize("key", ["id", "@id"])
+def test_other_codemeta_identifiers_survive_target_updates_and_block_removal(
+    contribution_repo: Path, key: str, run: "Run"
+) -> None:
+    root = contribution_repo
+    assert cli(root, "write").returncode == 0
+    (root / "citesync.toml").write_text(
+        'source = "CITATION.cff"\nfiles = ["codemeta.json"]\nmanifests = []\n', encoding="utf-8"
+    )
+    path = root / "codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["author"][0].pop("id")
+    data["author"][0][key] = "https://example.org/people/microscopist"
+    path.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
+    cff = root / "CITATION.cff"
+    yaml = YAML()
+    source = yaml.load(cff.read_text(encoding="utf-8"))
+    source["version"] = "1.0.1"
+    with cff.open("w", encoding="utf-8") as stream:
+        yaml.dump(source, stream)
+    code, out, err = run("write", "--root", str(root))
+    assert (code, err) == (0, ""), out
+    assert json.loads(path.read_text(encoding="utf-8")) == {**data, "version": "1.0.1"}
+    del source["authors"][0]
+    with cff.open("w", encoding="utf-8") as stream:
+        yaml.dump(source, stream)
+    before = snapshot(root)
+    code, out, err = run("write", "--root", str(root))
+    assert (code, err) == (1, ""), out
+    assert f"drop the {key}" in out
+    assert snapshot(root) == before
+
+
+@given(st.text())
+@example("https://orcid.org/0000-0002-1825-0097")
+@example("http://www.orcid.org/0000-0002-1825-009x/")
+@example("https://example.org/people/microscopist")
+def test_codemeta_orcid_decoding_is_idempotent(raw: str) -> None:
+    once = codemeta_orcid(raw)
+    assert codemeta_orcid(once) == once
+
+
+@pytest.mark.parametrize("identifier", ["https://example.org/people/microscopist", "#microscopist", "_:microscopist"])
+def test_role_links_without_orcids_are_not_reported_as_dangling_orcids(identifier: str) -> None:
+    assert dangling_roles({"author": [{"type": "Role", "schema:author": {"id": identifier}}]}) == ()
