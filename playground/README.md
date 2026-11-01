@@ -37,10 +37,11 @@ The repository-use section provides copyable CLI commands, a pre-commit/prek hoo
 ```sh
 just check
 just playground-build
+pnpm exec playwright install chromium firefox webkit
 pnpm run test:browser
 ```
 
-Browser tests use `/usr/bin/google-chrome`; set `CHROME_PATH` to another Chrome or Chromium executable. They run actual Pyodide conversion, name correction, form generation, parse-error recovery, runtime-download failure/retry, stale-export protection, typing during startup, ambiguous detection, focus retention, template downloads and accessibility checks. Network assertions check that metadata is not included in requests and drafts are not saved to web storage. Screenshots go in `test-results/`. No physical-device or guaranteed offline test is included.
+Browser tests run the same journeys in Chromium, Firefox and WebKit using Playwright’s pinned browsers. Set `CHROME_PATH` to override only Chromium. CI installs browser system dependencies; local machines need the libraries reported by Playwright. They run actual Pyodide conversion, name correction, form generation, parse-error recovery, runtime-download failure/retry, stale-export protection, typing during startup, ambiguous detection, focus retention, template downloads and accessibility checks. Network assertions check that metadata is not included in requests and drafts are not saved to web storage. Native copy actions run in all three engines. Clipboard contents are also read back in Chromium, which supports Playwright’s clipboard permission grants. Screenshots go in `test-results/`. No physical-device or guaranteed offline test is included.
 
 ## Publish
 
