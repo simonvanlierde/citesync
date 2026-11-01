@@ -114,3 +114,12 @@ VECTORS = _json("mapping-vectors.json")["cases"]
 @pytest.mark.parametrize("case", VECTORS, ids=lambda c: c["name"])
 def test_resolve_vector(case: dict) -> None:
     assert resolve(case["document"], case["path"]) == case["expected"]
+
+
+def test_a_plus_path_in_a_written_format_is_refused() -> None:
+    data = _json("mapping-local.json")
+    for row in data["rows"]:
+        if (row["format"], row["term"]) == ("npm", "author"):
+            row["path"] = "author + contributors[]"
+    with pytest.raises(CheckError, match="npm author reads parts with \\+"):
+        check_mapping(data, "mapping-local.json")

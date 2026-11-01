@@ -1,9 +1,9 @@
 {
-  "schema_version": "1.5",
+  "schema_version": "1.6",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "rows": [
     {
@@ -741,25 +741,22 @@
     {
       "format": "pkg-info",
       "term": "author",
-      "path": "Author | Author-email",
+      "path": "Author + Author-email",
       "source": "curated:the cell says Author; packaging tools write an author who has an email to Author-email as 'Name <email>', and only a name-only author to Author",
-      "comment": "A project with authors of both kinds fills both fields: read Author and Author-email, not only the first that exists.",
       "crosswalk_cell": "Author"
     },
     {
       "format": "pkg-info",
       "term": "author.givenName",
-      "path": "Author | Author-email",
+      "path": "Author + Author-email",
       "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
-      "comment": "A project with authors of both kinds fills both fields: read Author and Author-email, not only the first that exists.",
       "crosswalk_cell": ""
     },
     {
       "format": "pkg-info",
       "term": "author.familyName",
-      "path": "Author | Author-email",
+      "path": "Author + Author-email",
       "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
-      "comment": "A project with authors of both kinds fills both fields: read Author and Author-email, not only the first that exists.",
       "crosswalk_cell": ""
     },
     {
@@ -821,7 +818,7 @@
     {
       "format": "pkg-info",
       "term": "codeRepository",
-      "path": "Project-URL[label=source] | Project-URL[label=repository] | Project-URL[label=sourcecode] | Project-URL[label=github] | Home-page",
+      "path": "Project-URL[label=source].url | Project-URL[label=repository].url | Project-URL[label=sourcecode].url | Project-URL[label=github].url | Home-page",
       "source": "curated:no cell; the repository is the Project-URL whose label is source or one of its aliases, else the deprecated Home-page",
       "comment": "Compare labels after normalising them as the well-known project URLs spec says: lower case, no punctuation or whitespace, so 'Source Code' matches sourcecode.",
       "crosswalk_cell": ""
@@ -1190,8 +1187,8 @@
     {
       "format": "bibtex",
       "term": "codeRepository",
-      "path": "repository",
-      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "path": "repository | url",
+      "source": "curated:the cell says repository, which biblatex-software adds; plain BibTeX styles print only url, so the path falls back to it",
       "crosswalk_cell": "repository"
     },
     {
@@ -2614,8 +2611,8 @@
     {
       "format": "figshare",
       "term": "author",
-      "path": "authors[].full_name",
-      "source": "curated:the cell is empty; authors is a list of objects and full_name holds the whole name",
+      "path": "authors[]",
+      "source": "curated:the cell is empty; authors is a list of objects with full_name, first_name, last_name and orcid_id",
       "crosswalk_cell": ""
     },
     {
@@ -2737,7 +2734,7 @@
     {
       "format": "bio-tools",
       "term": "author",
-      "path": "credit[typeRole=Developer].name",
+      "path": "credit[typeRole=Developer]",
       "source": "curated:the cell is empty; credit is a list of people and organisations with a typeRole list, and Developer is the role closest to an author; toolmeta-harvester folds Contributor into author too, but contributor keeps them apart",
       "comment": "typeRole is a list, so [typeRole=Developer] matches an entry whose roles include it, as in the R note. biotoolsSchema has no author role; a credit with typeEntity other than Person is an organisation.",
       "crosswalk_cell": ""
@@ -2769,7 +2766,7 @@
     {
       "format": "bio-tools",
       "term": "contributor",
-      "path": "credit[typeRole=Contributor].name",
+      "path": "credit[typeRole=Contributor]",
       "source": "curated:the cell is empty; credit entries with the Contributor role",
       "crosswalk_cell": ""
     },
@@ -3595,45 +3592,45 @@
     {
       "format": "dcat-3",
       "term": "name",
-      "path": "title",
-      "source": "curated:the cell says dcterms:title; the path uses its bare local name because the grammar has no ':'",
+      "path": "dcterms:title",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "crosswalk_cell": "dcterms:title"
     },
     {
       "format": "dcat-3",
       "term": "version",
-      "path": "version | versionInfo",
-      "source": "curated:the cell says dcat:version, which DCAT 3 added for the version name or identifier of a resource; the path is its local name, with owl:versionInfo after it, which Zenodo's DCAT export writes",
+      "path": "dcat:version | owl:versionInfo",
+      "source": "curated:the cell says dcat:version, which DCAT 3 added for the version name or identifier of a resource; owl:versionInfo comes after it, which Zenodo's DCAT export writes",
       "crosswalk_cell": "dcat:version"
     },
     {
       "format": "dcat-3",
       "term": "author",
-      "path": "creator[]",
-      "source": "curated:the cell says dcterms:creator; a dataset can have several creators, so the path is a list of its local name creator",
+      "path": "dcterms:creator[]",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "comment": "The spec recommends a foaf:Agent as the value, so an element is an object or an IRI. A creator with only an IRI has no name sub-fields.",
       "crosswalk_cell": "dcterms:creator"
     },
     {
       "format": "dcat-3",
       "term": "author.givenName",
-      "path": "creator[].givenName",
+      "path": "dcterms:creator[].foaf:givenName",
       "source": "curated:no cell; the spec types a creator as foaf:Agent, whose person form carries foaf:givenName",
-      "comment": "An agent that has only foaf:name has no given or family name here; the consumer then splits creator[].name.",
+      "comment": "An agent that has only foaf:name has no given or family name here; the consumer then splits dcterms:creator[].foaf:name.",
       "crosswalk_cell": ""
     },
     {
       "format": "dcat-3",
       "term": "author.familyName",
-      "path": "creator[].familyName",
+      "path": "dcterms:creator[].foaf:familyName",
       "source": "curated:no cell; the spec types a creator as foaf:Agent, whose person form carries foaf:familyName",
-      "comment": "An agent that has only foaf:name has no given or family name here; the consumer then splits creator[].name.",
+      "comment": "An agent that has only foaf:name has no given or family name here; the consumer then splits dcterms:creator[].foaf:name.",
       "crosswalk_cell": ""
     },
     {
       "format": "dcat-3",
       "term": "author.@id",
-      "path": "creator[].@id",
+      "path": "dcterms:creator[].@id",
       "source": "curated:the cell says dcterms:identifier, which names the identifier of a resource and not of an agent; an ORCID is the agent's own IRI, so the @id of the creator node",
       "comment": "The spec also allows adms:identifier on the agent for an ORCID given as a string; a consumer may read that when @id is absent.",
       "crosswalk_cell": "dcterms:identifier"
@@ -3641,36 +3638,36 @@
     {
       "format": "dcat-3",
       "term": "contributor",
-      "path": "contributor[]",
-      "source": "curated:the cell says dcterms:contributor; a list of its local name, as for creator",
+      "path": "dcterms:contributor[]",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "comment": "DCAT lists dcterms:contributor, dcterms:creator and dcterms:publisher as the standard properties for basic agent associations (section 13.1); prov:qualifiedAttribution with dcat:hadRole is for other roles, which a path cannot express.",
       "crosswalk_cell": "dcterms:contributor"
     },
     {
       "format": "dcat-3",
       "term": "contributor.givenName",
-      "path": "contributor[].givenName",
+      "path": "dcterms:contributor[].foaf:givenName",
       "source": "curated:same reasoning as author.givenName, under contributor",
       "crosswalk_cell": ""
     },
     {
       "format": "dcat-3",
       "term": "contributor.familyName",
-      "path": "contributor[].familyName",
+      "path": "dcterms:contributor[].foaf:familyName",
       "source": "curated:same reasoning as author.familyName, under contributor",
       "crosswalk_cell": ""
     },
     {
       "format": "dcat-3",
       "term": "contributor.@id",
-      "path": "contributor[].@id",
+      "path": "dcterms:contributor[].@id",
       "source": "curated:same reasoning as author.@id, under contributor",
       "crosswalk_cell": "dcterms:identifier"
     },
     {
       "format": "dcat-3",
       "term": "license",
-      "path": "license | distribution[].license",
+      "path": "dcterms:license | dcat:distribution[].dcterms:license",
       "source": "curated:the cell says dcterms:license, which DCAT allows on the dataset and on each distribution; the path reads the dataset's, else a distribution's",
       "comment": "The value is a dcterms:LicenseDocument, usually an IRI; the consumer converts between IRI and SPDX id. Zenodo's software records give the licence only on the distribution, as dct:rights with an SPDX adms:identifier, which this path does not read.",
       "crosswalk_cell": "dcterms:license"
@@ -3678,8 +3675,8 @@
     {
       "format": "dcat-3",
       "term": "identifier",
-      "path": "identifier",
-      "source": "curated:the cell says dcterms:identifier; the path is its local name. The software DOI is one of its values",
+      "path": "dcterms:identifier",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "comment": "dcterms:identifier is repeatable and untyped; a DOI is told from a SWHID by its spelling.",
       "crosswalk_cell": "dcterms:identifier"
     },
@@ -3701,37 +3698,37 @@
     {
       "format": "dcat-3",
       "term": "description",
-      "path": "description",
-      "source": "curated:the cell says dcterms:description; the path is its local name",
+      "path": "dcterms:description",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "crosswalk_cell": "dcterms:description"
     },
     {
       "format": "dcat-3",
       "term": "keywords",
-      "path": "keyword",
-      "source": "curated:the cell says dcat:keyword; the path is its local name",
+      "path": "dcat:keyword",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "comment": "Repeatable: a single keyword may be a string rather than an array.",
       "crosswalk_cell": "dcat:keyword"
     },
     {
       "format": "dcat-3",
       "term": "datePublished",
-      "path": "issued",
-      "source": "curated:the cell says dcterms:issued, the date of formal issuance; the path is its local name",
+      "path": "dcterms:issued",
+      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
       "comment": "A date typed xsd:gYear, xsd:gYearMonth, xsd:date or xsd:dateTime; a record may give several (Zenodo gives a year and a date), so take the most precise. A typed literal may arrive as {\"@value\", \"@type\"}.",
       "crosswalk_cell": "dcterms:issued"
     },
     {
       "format": "doap",
       "term": "name",
-      "path": "name",
-      "source": "crosswalk:crosswalks/DOAP.csv@3.1",
+      "path": "doap:name",
+      "source": "curated:the cell says name, DOAP's doap:name; the path names it with its prefix",
       "crosswalk_cell": "name"
     },
     {
       "format": "doap",
       "term": "version",
-      "path": "release[].revision",
+      "path": "doap:release[].doap:revision",
       "source": "curated:the cell says revision, which belongs to doap:Version, not to the project; a project reaches a Version through doap:release, so the path is release[].revision",
       "comment": "A project lists many releases; the consumer picks the newest, by doap:created or by revision order.",
       "crosswalk_cell": "revision"
@@ -3739,14 +3736,14 @@
     {
       "format": "doap",
       "term": "author",
-      "path": "developer[] | maintainer[]",
+      "path": "doap:developer[] | doap:maintainer[]",
       "source": "curated:the cell says developer, but most DOAP files (Apache's, GNOME's) list only maintainer, so the path falls back to it",
       "crosswalk_cell": "developer"
     },
     {
       "format": "doap",
       "term": "author.givenName",
-      "path": "developer[].name | maintainer[].name",
+      "path": "doap:developer[].foaf:name | doap:maintainer[].foaf:name",
       "source": "curated:no cell; DOAP people are foaf:Person nodes and the name most DOAP files give is foaf:name, one string",
       "comment": "The consumer splits the name into given and family name; a node that has foaf:givenName and foaf:familyName can be read directly.",
       "crosswalk_cell": ""
@@ -3754,7 +3751,7 @@
     {
       "format": "doap",
       "term": "author.familyName",
-      "path": "developer[].name | maintainer[].name",
+      "path": "doap:developer[].foaf:name | doap:maintainer[].foaf:name",
       "source": "curated:no cell; DOAP people are foaf:Person nodes and the name most DOAP files give is foaf:name, one string",
       "comment": "The consumer splits the name into given and family name; a node that has foaf:givenName and foaf:familyName can be read directly.",
       "crosswalk_cell": ""
@@ -3762,7 +3759,7 @@
     {
       "format": "doap",
       "term": "author.@id",
-      "path": "developer[].@id | maintainer[].@id",
+      "path": "doap:developer[].@id | doap:maintainer[].@id",
       "source": "curated:no cell; DOAP has no ORCID property, but a foaf:Person node can be named by its ORCID IRI, which JSON-LD keeps as @id",
       "comment": "Most DOAP files name people with a blank node, so this is often absent.",
       "crosswalk_cell": ""
@@ -3770,7 +3767,7 @@
     {
       "format": "doap",
       "term": "contributor",
-      "path": "helper[]",
+      "path": "doap:helper[]",
       "source": "curated:the cell says developer, which is also author's path; doap:helper is DOAP's term for a project contributor, so contributors read from helper",
       "comment": "documenter, translator and tester are further contributor roles; the consumer may read them too.",
       "crosswalk_cell": "developer"
@@ -3778,7 +3775,7 @@
     {
       "format": "doap",
       "term": "contributor.givenName",
-      "path": "helper[].name",
+      "path": "doap:helper[].foaf:name",
       "source": "curated:no cell; DOAP people are foaf:Person nodes and the name most DOAP files give is foaf:name, one string",
       "comment": "The consumer splits the name into given and family name; a node that has foaf:givenName and foaf:familyName can be read directly.",
       "crosswalk_cell": ""
@@ -3786,7 +3783,7 @@
     {
       "format": "doap",
       "term": "contributor.familyName",
-      "path": "helper[].name",
+      "path": "doap:helper[].foaf:name",
       "source": "curated:no cell; DOAP people are foaf:Person nodes and the name most DOAP files give is foaf:name, one string",
       "comment": "The consumer splits the name into given and family name; a node that has foaf:givenName and foaf:familyName can be read directly.",
       "crosswalk_cell": ""
@@ -3794,7 +3791,7 @@
     {
       "format": "doap",
       "term": "contributor.@id",
-      "path": "helper[].@id",
+      "path": "doap:helper[].@id",
       "source": "curated:no cell; DOAP has no ORCID property, but a foaf:Person node can be named by its ORCID IRI, which JSON-LD keeps as @id",
       "comment": "Most DOAP files name people with a blank node, so this is often absent.",
       "crosswalk_cell": ""
@@ -3802,8 +3799,8 @@
     {
       "format": "doap",
       "term": "license",
-      "path": "license",
-      "source": "crosswalk:crosswalks/DOAP.csv@3.1",
+      "path": "doap:license",
+      "source": "curated:the cell says license, DOAP's doap:license; the path names it with its prefix",
       "crosswalk_cell": "license"
     },
     {
@@ -3823,7 +3820,7 @@
     {
       "format": "doap",
       "term": "codeRepository",
-      "path": "repository[].location",
+      "path": "doap:repository[].doap:location",
       "source": "curated:the cell says repository/location in XPath form; in the compacted JSON-LD tree the repository node's location is repository[].location (the node's type, GitRepository or SVNRepository, is @type)",
       "comment": "location may be an IRI string or an object with @id.",
       "crosswalk_cell": "repository/location"
@@ -3831,21 +3828,21 @@
     {
       "format": "doap",
       "term": "description",
-      "path": "description",
-      "source": "crosswalk:crosswalks/DOAP.csv@3.1",
+      "path": "doap:description",
+      "source": "curated:the cell says description, DOAP's doap:description; the path names it with its prefix",
       "crosswalk_cell": "description"
     },
     {
       "format": "doap",
       "term": "keywords",
-      "path": "category",
-      "source": "crosswalk:crosswalks/DOAP.csv@3.1",
+      "path": "doap:category",
+      "source": "curated:the cell says category, DOAP's doap:category; the path names it with its prefix",
       "crosswalk_cell": "category"
     },
     {
       "format": "doap",
       "term": "datePublished",
-      "path": "release[].created",
+      "path": "doap:release[].doap:created",
       "source": "curated:the cell is empty; a release's date is doap:created on its doap:Version node, so the path is release[].created",
       "comment": "Same release as version: the consumer pairs release[].revision with release[].created of the same element.",
       "crosswalk_cell": ""

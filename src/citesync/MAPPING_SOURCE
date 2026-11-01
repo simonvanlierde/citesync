@@ -1,7 +1,6 @@
 # Vendored from simonvanlierde/codemeta-drift; tests/test_mapping.py checks the sha256 lines.
-tag v0.5.0
-commit 244f544884ea447d90d230dc2ccfa7b29ab03d3a
-sha256 95a326986eb29dd58698369a3c11f44e7d01c3353902daf10c488aac83d1c7fd mapping-local.json examples/mapping-3.1.json
-sha256 793a4cedba44088962fa5c63364eb2c8e008d3b451c31f65eae8ce1d93400151 mapping.schema.json src/codemeta_drift/mapping.schema.json
-sha256 b5e2171429dd48bd7edbc2acb969c20daa8d9601510b9e738224124f7e867db5 mapping-vectors.json src/codemeta_drift/mapping-vectors.json
-# All three files are from commit 244f544 on main, after tag v0.5.0, for its datacite, typst and quarto rows; the next re-pin moves them to a release.
+tag v0.6.0
+commit 8344129e0eb4c926133b87b70125b04bf4fcef05
+sha256 02a94a0b2bfeaad0af1549dbd031ce01fcfded67c95551783f31b395ff2080cd mapping-local.json examples/mapping-3.1.json
+sha256 ece2a914df99e46b979c44bcf384df87aea2dd96d380fe8a7357b0d3e2fae6e9 mapping.schema.json src/codemeta_drift/mapping.schema.json
+sha256 874044aafee4a15a4c603fcd5dfeacf00ba381e6e2876f467841233ff41c458c mapping-vectors.json src/codemeta_drift/mapping-vectors.json
