@@ -14,7 +14,7 @@ from citesync.check import check, keyword_key
 from citesync.config import Config
 from citesync.errors import CheckError
 from citesync.export import citations
-from citesync.formats import FORMAT_OF, IMPORTS, Doc, load, read_doc
+from citesync.formats import FORMAT_OF, Doc, load, read_doc
 from citesync.formats import person as read_person
 from citesync.mapping import Mapping, load_mapping
 from citesync.playground_exports import package_templates
@@ -64,7 +64,7 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
             return _partial_details(source, text, mapping)
         msg = "Add a software title and at least one author."
         raise CheckError(msg)
-    if filename in IMPORTS and source.format == "codemeta":
+    if source.format in {"r-description", "julia"}:
         document = _new_codemeta("codemeta.json", source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config()))[0]
         (root / "codemeta.json").write_text(document, encoding="utf-8")
     if filename == "CITATION.cff":
@@ -151,7 +151,7 @@ def _details(details: dict[str, Any], *, draft: bool = False) -> str:
 def _partial_details(source: Doc, text: str, mapping: Mapping) -> dict[str, Any]:
     document = (
         text
-        if source.format == "codemeta" and source.path not in IMPORTS
+        if source.format == "codemeta"
         else _new_codemeta("codemeta.json", source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config()))[0]
     )
     return {"details": _form_details(source.record, json.loads(document))}

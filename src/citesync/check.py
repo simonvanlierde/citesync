@@ -8,7 +8,7 @@ from citesync import codecs
 from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, same_name, slots
-from citesync.mapping import FORMATS, PEOPLE, TERMS, Mapping, load_mapping
+from citesync.mapping import FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import MISMATCH, RULES, url
 
 
@@ -123,7 +123,7 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
             Finding(d.path, None, "manifest-skipped", _NOT_RELEASED[d.format]) for d in docs if d not in kept
         ]
         docs = kept
-    return docs[:1] + sorted(docs[1:], key=lambda d: (FORMATS.index(d.format), d.path)), unreadable
+    return docs[:1] + sorted(docs[1:], key=lambda d: ((*FORMATS, *IMPORTED).index(d.format), d.path)), unreadable
 
 
 _NOT_RELEASED = {

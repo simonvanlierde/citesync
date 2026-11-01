@@ -14,7 +14,7 @@ from citesync.check import check
 from citesync.config import Config
 from citesync.errors import UnreadableError
 from citesync.formats import load, read_doc
-from citesync.mapping import load_mapping
+from citesync.mapping import load_mapping, resolve
 from citesync.playground import generate
 from citesync.write import write
 
@@ -92,12 +92,13 @@ def test_malformed_or_ambiguous_metadata_is_actionable(change: Callable[[str], s
 def test_repeated_urls_and_named_contacts_are_retained_by_adapter(tmp_path: Path) -> None:
     path = tmp_path / "METADATA"
     path.write_text(METADATA)
-    data = load(path, "METADATA")["project"]
-    assert data["urls"] == {"Source": "https://example.org/lensgrind"}
-    assert data["authors"] == [
-        {"name": "Marie Skłodowska-Curie", "email": "marie@example.org"},
-        {"name": "Antonie van Leeuwenhoek"},
+    data = load(path, "METADATA")
+    assert data["Project-URL"] == [
+        {"label": "documentation", "url": "https://example.org/docs"},
+        {"label": "repository", "url": "https://example.org/lensgrind"},
     ]
+    assert data["Author"] == ["Marie Skłodowska-Curie", "Antonie van Leeuwenhoek"]
+    assert "Author-email" not in data  # Marie's contact is the author of that name, not a second one
 
 
 @given(st.text(alphabet=st.characters(categories=("L",)), min_size=1, max_size=40))
@@ -117,8 +118,8 @@ def test_author_order_survives_contact_enrichment(tmp_path: Path) -> None:
             "Author: Antonie van Leeuwenhoek\nAuthor: Marie Skłodowska-Curie",
         )
     )
-    people = load(path, "METADATA")["project"]["authors"]
-    assert [person["name"] for person in people] == ["Antonie van Leeuwenhoek", "Marie Skłodowska-Curie"]
+    people = read_doc(tmp_path, "METADATA", load_mapping()).record["author"]
+    assert [person.name for person in people] == ["Antonie van Leeuwenhoek", "Marie Skłodowska-Curie"]
 
 
 def test_distribution_metadata_is_never_a_write_target(tmp_path: Path) -> None:
@@ -238,3 +239,28 @@ def test_labels_that_normalise_alike_must_agree(tmp_path: Path) -> None:
     )
     with pytest.raises(UnreadableError, match="conflicting values"):
         read_doc(tmp_path, "METADATA", load_mapping())
+
+
+def test_metadata_reads_through_the_pkg_info_rows(tmp_path: Path) -> None:
+    (tmp_path / "METADATA").write_text(
+        METADATA.replace(
+            "Author: Antonie van Leeuwenhoek\n",
+            "Author-email: Antonie van Leeuwenhoek <antonie@example.org>, Tu Youyou <tu@example.org>\n",
+        )
+    )
+    data, mapping = load(tmp_path / "METADATA", "METADATA"), load_mapping()
+
+    def at(term: str) -> list:
+        return resolve(data, str(mapping["pkg-info", term]))
+
+    assert at("name") == ["lensgrind"]
+    assert at("version") == ["1.4.0"]
+    assert at("license") == ["Apache-2.0"]
+    assert at("codeRepository") == ["https://example.org/lensgrind"]
+    assert at("author") == [
+        ["Marie Skłodowska-Curie"],
+        ["Antonie van Leeuwenhoek <antonie@example.org>", "Tu Youyou <tu@example.org>"],
+    ]
+    doc = read_doc(tmp_path, "METADATA", mapping)
+    assert doc.format == "pkg-info"
+    assert [p.name for p in doc.record["author"]] == ["Marie Skłodowska-Curie", "Antonie van Leeuwenhoek", "Tu Youyou"]

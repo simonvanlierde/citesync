@@ -15,6 +15,9 @@ from citesync.errors import CheckError
 
 SCHEMA_MAJOR = "1"
 FORMATS = ("cff-1.2.0", "codemeta", "zenodo", "pep621", "cargo", "npm")
+"""The formats citesync reads and writes."""
+IMPORTED = ("pkg-info", "r-description", "julia")
+"""The formats citesync only reads, as a source."""
 TERMS = (
     "name",
     "version",
@@ -61,7 +64,7 @@ def load_mapping() -> Mapping:
     return check_mapping(data, name)
 
 
-def check_mapping(data: dict[str, Any], name: str) -> Mapping:
+def check_mapping(data: dict[str, Any], name: str) -> Mapping:  # noqa: C901 - one check per way a row is unusable
     """Turn a parsed mapping export into a lookup table, refusing what citesync can't use."""
     major = str(data.get("schema_version", "")).split(".")[0]
     if major != SCHEMA_MAJOR:
@@ -74,20 +77,28 @@ def check_mapping(data: dict[str, Any], name: str) -> Mapping:
             msg = f"{name}: two rows for {key[0]} {key[1]}"
             raise CheckError(msg)
         rows[key] = row["path"]
-    missing = [f"{fmt} {term}" for fmt in FORMATS for term in TERMS + PERSON_TERMS if (fmt, term) not in rows]
+    missing = [
+        f"{fmt} {term}" for fmt in FORMATS + IMPORTED for term in TERMS + PERSON_TERMS if (fmt, term) not in rows
+    ]
     if missing:
         msg = f"{name}: no row for {', '.join(missing)}"
         raise CheckError(msg)
     for (fmt, term), path in rows.items():
-        if path is not None and fmt in FORMATS:
+        if path is not None:
             _parse(path)  # fail on load, not on the first file that uses the row
-            if " + " in path:  # write and positions place one value per alternative
+            if " + " in path and fmt in FORMATS:  # write and positions place one value per alternative
                 msg = f"{name}: {fmt} {term} reads parts with +, which citesync can't write back"
                 raise CheckError(msg)
         parent = term.partition(".")[0]
-        if term in PERSON_TERMS and path is not None and rows.get((fmt, parent)) is None:
-            msg = f"{name}: {fmt} {term} has a path but {fmt} {parent} has none"
-            raise CheckError(msg)
+        if term in PERSON_TERMS and path is not None:
+            if (parent_path := rows.get((fmt, parent))) is None:
+                msg = f"{name}: {fmt} {term} has a path but {fmt} {parent} has none"
+                raise CheckError(msg)
+            try:
+                relative(path, parent_path)
+            except CheckError as err:
+                msg = f"{name}: {fmt} {term}: {err}"
+                raise CheckError(msg) from err
     return rows
 
 
@@ -147,19 +158,20 @@ def _texts(value: Any) -> list[str]:  # noqa: ANN401 - parsed JSON, TOML or YAML
     return [str(v) for v in value] if isinstance(value, list) else [str(value)]
 
 
-def relative(path: str, parent: str) -> str:
+def relative(path: str, parent: str, alternative: int = 0) -> str:
     """A person sub-term path relative to its term's path: ``authors[].orcid`` under ``authors[]`` is ``orcid``.
 
-    Each alternative of ``path`` must start with ``parent``. The result is ``""``
-    when the sub-term is the element itself (Cargo's one ``Name <email>`` string).
+    The sub-term's alternatives pair with the term's by position, and this reads the one at
+    ``alternative``, the alternative the term resolved through, so one person's ORCID never
+    comes from another list. The result is ``""`` when the sub-term is the element itself
+    (Cargo's one ``Name <email>`` string, or each part of pkg-info's ``Author + Author-email``).
+
+    Raises:
+        CheckError: when the alternatives don't pair up, each starting with its term's.
     """
-    parts = []
-    for alternative in path.split(" | "):
-        if alternative == parent:
-            parts.append("")
-        elif alternative.startswith(parent + "."):
-            parts.append(alternative.removeprefix(parent + "."))
-        else:
-            msg = f"mapping path {path!r} does not start with its term's path {parent!r}"
-            raise CheckError(msg)
-    return " | ".join(parts)
+    subs, parents = path.split(" | "), parent.split(" | ")
+    paired = len(subs) == len(parents)
+    if not paired or any(s != p and not s.startswith(p + ".") for s, p in zip(subs, parents, strict=True)):
+        msg = f"mapping path {path!r} does not follow its term's path {parent!r}, alternative by alternative"
+        raise CheckError(msg)
+    return subs[alternative].removeprefix(parents[alternative]).removeprefix(".")

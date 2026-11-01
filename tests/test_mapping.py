@@ -11,7 +11,7 @@ import pytest
 
 from citesync.errors import CheckError
 from citesync.formats import FORMAT_OF
-from citesync.mapping import FORMATS, check_mapping, load_mapping, relative, resolve
+from citesync.mapping import FORMATS, IMPORTED, check_mapping, load_mapping, relative, resolve
 
 PACKAGE = files("citesync")
 
@@ -44,7 +44,7 @@ def test_loads() -> None:
 
 def test_formats_are_in_file_order() -> None:
     """Files other than the source are checked in FORMATS order, so blame never depends on config order."""
-    assert tuple(dict.fromkeys(FORMAT_OF.values())) == FORMATS
+    assert tuple(dict.fromkeys(FORMAT_OF.values())) == FORMATS + IMPORTED
 
 
 def _row(data: dict, fmt: str, term: str) -> dict:
@@ -58,6 +58,9 @@ def _row(data: dict, fmt: str, term: str) -> dict:
         (lambda d: d["rows"].pop(0), "no row for cff-1.2.0 name"),
         (lambda d: d["rows"].append(dict(d["rows"][0])), "two rows for cff-1.2.0 name"),
         (lambda d: d["rows"][0].update(path="title[0]"), "bad step 'title[0]'"),
+        (lambda d: _row(d, "doap", "name").update(path="doap:name[0]"), "bad step 'doap:name[0]'"),
+        (lambda d: _row(d, "julia", "author.@id").update(path="orcid"), "julia author.@id: mapping path 'orcid'"),
+        (lambda d: d["rows"].remove(_row(d, "pkg-info", "name")), "no row for pkg-info name"),
         (lambda d: d["rows"].remove(_row(d, "cff-1.2.0", "author.@id")), "no row for cff-1.2.0 author.@id"),
         (
             lambda d: _row(d, "pep621", "author").update(path=None),
@@ -106,6 +109,18 @@ def test_relative() -> None:
     assert relative("package.authors[]", "package.authors[]") == ""
     with pytest.raises(CheckError):
         relative("other.name", "authors[]")
+    assert relative("Author + Author-email", "Author + Author-email") == ""
+
+
+def test_relative_pairs_alternatives_by_position() -> None:
+    """A sub-term reads from the alternative its term resolved through, so an ORCID stays with its person."""
+    path, parent = "doap:developer[].@id | doap:maintainer[].@id", "doap:developer[] | doap:maintainer[]"
+    assert relative(path, parent) == "@id"
+    assert relative("a[].given | b[].name", "a[] | b[]", 1) == "name"
+    with pytest.raises(CheckError):
+        relative("a[].x", "a[] | b[]")
+    with pytest.raises(CheckError):
+        relative("b[].x | a[].x", "a[] | b[]")
 
 
 VECTORS = _json("mapping-vectors.json")["cases"]

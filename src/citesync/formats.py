@@ -3,6 +3,8 @@
 The mapping says where a term sits. The adapters here only reshape what a path
 can't express (Cargo workspace inheritance, npm strings that may be objects,
 PEP 621 ``dynamic``), and the codecs in :mod:`citesync.codecs` read the spelling.
+The import adapters (:mod:`citesync.core_metadata`, :mod:`citesync.research_metadata`)
+parse their syntax into the format's own shape, which the format's rows then read.
 """
 
 import json
@@ -32,11 +34,11 @@ MANIFESTS = {
     "_extension.yaml": "npm",
 }
 IMPORTS = {
-    "PKG-INFO": "pep621",
-    "METADATA": "pep621",
-    "DESCRIPTION": "codemeta",
-    "Project.toml": "codemeta",
-    "JuliaProject.toml": "codemeta",
+    "PKG-INFO": "pkg-info",
+    "METADATA": "pkg-info",
+    "DESCRIPTION": "r-description",
+    "Project.toml": "julia",
+    "JuliaProject.toml": "julia",
 }
 FORMAT_OF = CITATION_FILES | MANIFESTS | IMPORTS
 CODEMETA_VERSIONS = ("2.0", "3.0", "3.1", "4.0")
@@ -113,7 +115,7 @@ class Doc:
     @property
     def is_citation(self) -> bool:
         """CITATION.cff, codemeta.json or .zenodo.json."""
-        return PurePosixPath(self.path).name not in IMPORTS and self.format in CITATION_FILES.values()
+        return self.format in CITATION_FILES.values()
 
 
 def format_of(path: str) -> str:
@@ -253,7 +255,7 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
     if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
         raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
     if path.name in IMPORTS:
-        if IMPORTS[path.name] == "pep621":
+        if IMPORTS[path.name] == "pkg-info":
             from citesync.core_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
         else:
             from citesync.research_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
@@ -427,12 +429,19 @@ def _find_workspace(root: Path, rel: str) -> dict[str, Any] | None:
 
 def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Mapping) -> Any:  # noqa: ANN401
     if term in PEOPLE:
-        found = resolve(data, path)
+        # the first alternative with anyone in it, so each person's sub-terms come from that one too
+        alternative, found = next(
+            ((i, found) for i, alt in enumerate(path.split(" | ")) if (found := resolve(data, alt))), (0, [])
+        )
+        if fmt == "pkg-info":
+            # NOTE: the rows read Author and Author-email as one value each, but each holds a list of people.
+            # Drop this once codemeta-drift's rows read them as Author[] + Author-email[].
+            found = [el for value in found for el in value]
         if fmt == "npm" and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
             msg = f"{term} holds a list, but this file takes one {term}"
             raise TypeError(msg)
-        people = tuple(p for p in (person(fmt, el, path, mapping, term) for el in found) if p)
-        return people or None
+        people = (person(fmt, el, path, mapping, term, alternative) for el in found)
+        return tuple(p for p in people if p) or None
     slot = locate(fmt, term, data, path)
     if slot is None:
         return None
@@ -462,12 +471,22 @@ _DECODE = {
 }
 
 
-def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) -> Person | None:
+def person(  # noqa: C901 - one branch per format's person shape
+    fmt: str, element: object, parent: str, mapping: Mapping, term: str, alternative: int = 0
+) -> Person | None:
     """The person in ``element``, one entry of ``term``'s list at ``parent``; None when it has no name or ORCID.
 
-    Check and write both read people here, so they match people the same way.
+    ``alternative`` is the alternative of ``parent`` that ``element`` came from. Check and
+    write both read people here, so they match people the same way.
     """
-    if fmt == "cff-1.2.0" and isinstance(element, dict):
+    org = isinstance(element, dict) and (
+        _ld(element, "type") == "Organization"
+        if fmt == "codemeta"
+        else fmt in {"cff-1.2.0", "julia"} and "given-names" not in element and "name" in element
+    )
+    if fmt == "julia" and isinstance(element, str):  # Pkg writes "Name <email>"; a table is a CFF person or entity
+        element = {"name": codecs.contact_name_decode(element)}
+    if fmt in {"cff-1.2.0", "julia"} and isinstance(element, dict):
         element = cff_person(element)
     elif fmt == "codemeta":
         element = codemeta_person(element)
@@ -479,7 +498,7 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) 
         path = mapping[fmt, term]
         if path is None:
             return None
-        rel = relative(path, parent)
+        rel = relative(path, parent, alternative)
         values = [element] if rel == "" else resolve(element, rel)
         values = [_ld(element, "id")] if fmt == "codemeta" and rel == "@id" and isinstance(element, dict) else values
         return values[0] if values else None
@@ -501,9 +520,4 @@ def person(fmt: str, element: object, parent: str, mapping: Mapping, term: str) 
         name = codecs.display_name(given, family)
     if name is None and orcid is None:
         return None
-    org = isinstance(element, dict) and (
-        _ld(element, "type") == "Organization"
-        if fmt == "codemeta"
-        else fmt == "cff-1.2.0" and "given-names" not in element and "name" in element
-    )
     return Person(name, given, family, orcid, organization=org)
