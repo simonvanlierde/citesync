@@ -26,7 +26,16 @@ let formSnapshot;
 let savedNames;
 let modeTransition = 0;
 const transfers = new Map();
-const filenames = ["CITATION.cff", "codemeta.json", ".zenodo.json", "pyproject.toml", "Cargo.toml", "package.json"];
+const filenames = [
+  "CITATION.cff",
+  "codemeta.json",
+  ".zenodo.json",
+  "pyproject.toml",
+  "Cargo.toml",
+  "package.json",
+  "PKG-INFO",
+  "METADATA",
+];
 const outputLabels = {
   "CITATION.cff": "CITATION.cff — GitHub citation",
   "codemeta.json": "codemeta.json — Software metadata",
@@ -78,6 +87,9 @@ const examples = {
   "CITATION.cff":
     'cff-version: 1.2.0\nmessage: "Please cite this software using these metadata."\ntitle: lensgrind\nversion: 1.4.0\nabstract: Measure microscope optics.\nlicense: Apache-2.0\nauthors:\n  - given-names: Antonie\n    family-names: van Leeuwenhoek\n',
 };
+examples.METADATA =
+  "Metadata-Version: 2.6\nName: lensgrind\nVersion: 1.4.0\nSummary: Measure microscope optics.\nAuthor: Marie Skłodowska-Curie\nLicense-Expression: Apache-2.0\n";
+examples["PKG-INFO"] = examples.METADATA;
 function announce(text, { error = false, inputError = false, notice = error } = {}) {
   if ($("#message").textContent !== text) $("#message").textContent = text;
   $("#message").dataset.error = String(error);

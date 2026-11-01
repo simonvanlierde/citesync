@@ -405,3 +405,21 @@ test("entry tabs use keyboard activation without losing the current draft", asyn
   await expect(page.locator("#file-panel")).toBeVisible({ timeout: 90000 });
   await expect(page.locator("#input")).toHaveValue(/partial keyboard draft/);
 });
+
+test("Python distribution metadata examples and uploads generate citation files", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#source-format").selectOption("METADATA");
+  await page.locator("#example").click();
+  await expect(page.locator("#output")).toContainText("Skłodowska-Curie", { timeout: 90000 });
+  await page.locator("#source-format").selectOption("PKG-INFO");
+  await expect(page.locator("#input")).toHaveValue(/Metadata-Version: 2\.6/);
+  await page.locator("#file-picker").setInputFiles({
+    name: "PKG-INFO",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Metadata-Version: 2.6\nName: optics-kit\nVersion: 2.0.0\nAuthor: Marie Skłodowska-Curie\n"),
+  });
+  await expect(page.locator("#output")).toContainText("optics-kit");
+  await page.locator("#output-file").selectOption(".zenodo.json");
+  await expect(page.locator("#output")).toContainText('"upload_type": "software"');
+  await accessible(page);
+});

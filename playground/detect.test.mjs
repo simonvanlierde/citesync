@@ -4,6 +4,7 @@ import { detectFormats } from "./detect.mjs";
 
 test("identifies all supported metadata formats without a filename", () => {
   for (const [text, expected] of [
+    ["Metadata-Version: 2.6\nName: lensgrind\nVersion: 1.4.0\n", "METADATA"],
     ['[project]\nname="lensgrind"', "pyproject.toml"],
     ['[workspace.package]\nversion="1.0.0"', "Cargo.toml"],
     ["cff-version: 1.2.0\ntitle: lensgrind", "CITATION.cff"],

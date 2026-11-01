@@ -16,6 +16,7 @@ const npmKeys = [
 export function detectFormats(text) {
   const value = text.replace(/^\uFEFF/, "");
   const found = [];
+  if (/^Metadata-Version:\s*\d+\.\d+\s*$/m.test(value) && /^Name:\s*\S/m.test(value)) found.push("METADATA");
   if (cff.test(value)) found.push("CITATION.cff");
   if (python.test(value)) found.push("pyproject.toml");
   if (cargo.test(value)) found.push("Cargo.toml");

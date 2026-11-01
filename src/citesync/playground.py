@@ -48,7 +48,7 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     if "details" in payload:
         filename, text = "codemeta.json", _details(payload["details"], draft=bool(payload.get("draft")))
     if filename not in FORMAT_OF:
-        msg = "Choose CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml or package.json."
+        msg = "Choose a supported citation, package or Python distribution metadata file."
         raise CheckError(msg)
     if not isinstance(text, str) or len(text.encode("utf-8")) > 1_000_000:
         msg = "Use a metadata file smaller than 1 MB."
@@ -81,6 +81,7 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     }
     findings, _, _ = check(root, Config(files=tuple(n for n in files if n != "CITATION.cff"), manifests=()))
     notes = [f"CITATION.cff: {term}: {reason}" for term, reason in sorted(skipped.items())]
+    notes += [f"{filename}: {term}: {reason}" for term, reason in source.import_notes]
     notes += [f"{name}: {term}: {reason}" for (name, term), reason in sorted(omitted.items())]
     record = source.record | read_doc(root, "CITATION.cff", mapping).record
     citations, citation_notes = bibliography(record)

@@ -6,6 +6,8 @@
 
 It writes every citation file that isn't the source. It changes a manifest only for the fields listed in `write-manifests` (see [config.md](config.md)).
 
+PKG-INFO and METADATA are read-only sources, even when `write-manifests` is enabled.
+
 It leaves these alone:
 
 - a field a file leaves out: a .zenodo.json without a version never gains one;
@@ -35,7 +37,7 @@ Review the new .zenodo.json before publishing a release. Only the compared field
 funding, affiliations, communities and references need separate review. Missing source fields stay absent.
 The output is metadata for Zenodo's GitHub integration, not a complete deposition API request.
 Write reports fields it cannot represent, including compound licences, authors without names and
-contributors without a type. It leaves those fields out rather than choosing values.
+contributors without a type when `zenodo-contributor-type` is not configured. It leaves those fields out rather than choosing values.
 A successful `citesync check` confirms agreement, not that Zenodo will accept a release.
 
 ## How it spells values
@@ -53,7 +55,7 @@ shows the checked people/role contract and each format's limits.
 - If that would drop an old entry with more than a name and ORCID, for example after a rename, write leaves that file's authors for you to edit.
 - The same goes for an old entry with an ORCID when a new author without one comes in: that may be the same person renamed, and write won't guess.
 - An author with only a name, such as an organization, keeps it as a family name. A new one goes into codemeta.json as an `Organization`.
-- Write doesn't add a new .zenodo.json contributor, because Zenodo needs a contributor `type`. Add it by hand.
+- Zenodo requires a contributor `type`. Set `zenodo-contributor-type = "Researcher"` (or another [supported type](config.md)) to seed new contributors, including in a newly created .zenodo.json. Existing types are preserved; CRediT roles never determine the type. In an existing target, an explicit empty `contributors: []` allows additions; an absent field stays absent. Without a configured type, add new contributors by hand.
 - A Cargo field inherited with `.workspace = true` stays as it is, and the finding says so. Change it in `[workspace.package]`.
 
 ## Output and exit codes

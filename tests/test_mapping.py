@@ -44,7 +44,7 @@ def test_loads() -> None:
 
 def test_formats_are_in_file_order() -> None:
     """Files other than the source are checked in FORMATS order, so blame never depends on config order."""
-    assert tuple(FORMAT_OF.values()) == FORMATS
+    assert tuple(dict.fromkeys(FORMAT_OF.values())) == FORMATS
 
 
 def _row(data: dict, fmt: str, term: str) -> dict:

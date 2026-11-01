@@ -29,11 +29,11 @@
 <section aria-label="Your project">
 <div class="tabs" id="entry-tabs" role="tablist" aria-label="How to start"><button type="button" id="file-tab" role="tab" aria-selected="true" aria-controls="file-panel">Use a file</button><button type="button" id="form-tab" role="tab" aria-selected="false" aria-controls="form-panel" tabindex="-1">Enter details</button></div>
 <div id="file-panel" role="tabpanel" aria-labelledby="file-tab">
-<div class="panehead"><h2><label for="input">Project metadata</label></h2><label for="source-format" class="sr-only">Input filename</label><select id="source-format"><option value="auto">Detect automatically</option><option>pyproject.toml</option><option>Cargo.toml</option><option>package.json</option><option>CITATION.cff</option><option>codemeta.json</option><option>.zenodo.json</option></select></div>
+<div class="panehead"><h2><label for="input">Project metadata</label></h2><label for="source-format" class="sr-only">Input filename</label><select id="source-format"><option value="auto">Detect automatically</option><option>pyproject.toml</option><option>Cargo.toml</option><option>package.json</option><option>CITATION.cff</option><option>codemeta.json</option><option>.zenodo.json</option><option>PKG-INFO</option><option>METADATA</option></select></div>
 <textarea id="input" wrap="off" spellcheck="false" aria-describedby="input-hint message"></textarea>
 <p class="hint" id="detected-format" role="status"></p>
 <p class="hint" id="input-hint">Paste or drop a file, up to 1 MB.</p>
-<div class="file-tools"><button type="button" id="open">Open a file</button><button type="button" class="link" id="example">Try an example</button><input type="file" id="file-picker" hidden accept=".toml,.json,.cff,.txt,.yaml,.yml"></div>
+<div class="file-tools"><button type="button" id="open">Open a file</button><button type="button" class="link" id="example">Try an example</button><input type="file" id="file-picker" hidden></div>
 </div>
 <form class="form" novalidate id="form-panel" role="tabpanel" aria-labelledby="form-tab" aria-describedby="message form-hint" hidden>
 <div class="panehead"><h2>Project details</h2></div>
