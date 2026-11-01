@@ -20,6 +20,12 @@ CURIE = Person("Marie Skłodowska-Curie", given="Marie", family="Skłodowska-Cur
 LEEUWENHOEK = Person("Antonie van Leeuwenhoek", given="Antonie", family="van Leeuwenhoek")
 TU = Person("Tu Youyou", given="Youyou", family="Tu")
 LAB = Person("Example Optics Institute", organization=True)
+
+
+def _many(n: int) -> tuple[Person, ...]:
+    return tuple(Person(f"G{i} Family{i}", given=f"G{i}", family=f"Family{i}") for i in range(n))
+
+
 LENSGRIND = {
     "name": "lensgrind",
     "version": "1.4.0",
@@ -68,6 +74,7 @@ def test_bibtex_is_readable_by_an_independent_parser() -> None:
         ("CRediT Matrix", "credit-matrix"),
         ("CRediT Matrix: drafting CRediT contribution statements", "credit-matrix"),
         ("lensgrind - optics", "lensgrind"),
+        ("lensgrind \u2014 optics", "lensgrind"),
         ("Skłodowska tools", "sklodowska-tools"),
         ("屠呦呦", "software"),
     ],
@@ -90,10 +97,9 @@ def test_apa_reference() -> None:
         ((LAB,), "Example Optics Institute."),
         ((Person("Jean-Baptiste Lamarck", given="Jean-Baptiste", family="Lamarck"),), "Lamarck, J.-B."),
         ((TU, LAB, CURIE), "Tu, Y., Example Optics Institute, & Skłodowska-Curie, M."),
-        (
-            tuple(Person(f"Given{i} Family{i}", given=f"G{i}", family=f"Family{i}") for i in range(22)),
-            ", ".join(f"Family{i}, G." for i in range(19)) + ", . . . Family21, G.",
-        ),
+        (_many(20), ", ".join(f"Family{i}, G." for i in range(19)) + ", & Family19, G."),
+        (_many(21), ", ".join(f"Family{i}, G." for i in range(19)) + ", . . . Family20, G."),
+        (_many(22), ", ".join(f"Family{i}, G." for i in range(19)) + ", . . . Family21, G."),
     ],
 )
 def test_apa_author_lists(people: tuple[Person, ...], authors: str) -> None:
@@ -126,11 +132,28 @@ def test_apa_initials_are_capitals() -> None:
 
 
 def test_bibtex_doi_and_url_stay_verbatim() -> None:
+    from pybtex.database import parse_string  # noqa: PLC0415
+
     bib = render("bibtex", {"name": "x", "identifier": "10.5555/a_b", "codeRepository": "https://example.com/a%20b#x"})[
         0
     ]
     assert "  doi = {10.5555/a_b},\n" in bib
     assert "  url = {https://example.com/a%20b#x},\n" in bib
+    braced = render("bibtex", {"name": "x", "codeRepository": "https://example.com/a{b}"})[0]
+    assert parse_string(braced, "bibtex").entries["x"].fields["url"] == "https://example.com/a%7Bb%7D"
+
+
+def test_csl_and_bibtex_carry_the_version() -> None:
+    assert json.loads(render("csl-json", LENSGRIND)[0])[0]["version"] == "1.4.0"
+    assert "  note = {Software, version 1.4.0},\n" in render("bibtex", LENSGRIND)[0]
+
+
+def test_a_bad_date_is_noted_once_and_kept_in_jsonld() -> None:
+    files, notes = citations(LENSGRIND | {"datePublished": "Oct 2026"})
+    assert len(notes) == 1
+    assert json.loads(files["schema.jsonld"])["datePublished"] == "Oct 2026"
+    assert render("jsonld", LENSGRIND | {"datePublished": "Oct 2026"})[1] == []
+    assert "year" not in files["citation.bib"]
 
 
 def test_jsonld_is_plain_schema_org() -> None:
@@ -182,12 +205,18 @@ def test_credit_matrix_fixture_matches_its_about_page() -> None:
     )
 
 
+def test_exports_setting_drops_duplicates(tmp_path: Path) -> None:
+    (tmp_path / "citesync.toml").write_text('exports = ["./citation.bib", "citation.bib"]\n', encoding="utf-8")
+    assert load_config(tmp_path).exports == ("citation.bib",)
+
+
 @pytest.mark.parametrize(
     ("value", "message"),
     [
         ('["citation.txt"]', "must end in one of .csl.json, .apa.txt, .bib, .jsonld"),
         ('[".bib"]', "must end in one of"),
         ('["../citation.bib"]', "must be relative to the repo root"),
+        ('["/tmp/citation.bib"]', "must be relative to the repo root"),
         ('"citation.bib"', "exports must be a list of paths"),
     ],
 )
@@ -214,6 +243,7 @@ def test_check_reports_and_write_makes_each_export(tmp_path: Path, run: "Run") -
     assert out.count("error[export-stale] missing") == len(EXPORTS)
     code, out, _ = run("write", "--root", str(root))
     assert code == 0, out
+    assert f"{len(EXPORTS)} fixed" in out
     for path in EXPORTS:
         assert f"wrote {path}" in out
         expected = run("export", "--root", str(root), "--format", _FORMAT[Path(path).name])[1]
@@ -281,6 +311,7 @@ def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_
     for path in ("out/citation.apa.txt", "dir.jsonld"):
         assert f"{path}: error[export-stale] can't be written: a link, a folder, or under a file" in out
     code, out, err = run("write", "--diff", "--root", str(root))
+    assert "+++ b/citation.bib" in out
     assert "hi" not in out
     assert "unexpected error" not in err
     code, out, err = run("write", "--root", str(root))
@@ -315,6 +346,35 @@ def test_cli_offers_every_export_format() -> None:
     from citesync.export import SUFFIXES  # noqa: PLC0415
 
     assert set(_EXPORT_FORMATS) == set(SUFFIXES.values())
+
+
+def test_a_term_the_source_lacks_comes_from_a_readable_file(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    cff = root / "CITATION.cff"
+    cff.write_text(cff.read_text(encoding="utf-8").replace('version: "1.2.3"\n', ""), encoding="utf-8")
+    (root / ".zenodo.json").write_text('{"title": ', encoding="utf-8")  # broken: it must give nothing
+    code, out, err = run("export", "--root", str(root), "--format", "apa")
+    assert (code, err) == (0, "")
+    assert "(Version 1.2.3)" in out  # from codemeta.json
+
+
+def test_export_notes_go_to_stderr(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    cff = root / "CITATION.cff"
+    cff.write_text(
+        cff.read_text(encoding="utf-8").replace("date-released: 2026-01-15", 'date-released: "Jan 2026"'),
+        encoding="utf-8",
+    )
+    code, out, err = run("export", "--root", str(root), "--format", "bibtex")
+    assert code == 0
+    assert out.startswith("@misc{synthagree,")
+    assert "release date omitted" in err
+
+
+def test_no_export_finding_while_the_source_is_unreadable(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    (root / "CITATION.cff").write_text("cff-version: [\n", encoding="utf-8")
+    assert "export-stale" not in run("check", "--root", str(root))[1]
 
 
 def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> None:

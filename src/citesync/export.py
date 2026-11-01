@@ -57,12 +57,14 @@ def text(path: str, rec: dict[str, Any]) -> str:
 
 
 def record(docs: list[Doc]) -> dict[str, Any]:
-    """Each term from the first readable doc that holds it, the source first: what the exports cite."""
+    """Each term from the first doc that holds it, the source first: what the exports cite.
+
+    An unreadable doc has an empty record, so it gives nothing.
+    """
     merged: dict[str, Any] = {}
     for doc in docs:
-        if doc.readable:
-            for term, value in doc.record.items():
-                merged.setdefault(term, value)
+        for term, value in doc.record.items():
+            merged.setdefault(term, value)
     return merged
 
 
