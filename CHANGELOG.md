@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The field mapping uses [codemeta-drift 0.4.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.4.0), with original crosswalk cells and its schema 1.3 contract. Field paths remain unchanged.
+
 ### Added
 
 - `citesync write` creates a missing .zenodo.json when `files` lists it. Preview it with `--diff` and review any omitted fields before releasing ([docs/write.md](docs/write.md#create-citation-files)).

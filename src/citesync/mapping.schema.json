@@ -55,6 +55,10 @@
           "type": "string",
           "pattern": "^(crosswalk:crosswalks/[^@]+\\.csv@[^@\\s]+|curated:\\S.*)$"
         },
+        "crosswalk_cell": {
+          "description": "The original crosswalk cell, before trimming or path expansion. Empty string means an empty cell; null means no cell could be joined, including formats with no upstream crosswalk. Optional in older exports; emitted on every row since schema 1.3.",
+          "type": ["string", "null"]
+        },
         "see_also": {
           "description": "Upstream issue or pull request that reports the crosswalk cell this row departs from.",
           "type": "string",
