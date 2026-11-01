@@ -44,9 +44,8 @@ def parse(text: str, rel: str) -> dict[str, Any]:  # noqa: C901 - independent op
         Version(project["version"])
     except (InvalidName, InvalidVersion) as err:
         raise UnreadableError(rel, f"invalid Name or Version: {err}") from err
-    description = one("Summary") or one("Description") or message.get_payload()
-    if isinstance(description, str) and description.strip():
-        project["description"] = description.strip()
+    if description := one("Summary"):  # Description and the body hold the README, not a summary
+        project["description"] = description
     if authors := _authors(message, rel):
         project["authors"] = authors
     if urls := _urls(message, rel):
@@ -106,7 +105,12 @@ def _authors(message: Message, rel: str) -> list[dict[str, str]]:
     return list(authors.values())
 
 
+# the mapping row's order, labels normalised as the well-known project URLs spec says
+_REPOSITORY_LABELS = ("source", "repository", "sourcecode", "github")
+
+
 def _urls(message: Message, rel: str) -> dict[str, str]:
+    """The repository URL under the one PEP 621 label the mapping reads, from Project-URL or else Home-page."""
     urls = {}
     for raw in message.get_all("Project-URL", []):
         label, separator, address = str(raw).partition(",")
@@ -119,9 +123,10 @@ def _urls(message: Message, rel: str) -> dict[str, str]:
     homes = message.get_all("Home-page", [])
     if len(homes) > 1:
         raise UnreadableError(rel, "Home-page must appear only once")
-    if homes:
-        urls.setdefault("Homepage", str(homes[0]).strip())
-    return urls
+    labels = {"".join(c for c in label.lower() if c.isalnum()): address for label, address in urls.items()}
+    if repository := next((labels[k] for k in _REPOSITORY_LABELS if k in labels), None):
+        return {"Source": repository}
+    return {"Homepage": str(homes[0]).strip()} if homes else {}
 
 
 def _header(value: str, rel: str) -> str:
