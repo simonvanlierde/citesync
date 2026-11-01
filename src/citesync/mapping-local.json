@@ -1,9 +1,9 @@
 {
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "rows": [
     {
@@ -723,6 +723,497 @@
       "path": null,
       "source": "curated:no cell; package.json has no release date",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "name",
+      "path": "Name",
+      "source": "crosswalk:crosswalks/Python PKG-INFO.csv@3.1",
+      "crosswalk_cell": "Name"
+    },
+    {
+      "format": "pkg-info",
+      "term": "version",
+      "path": "Version",
+      "source": "crosswalk:crosswalks/Python PKG-INFO.csv@3.1",
+      "crosswalk_cell": "Version"
+    },
+    {
+      "format": "pkg-info",
+      "term": "author",
+      "path": "Author | Author-email",
+      "source": "curated:the cell says Author; packaging tools write an author who has an email to Author-email as 'Name <email>', and only a name-only author to Author",
+      "comment": "A project with authors of both kinds fills both fields: read Author and Author-email, not only the first that exists.",
+      "crosswalk_cell": "Author"
+    },
+    {
+      "format": "pkg-info",
+      "term": "author.givenName",
+      "path": "Author | Author-email",
+      "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
+      "comment": "A project with authors of both kinds fills both fields: read Author and Author-email, not only the first that exists.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "author.familyName",
+      "path": "Author | Author-email",
+      "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
+      "comment": "A project with authors of both kinds fills both fields: read Author and Author-email, not only the first that exists.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "author.@id",
+      "path": null,
+      "source": "curated:no cell; core metadata has no person identifier",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no cell; core metadata lists maintainers, who are not contributors",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no cell; core metadata has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no cell; core metadata has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no cell; core metadata has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "license",
+      "path": "License-Expression | License",
+      "source": "curated:the cell says License, which is free text; metadata 2.4 puts the SPDX expression in License-Expression",
+      "crosswalk_cell": "License"
+    },
+    {
+      "format": "pkg-info",
+      "term": "identifier",
+      "path": null,
+      "source": "curated:no cell; core metadata has no DOI field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:no cell; core metadata has no SWHID field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "codeRepository",
+      "path": "Project-URL[label=source] | Project-URL[label=repository] | Project-URL[label=sourcecode] | Project-URL[label=github] | Home-page",
+      "source": "curated:no cell; the repository is the Project-URL whose label is source or one of its aliases, else the deprecated Home-page",
+      "comment": "Compare labels after normalising them as the well-known project URLs spec says: lower case, no punctuation or whitespace, so 'Source Code' matches sourcecode.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "description",
+      "path": "Summary",
+      "source": "curated:the cell lists Summary / Description; Description is the long README text, Summary the one-line description",
+      "crosswalk_cell": "Summary / Description"
+    },
+    {
+      "format": "pkg-info",
+      "term": "keywords",
+      "path": "Keywords",
+      "source": "crosswalk:crosswalks/Python PKG-INFO.csv@3.1",
+      "crosswalk_cell": "Keywords"
+    },
+    {
+      "format": "pkg-info",
+      "term": "datePublished",
+      "path": null,
+      "source": "curated:no cell; core metadata has no release date",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "r-description",
+      "term": "name",
+      "path": "Package",
+      "source": "curated:the cell says Title, a short description; R's own citation tools take the name from Package and add Title after it",
+      "comment": "R's citation tools (cffr, codemetar) write the name as 'Package: Title', so a citation name joins the two, or uses Package alone when there is no Title.",
+      "crosswalk_cell": "Title"
+    },
+    {
+      "format": "r-description",
+      "term": "version",
+      "path": "Version",
+      "source": "crosswalk:crosswalks/R Package Description.csv@3.1",
+      "crosswalk_cell": "Version"
+    },
+    {
+      "format": "r-description",
+      "term": "author",
+      "path": "Authors@R[role=aut]",
+      "source": "curated:the cell says [aut] in Author, prose about the free-text Author field; R builds that from Authors@R, whose person() entries with role aut are the authors",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include aut. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": "[aut] in Author"
+    },
+    {
+      "format": "r-description",
+      "term": "author.givenName",
+      "path": "Authors@R[role=aut].given",
+      "source": "curated:the cell says givenName, a CodeMeta term; a person() entry keeps the given name in given",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include aut. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": "givenName"
+    },
+    {
+      "format": "r-description",
+      "term": "author.familyName",
+      "path": "Authors@R[role=aut].family",
+      "source": "curated:the cell says familyName, a CodeMeta term; a person() entry keeps the family name in family",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include aut. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": "familyName"
+    },
+    {
+      "format": "r-description",
+      "term": "author.@id",
+      "path": "Authors@R[role=aut].comment.ORCID",
+      "source": "curated:no cell; a person() entry keeps an ORCID iD as comment = c(ORCID = ...)",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include aut. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "r-description",
+      "term": "contributor",
+      "path": "Authors@R[role=ctb]",
+      "source": "curated:the cell says [ctb] in Author, prose about the free-text Author field; the person() entries in Authors@R with role ctb are the contributors",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include ctb. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": "[ctb] in Author"
+    },
+    {
+      "format": "r-description",
+      "term": "contributor.givenName",
+      "path": "Authors@R[role=ctb].given",
+      "source": "curated:the cell says givenName, a CodeMeta term; a person() entry keeps the given name in given",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include ctb. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": "givenName"
+    },
+    {
+      "format": "r-description",
+      "term": "contributor.familyName",
+      "path": "Authors@R[role=ctb].family",
+      "source": "curated:the cell says familyName, a CodeMeta term; a person() entry keeps the family name in family",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include ctb. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": "familyName"
+    },
+    {
+      "format": "r-description",
+      "term": "contributor.@id",
+      "path": "Authors@R[role=ctb].comment.ORCID",
+      "source": "curated:no cell; a person() entry keeps an ORCID iD as comment = c(ORCID = ...)",
+      "comment": "role is often a vector such as c(\"aut\", \"cre\"): match an entry whose roles include ctb. A package without Authors@R has only the free-text Author field.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "r-description",
+      "term": "license",
+      "path": "License",
+      "source": "crosswalk:crosswalks/R Package Description.csv@3.1",
+      "crosswalk_cell": "License"
+    },
+    {
+      "format": "r-description",
+      "term": "identifier",
+      "path": null,
+      "source": "curated:the cell says Package, the package name; DESCRIPTION has no DOI field",
+      "crosswalk_cell": "Package"
+    },
+    {
+      "format": "r-description",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:the cell says Package, the package name; DESCRIPTION has no SWHID field",
+      "crosswalk_cell": "Package"
+    },
+    {
+      "format": "r-description",
+      "term": "codeRepository",
+      "path": "URL",
+      "source": "crosswalk:crosswalks/R Package Description.csv@3.1",
+      "crosswalk_cell": "URL"
+    },
+    {
+      "format": "r-description",
+      "term": "description",
+      "path": "Description",
+      "source": "crosswalk:crosswalks/R Package Description.csv@3.1",
+      "crosswalk_cell": "Description"
+    },
+    {
+      "format": "r-description",
+      "term": "keywords",
+      "path": null,
+      "source": "curated:no cell; DESCRIPTION has no keywords field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "r-description",
+      "term": "datePublished",
+      "path": "Date",
+      "source": "crosswalk:crosswalks/R Package Description.csv@3.1",
+      "crosswalk_cell": "Date"
+    },
+    {
+      "format": "julia",
+      "term": "name",
+      "path": "name",
+      "source": "crosswalk:crosswalks/Julia Project.csv@3.1",
+      "crosswalk_cell": "name"
+    },
+    {
+      "format": "julia",
+      "term": "version",
+      "path": "version",
+      "source": "curated:no cell; Project.toml keeps the package version in version",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "author",
+      "path": "authors[]",
+      "source": "curated:no cell; Project.toml lists authors in authors",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "author.givenName",
+      "path": "authors[].given-names",
+      "source": "curated:no cell; an author table uses CFF's keys, so the given name is given-names",
+      "comment": "An author may also be a plain 'Name' or 'Name <email>' string; then both name sub-terms come from that string.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "author.familyName",
+      "path": "authors[].family-names",
+      "source": "curated:no cell; an author table uses CFF's keys, so the family name is family-names",
+      "comment": "An author may also be a plain 'Name' or 'Name <email>' string; then both name sub-terms come from that string.",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "author.@id",
+      "path": "authors[].orcid",
+      "source": "curated:no cell; an author table uses CFF's keys, so an ORCID iD is orcid",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no cell; Project.toml has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no cell; Project.toml has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no cell; Project.toml has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no cell; Project.toml has no contributor list",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "license",
+      "path": null,
+      "source": "curated:no cell; Pkg's Project.toml specification has no licence field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "identifier",
+      "path": null,
+      "source": "curated:the cell says uuid, which identifies the package to Pkg; it is not a DOI",
+      "crosswalk_cell": "uuid"
+    },
+    {
+      "format": "julia",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:the cell says uuid, which identifies the package to Pkg; it is not a SWHID",
+      "crosswalk_cell": "uuid"
+    },
+    {
+      "format": "julia",
+      "term": "codeRepository",
+      "path": null,
+      "source": "curated:no cell; Pkg's Project.toml specification has no repository field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "description",
+      "path": null,
+      "source": "curated:no cell; Pkg's Project.toml specification has no description field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "keywords",
+      "path": null,
+      "source": "curated:no cell; Project.toml has no keywords field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "datePublished",
+      "path": null,
+      "source": "curated:no cell; Project.toml has no release date",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "name",
+      "path": "title",
+      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "crosswalk_cell": "title"
+    },
+    {
+      "format": "bibtex",
+      "term": "version",
+      "path": "version",
+      "source": "curated:no cell; biblatex and biblatex-software keep the version in version",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "author",
+      "path": "author",
+      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "crosswalk_cell": "author"
+    },
+    {
+      "format": "bibtex",
+      "term": "author.givenName",
+      "path": "author",
+      "source": "curated:no cell; BibTeX keeps every author in one author string, names joined by and, each written 'Given Family' or 'Family, Given'",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "author.familyName",
+      "path": "author",
+      "source": "curated:no cell; BibTeX keeps every author in one author string, names joined by and, each written 'Given Family' or 'Family, Given'",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "author.@id",
+      "path": null,
+      "source": "curated:no cell; BibTeX has no person identifier",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no cell; a software entry has no contributor field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no cell; a software entry has no contributor field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no cell; a software entry has no contributor field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no cell; a software entry has no contributor field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "license",
+      "path": "license",
+      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "crosswalk_cell": "license"
+    },
+    {
+      "format": "bibtex",
+      "term": "identifier",
+      "path": "doi",
+      "source": "curated:the cell lists doi / hal_id; hal_id is a HAL archive id, the DOI is doi",
+      "crosswalk_cell": "doi / hal_id"
+    },
+    {
+      "format": "bibtex",
+      "term": "swhid",
+      "path": "swhid",
+      "source": "curated:the cell lists doi / hal_id for every identifier; biblatex-software keeps the SWHID in swhid",
+      "crosswalk_cell": "doi / hal_id"
+    },
+    {
+      "format": "bibtex",
+      "term": "codeRepository",
+      "path": "repository",
+      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "crosswalk_cell": "repository"
+    },
+    {
+      "format": "bibtex",
+      "term": "description",
+      "path": "abstract",
+      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "crosswalk_cell": "abstract"
+    },
+    {
+      "format": "bibtex",
+      "term": "keywords",
+      "path": "keywords",
+      "source": "curated:no cell; biblatex keeps keywords in keywords, separated by commas",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bibtex",
+      "term": "datePublished",
+      "path": "date | year",
+      "source": "curated:the cell lists date / (year) / (month); biblatex writes the release date in date, and classic BibTeX gives only year and month",
+      "crosswalk_cell": "date / (year) / (month)"
     }
   ]
 }
