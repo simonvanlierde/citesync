@@ -511,7 +511,12 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     fmt = doc.format
     if term == "version":
         if fmt in {"cargo", "npm"}:
-            return codecs.version_encode_semver(value)
+            semver = codecs.version_encode_semver(value)
+            # Typst takes only major.minor.patch: a pre-release or build tag makes the package unpublishable.
+            if PurePosixPath(doc.path).name == "typst.toml" and not re.fullmatch(r"\d+\.\d+\.\d+", semver):
+                msg = f"Typst package versions are major.minor.patch only, not {semver}"
+                raise CannotWrite(msg)
+            return semver
         if fmt == "pep621":
             if isinstance(key := codecs.version_key(value), str):
                 msg = f"{value} is not a PEP 440 version"
