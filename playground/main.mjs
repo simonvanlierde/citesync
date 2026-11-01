@@ -19,6 +19,7 @@ let blocked = false;
 let namesDraft;
 let reviewNames;
 let namesChecked; // the review names the person marked as right, so the box stays closed for them
+let corrected; // { originals, names }: corrections that apply again while the same names come back
 let resultRevision = -1;
 let fileHint;
 let originalFile;
@@ -401,6 +402,9 @@ function render() {
   selectOutput(outputNames.includes(selected) ? selected : "CITATION.cff");
   $("#name-review").hidden = result.review.length === 0;
   reviewNames = result.review.map(({ original }) => original).join("\n");
+  // a source edit drops the corrections, so those for the same names come back and convert again
+  const restored = !namesDraft && corrected?.originals === reviewNames;
+  if (restored) namesDraft = corrected.names;
   if (!namesDraft) {
     const checked = namesChecked === reviewNames;
     const uncertain = result.review.some(
@@ -415,7 +419,7 @@ function render() {
         ? "Check the name split (optional)"
         : "Author names";
   }
-  if (!namesDraft) {
+  if (!namesDraft || restored) {
     $("#review-fields").replaceChildren();
     for (const [index, name] of result.review.entries()) {
       const group = document.createElement("fieldset");
@@ -435,7 +439,7 @@ function render() {
         text.textContent = label;
         const input = document.createElement("input");
         input.id = text.htmlFor;
-        input.value = name[part];
+        input.value = (namesDraft?.[index] ?? name)[part];
         input.dataset.part = part;
         input.maxLength = 500;
         container.append(text, input);
@@ -463,6 +467,7 @@ function render() {
   $("#details-notes").open = errors.length > 0;
   syncExports();
   announce("");
+  if (restored) invalidate(false);
 }
 function download(content, filename, type) {
   const blob = new Blob([content], { type });
@@ -656,6 +661,7 @@ $("#review-fields").addEventListener("input", () => {
   namesDraft = [...$("#review-fields").children].map((row) =>
     Object.fromEntries([...row.querySelectorAll("input")].map((input) => [input.dataset.part, input.value])),
   );
+  corrected = { originals: reviewNames, names: namesDraft };
   invalidate(false);
 });
 function namesRight() {

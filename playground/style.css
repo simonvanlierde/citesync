@@ -624,10 +624,23 @@ textarea[aria-invalid="true"] {
   padding: 10px 12px;
   color: var(--muted);
 }
+/* group headers read as labels, not choices: small capitals, a rule above, no hover, options indented below */
+.picker [role="listbox"] > li:not([hidden]) ~ li {
+  border-top: 1px solid var(--line);
+}
 .picker-group {
-  padding: 8px 12px 2px;
+  padding: 12px 12px 4px;
   color: var(--muted);
-  font-size: 13px;
+  font:
+    600 12px / 1.2 system-ui,
+    sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+}
+.picker-group + [role="group"] [role="option"] {
+  padding-left: 24px;
 }
 .picker [role="option"] {
   display: flex;
