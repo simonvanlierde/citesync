@@ -13,6 +13,7 @@ from typing import Any
 
 from citesync.check import Finding
 from citesync.config import Config
+from citesync.errors import CheckError
 from citesync.formats import Doc, Person
 
 # suffix: format; the longest suffix is tried first, so citation.csl.json is never plain JSON
@@ -66,7 +67,14 @@ def record(docs: list[Doc]) -> dict[str, Any]:
 
 
 def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
-    """The export's text in ``fmt``, and notes on what it left out. Never invents a release date."""
+    """The export's text in ``fmt``, and notes on what it left out. Never invents a release date.
+
+    Raises:
+        CheckError: when the record has no title.
+    """
+    if not rec.get("name"):
+        msg = "no file gives a title, which a citation needs"
+        raise CheckError(msg)
     day, notes = None, []
     if date := rec.get("datePublished"):
         try:
@@ -103,6 +111,8 @@ def stale(root: Path, docs: list[Doc], config: Config) -> list[Finding]:
     if not config.exports or not docs[0].readable:
         return []
     rec, found = record(docs), []
+    if not rec.get("name"):
+        return [Finding(path, None, "export-stale", "can't be made: no file gives a title") for path in config.exports]
     for path in config.exports:
         file = root / path
         if not file.is_file():

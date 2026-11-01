@@ -232,6 +232,18 @@ def test_ignored_export_stale_is_never_written(tmp_path: Path, run: "Run") -> No
     assert not (root / "citation.bib").exists()
 
 
+def test_no_title_is_a_finding_not_a_crash(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "codemeta.json").write_text('{"@context": "https://w3id.org/codemeta/3.0"}', encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('source = "codemeta.json"\nexports = ["citation.bib"]\n', encoding="utf-8")
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert "citation.bib: error[export-stale] can't be made: no file gives a title" in out
+    assert run("write", "--root", str(tmp_path))[0] == 1
+    assert not (tmp_path / "citation.bib").exists()
+    code, _, err = run("export", "--root", str(tmp_path), "--format", "bibtex")
+    assert (code, err) == (2, "citesync: no file gives a title, which a citation needs\n")
+
+
 def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "CITATION.cff").write_text("cff-version: [\n", encoding="utf-8")
     code, out, err = run("export", "--root", str(tmp_path), "--format", "apa")
