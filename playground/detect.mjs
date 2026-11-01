@@ -17,6 +17,14 @@ export function detectFormats(text) {
   const value = text.replace(/^\uFEFF/, "");
   const found = [];
   if (/^Metadata-Version:\s*\d+\.\d+\s*$/m.test(value) && /^Name:\s*\S/m.test(value)) found.push("METADATA");
+  if (/^Package:\s*\S/m.test(value) && /^(?:Title|Version|Authors@R):/m.test(value)) found.push("DESCRIPTION");
+  if (
+    !python.test(value) &&
+    !cargo.test(value) &&
+    (/^\s*uuid\s*=\s*["'][0-9a-fA-F-]{36}["']/m.test(value) ||
+      /^\s*\[(?:deps|compat|extras|targets|sources)\]\s*$/m.test(value))
+  )
+    found.push("Project.toml");
   if (cff.test(value)) found.push("CITATION.cff");
   if (python.test(value)) found.push("pyproject.toml");
   if (cargo.test(value)) found.push("Cargo.toml");

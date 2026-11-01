@@ -129,7 +129,7 @@ RULES = {
         "Add an explicit supported value in the source metadata, then generate the citation files again.",
         (
             "Legacy Core Metadata License text is not assumed to be an SPDX expression."
-            " Values that cannot be represented are omitted with this notice; distribution metadata is never rewritten."
+            " Values that cannot be represented are omitted with this notice; import-only metadata is never rewritten."
         ),
     ),
     **{rule: Rule("error", summary, _FIX, details) for rule, summary, details in _FIELDS.values()},

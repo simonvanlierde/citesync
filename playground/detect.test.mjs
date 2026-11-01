@@ -4,6 +4,8 @@ import { detectFormats } from "./detect.mjs";
 
 test("identifies all supported metadata formats without a filename", () => {
   for (const [text, expected] of [
+    ["Package: lensgrind\nVersion: 1.0\n", "DESCRIPTION"],
+    ['name="Lensgrind"\nuuid="00000000-0000-0000-0000-000000000001"', "Project.toml"],
     ["Metadata-Version: 2.6\nName: lensgrind\nVersion: 1.4.0\n", "METADATA"],
     ['[project]\nname="lensgrind"', "pyproject.toml"],
     ['[workspace.package]\nversion="1.0.0"', "Cargo.toml"],

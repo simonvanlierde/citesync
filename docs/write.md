@@ -6,7 +6,7 @@
 
 It writes every citation file that isn't the source. It changes a manifest only for the fields listed in `write-manifests` (see [config.md](config.md)).
 
-PKG-INFO and METADATA are read-only sources, even when `write-manifests` is enabled.
+PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml/JuliaProject.toml are read-only sources, even when `write-manifests` is enabled.
 
 It leaves these alone:
 
