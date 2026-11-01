@@ -28,7 +28,7 @@ test("automatic detection, live name corrections, exports, form and parse recove
   await expect(page.locator("#review-0-family")).toBeFocused();
   await expect(page.locator("#zip")).toBeEnabled();
   await page.locator("#output-file").selectOption("citation.bib");
-  await expect(page.locator("#output")).toContainText("@misc{lensgrind,");
+  await expect(page.locator("#output")).toContainText("@software{lensgrind,");
   await page.locator("#output-file").selectOption("citation.csl.json");
   await expect(page.locator("#output")).toContainText('"type": "software"');
   await page.locator("#output-file").selectOption("citation.apa.txt");

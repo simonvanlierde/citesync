@@ -149,7 +149,6 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
             if not inside(root, rel):
                 msg = f"{rel}: resolves outside the repo root, so write won't write it"
                 raise CheckError(msg)
-            (root / rel).parent.mkdir(parents=True, exist_ok=True)  # a listed docs/codemeta.json may be the first there
         _replace(root, texts)
     fixed = [f for f in errors if (f.file, f.term) in done]
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"], fixed
@@ -257,6 +256,10 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
     Raises:
         CheckError: when there is no file to read, one can't be read, or none gives a title or authors.
     """
+    # a named source must be there; the default CITATION.cff may be missing, as init makes it
+    if config.source != "CITATION.cff" and not (root / config.source).is_file():
+        msg = f"{config.source}: the source file is missing from {root}"
+        raise CheckError(msg)
     first = next((p for p in (config.source, *CITATION_FILES, *MANIFESTS) if (root / p).is_file()), None)
     if first is None:
         msg = f"no codemeta.json, .zenodo.json or package manifest in {root} to make a CITATION.cff from"
@@ -315,6 +318,7 @@ def _replace(root: Path, texts: dict[str, str]) -> None:
     rel = ""
     try:
         for rel, text in texts.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)  # a listed docs/codemeta.json may be the first there
             path = (root / rel).resolve()
             fd, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
             temps[Path(name)] = rel, path
