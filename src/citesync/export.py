@@ -14,13 +14,17 @@ from typing import Any
 from citesync.check import Finding
 from citesync.config import Config
 from citesync.errors import CheckError
-from citesync.formats import Doc, Person, inside
+from citesync.formats import Doc, Person
 
 # suffix: format; the longest suffix is tried first, so citation.csl.json is never plain JSON
 SUFFIXES = {".csl.json": "csl-json", ".apa.txt": "apa", ".bib": "bibtex", ".jsonld": "jsonld"}
-FORMATS = tuple(SUFFIXES.values())
 # The file each format goes to when no path is given: the playground's names.
-DEFAULT_NAMES = {fmt: f"citation{suffix}" for suffix, fmt in SUFFIXES.items()} | {"jsonld": "schema.jsonld"}
+DEFAULT_NAMES = {
+    "csl-json": "citation.csl.json",
+    "apa": "citation.apa.txt",
+    "bibtex": "citation.bib",
+    "jsonld": "schema.jsonld",
+}
 
 _TEX = {
     "\\": r"\textbackslash{}",
@@ -49,11 +53,7 @@ def format_of(path: str) -> str | None:
 
 def text(path: str, rec: dict[str, Any]) -> str:
     """The text the export at ``path`` should hold; config has checked its suffix."""
-    fmt = format_of(path)
-    if fmt is None:
-        msg = f"{path}: not an export suffix"
-        raise ValueError(msg)
-    return render(fmt, rec)[0]
+    return render(str(format_of(path)), rec)[0]
 
 
 def record(docs: list[Doc]) -> dict[str, Any]:
@@ -127,7 +127,7 @@ def stale(root: Path, docs: list[Doc], config: Config) -> list[Finding]:
     for path in config.exports:
         file = root / path
         if not writable(root, path):
-            found.append(Finding(path, None, "export-stale", "can't be written: not a file inside the repo root"))
+            found.append(Finding(path, None, "export-stale", "can't be written: a link, a folder, or under a file"))
         elif not file.is_file():
             found.append(Finding(path, None, "export-stale", "missing"))
         elif file.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n") != text(path, rec):
@@ -136,9 +136,16 @@ def stale(root: Path, docs: list[Doc], config: Config) -> list[Finding]:
 
 
 def writable(root: Path, path: str) -> bool:
-    """Whether ``write`` may make the export: inside the repo root, and a file or nothing yet."""
-    file = root / path
-    return inside(root, path) and (file.is_file() or not file.exists())
+    """Whether ``write`` may make the export: no link on the way, folders above it, and a file or nothing there.
+
+    An export is written whole, so a link could replace the file it points at, CITATION.cff included.
+    """
+    parts = PurePosixPath(path).parts
+    for i in range(1, len(parts) + 1):
+        here = root.joinpath(*parts[:i])
+        if here.is_symlink() or (i < len(parts) and here.exists() and not here.is_dir()):
+            return False
+    return not (root / path).exists() or (root / path).is_file()
 
 
 def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
@@ -214,7 +221,8 @@ def _jsonld(rec: dict[str, Any], _day: tuple[int, ...] | None) -> str:
     for term in ("author", "contributor"):
         if people := [_schema_person(p) for p in rec.get(term, ()) if p.name]:
             data[term] = people
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+    # a site embeds this in a <script> tag, where a literal </script> in a title would end it
+    return json.dumps(data, indent=2, ensure_ascii=False).replace("<", "\\u003c") + "\n"
 
 
 def _schema_person(p: Person) -> dict[str, str]:
@@ -239,4 +247,3 @@ def _initials(given: str | None) -> str:
 
 
 _WRITERS = {"bibtex": _bibtex, "csl-json": _csl, "apa": _apa, "jsonld": _jsonld}
-_LABELS = {"bibtex": "BibTeX", "csl-json": "CSL-JSON", "apa": "APA", "jsonld": "JSON-LD"}

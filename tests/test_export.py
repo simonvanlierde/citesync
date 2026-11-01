@@ -279,7 +279,7 @@ def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_
     code, out, _ = run("check", "--root", str(root))
     assert code == 1
     for path in ("out/citation.apa.txt", "dir.jsonld"):
-        assert f"{path}: error[export-stale] can't be written: not a file inside the repo root" in out
+        assert f"{path}: error[export-stale] can't be written: a link, a folder, or under a file" in out
     code, out, err = run("write", "--diff", "--root", str(root))
     assert "hi" not in out
     assert "unexpected error" not in err
@@ -288,6 +288,33 @@ def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_
     assert "unexpected error" not in err
     assert (root / "citation.bib").is_file()
     assert (elsewhere / "citation.apa.txt").read_text(encoding="utf-8") == "hi\n"
+
+
+@pytest.mark.parametrize("path", ["citation.bib", "pyproject.toml/c.bib"])
+def test_a_link_or_a_path_under_a_file_is_never_written(tmp_path: Path, run: "Run", path: str) -> None:
+    root = _repo(tmp_path)
+    if path == "citation.bib":
+        (root / path).symlink_to("CITATION.cff")  # write would put BibTeX over the source
+    (root / "citesync.toml").write_text(f'exports = ["{path}", "citation.apa.txt"]\n', encoding="utf-8")
+    cff = (root / "CITATION.cff").read_bytes()
+    assert f"{path}: error[export-stale] can't be written" in run("check", "--root", str(root))[1]
+    code, _, err = run("write", "--root", str(root))
+    assert (code, "unexpected error" in err) == (1, False)
+    assert (root / "CITATION.cff").read_bytes() == cff
+    assert (root / "citation.apa.txt").is_file()
+
+
+def test_jsonld_can_sit_in_a_script_tag() -> None:
+    text = render("jsonld", {"name": "x</script><script>alert(1)</script>"})[0]
+    assert "<" not in text
+    assert json.loads(text)["name"] == "x</script><script>alert(1)</script>"
+
+
+def test_cli_offers_every_export_format() -> None:
+    from citesync.cli import _EXPORT_FORMATS  # noqa: PLC0415
+    from citesync.export import SUFFIXES  # noqa: PLC0415
+
+    assert set(_EXPORT_FORMATS) == set(SUFFIXES.values())
 
 
 def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> None:

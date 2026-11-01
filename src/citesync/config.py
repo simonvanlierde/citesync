@@ -156,6 +156,10 @@ def _path(value: object, names: dict[str, str], origin: str, key: str) -> str:
     if not isinstance(value, str) or PurePosixPath(value).name not in names:
         msg = f"{origin}: {key} must name one of {', '.join(names)}, got {value!r}"
         raise CheckError(msg)
+    return _relative(value, origin, key)
+
+
+def _relative(value: str, origin: str, key: str) -> str:
     path = PurePosixPath(value)
     if path.is_absolute() or ".." in path.parts:
         msg = f"{origin}: {key} {value!r} must be relative to the repo root, inside it"
@@ -210,17 +214,11 @@ def _exports(value: object, origin: str) -> tuple[str, ...]:
     if not isinstance(value, list):
         msg = f"{origin}: exports must be a list of paths"
         raise CheckError(msg)
-    paths = []
     for item in value:
         if not isinstance(item, str) or format_of(item) is None:
             msg = f"{origin}: exports entry {item!r} must end in one of {', '.join(SUFFIXES)}"
             raise CheckError(msg)
-        path = PurePosixPath(item)
-        if path.is_absolute() or ".." in path.parts:
-            msg = f"{origin}: exports {item!r} must be relative to the repo root, inside it"
-            raise CheckError(msg)
-        paths.append(str(path))
-    return tuple(dict.fromkeys(paths))
+    return tuple(dict.fromkeys(_relative(item, origin, "exports") for item in value))
 
 
 def _ignore(value: object, origin: str) -> tuple[str, ...]:

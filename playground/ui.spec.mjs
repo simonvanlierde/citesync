@@ -265,7 +265,7 @@ test("search metadata and project information are present without JavaScript", a
   );
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    /CITATION.cff, CodeMeta, BibTeX, CSL-JSON and APA/,
+    /CITATION.cff, CodeMeta, BibTeX, CSL-JSON, APA and JSON-LD/,
   );
   await expect(page.getByRole("heading", { name: "citesync", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Use citesync in your repository" })).toBeVisible();
