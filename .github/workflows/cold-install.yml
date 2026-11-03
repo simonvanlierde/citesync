@@ -38,12 +38,12 @@ jobs:
         with:
           # The weekly run saves the cache; a pull request only reads it.
           save-cache: ${{ github.event_name != 'pull_request' }}
-          version: "0.13.5"
-      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
+          version: "0.13.6"
+      - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2.87.32
         with:
           tool: just@1.59.0
 
-      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
         with:
           runtime: node@26
           install: false
