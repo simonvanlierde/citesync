@@ -48,7 +48,7 @@ jobs:
         with:
           enable-cache: true
           save-cache: ${{ github.event_name != 'pull_request' }}
-          version: "0.13.5"
+          version: "0.13.6"
           python-version: ${{ matrix.python }}
 
       - run: uv sync --locked
