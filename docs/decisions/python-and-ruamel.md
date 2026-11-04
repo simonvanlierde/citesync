@@ -1,11 +1,11 @@
-# 0004. Python 3.12 and ruamel.yaml
+# Python 3.12 and ruamel.yaml
 
 - Status: accepted
 - Date: 2026-10-28
 
 ## Context
 
-With a pluggable source ([0001](0001-pluggable-source.md)), CITATION.cff is a file citesync writes. Every real CFF file checked when this was decided had comments, and losing them would make `write` unusable. Rust, the other candidate, had no maintained YAML writer that keeps comments.
+With a pluggable source ([any supported file can be the source](pluggable-source.md)), CITATION.cff is a file citesync writes. Every real CFF file checked when this was decided had comments, and losing them would make `write` unusable. Rust, the other candidate, had no maintained YAML writer that keeps comments.
 
 ## Decision
 
