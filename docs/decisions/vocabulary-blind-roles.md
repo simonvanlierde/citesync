@@ -1,4 +1,4 @@
-# 0005. citesync keeps contribution roles intact and does not interpret them
+# citesync keeps contribution roles intact and does not interpret them
 
 - Status: accepted
 - Date: 2026-10-29

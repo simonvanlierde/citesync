@@ -1,4 +1,4 @@
-# 0001. Any supported file can be the source
+# Any supported file can be the source
 
 - Status: accepted
 - Date: 2026-10-28
@@ -16,5 +16,5 @@ When the source has no slot for a field, the other files that hold it must agree
 ## Consequences
 
 - One tool serves repos with and without a CITATION.cff.
-- The source can be a file citesync has to write to, not only read. That is why [0004](0004-python-and-ruamel.md) needs a YAML writer that keeps comments.
+- The source can be a file citesync has to write to, not only read. That is why [Python 3.12 and ruamel.yaml](python-and-ruamel.md) needs a YAML writer that keeps comments.
 - The rules for a missing slot live in [How check works](../check.md); keep them there.
