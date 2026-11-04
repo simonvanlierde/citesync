@@ -1,4 +1,4 @@
-# Field locations come from a vendored mapping, in a separate repo
+# 0002. Field locations come from a vendored mapping, in a separate repo
 
 - Status: accepted
 - Date: 2026-10-28
