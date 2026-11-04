@@ -17,3 +17,4 @@ Don't rewrite an accepted record. When a decision changes, write a new record, a
 - [0003. `write` changes manifests only for fields you list](0003-manifests-opt-in.md): accepted
 - [0004. Python 3.12 and ruamel.yaml](0004-python-and-ruamel.md): accepted
 - [0005. citesync keeps contribution roles intact and does not interpret them](0005-vocabulary-blind-roles.md): accepted
+- [0006. Every field conversion comes from codemeta-drift, and CodeMeta 3.0 is the default](0006-field-conversions-from-codemeta-drift-and-codemeta-3.md): accepted
