@@ -1,4 +1,4 @@
-# `write` changes manifests only for fields you list
+# 0003. `write` changes manifests only for fields you list
 
 - Status: accepted
 - Date: 2026-10-28

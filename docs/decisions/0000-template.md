@@ -1,6 +1,6 @@
-# Title of the decision
+# 0000. Title of the decision
 
-- Status: proposed (later accepted, rejected or superseded by `<slug>.md`)
+- Status: proposed (later accepted, rejected or superseded by NNNN)
 - Date: YYYY-MM-DD
 
 ## Context
