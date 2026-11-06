@@ -584,7 +584,7 @@ def _valid(xml: str) -> ET.Element:
 )  # fmt: skip
 def test_datacite_validates_against_the_official_schema(rec: dict) -> None:
     root = _valid(render("datacite", rec)[0])
-    assert root.findtext("d:titles/d:title", namespaces=NS) == rec["name"].replace("\x00", "")
+    assert root.findtext("d:titles/d:title", namespaces=NS) == " ".join(rec["name"].replace("\x00", "").split())
 
 
 @pytest.mark.parametrize(
@@ -702,3 +702,92 @@ def test_datacite_export_is_checked_and_written(tmp_path: Path, run: "Run") -> N
 
 def test_datacite_note_for_a_swhid_it_cannot_place() -> None:
     assert "swh:1:rel" not in render("datacite", FULL)[0]
+
+
+def _creator(rec: dict) -> ET.Element:
+    root = _valid(render("datacite", rec)[0])
+    creator = root.find("d:creators/d:creator", NS)
+    assert creator is not None
+    return creator
+
+
+def test_a_person_read_from_pyproject_is_personal(tmp_path: Path) -> None:
+    from citesync.formats import read_doc  # noqa: PLC0415
+    from citesync.mapping import load_mapping  # noqa: PLC0415
+
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "x"\nversion = "1"\nauthors = [{name = "Marie Curie"}]\n', encoding="utf-8"
+    )
+    authors = read_doc(tmp_path, "pyproject.toml", load_mapping()).record["author"]
+    name = _creator(FULL | {"author": authors}).find("d:creatorName", NS)
+    assert name is not None
+    assert (name.get("nameType"), name.text) == ("Personal", "Marie Curie")
+
+
+def test_family_given_needs_both_parts() -> None:
+    only_family = Person("Plato", family="Plato")
+    name = _creator(FULL | {"author": (only_family,)}).find("d:creatorName", NS)
+    assert name is not None
+    assert (name.get("nameType"), name.text) == ("Personal", "Plato")
+
+
+SPDX = "https://spdx.org/licenses/"
+
+
+@pytest.mark.parametrize(
+    ("licence", "attrs", "text"),
+    [
+        (
+            "MIT",
+            {
+                "rightsURI": f"{SPDX}MIT.html",
+                "rightsIdentifier": "MIT",
+                "rightsIdentifierScheme": "SPDX",
+                "schemeURI": SPDX,
+            },
+            None,
+        ),
+        ("https://example.org/terms", {"rightsURI": "https://example.org/terms"}, None),
+        ("MIT OR Apache-2.0", {}, "MIT OR Apache-2.0"),
+        ("LicenseRef-lab-terms", {}, "LicenseRef-lab-terms"),
+    ],
+)
+def test_datacite_rights(licence: str, attrs: dict[str, str], text: str | None) -> None:
+    root = _valid(render("datacite", FULL | {"license": licence})[0])
+    rights = root.find("d:rightsList/d:rights", NS)
+    assert rights is not None
+    assert (rights.attrib, rights.text) == (attrs, text)
+
+
+def test_an_export_with_crlf_line_ends_is_not_stale(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    (root / "citesync.toml").write_text('exports = ["citation.datacite.xml"]\n', encoding="utf-8")
+    _add_publisher(root, '"Example Press"')
+    cff = root / "CITATION.cff"
+    abstract = "A made-up package whose metadata files all agree."
+    cff.write_text(cff.read_text(encoding="utf-8").replace(abstract, "a\\r\\nb\\n\\nc"), encoding="utf-8")
+    assert run("write", "--root", str(root))[0] == 0
+    made = root / "citation.datacite.xml"
+    assert "a b c" in made.read_text(encoding="utf-8")
+    made.write_bytes(made.read_bytes().replace(b"\n", b"\r\n"))
+    assert run("check", "--root", str(root))[0] == 0
+    assert run("write", "--root", str(root))[0] == 0
+
+
+def test_the_publication_year_has_four_digits() -> None:
+    root = _valid(render("datacite", FULL | {"datePublished": "0999"})[0])
+    assert root.findtext("d:publicationYear", namespaces=NS) == "0999"
+
+
+@pytest.mark.parametrize("term", ["publisher", "name", "identifier"])
+def test_a_required_value_of_control_characters_is_missing(term: str) -> None:
+    with pytest.raises(CheckError, match="no file gives"):
+        render("datacite", FULL | {term: "\x00\x01 "})
+    with pytest.raises(CheckError, match="no file gives an author"):
+        render("datacite", FULL | {"author": (Person("\x00"),)})
+
+
+def test_datacite_keywords_skip_blanks_and_repeats() -> None:
+    rec = FULL | {"keywords": ("optics", "\x00", "optics\n ", "lens  grind")}
+    root = _valid(render("datacite", rec)[0])
+    assert [e.text for e in root.findall("d:subjects/d:subject", NS)] == ["optics", "lens grind"]

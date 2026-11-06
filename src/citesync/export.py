@@ -53,6 +53,7 @@ _LATIN = str.maketrans(
 )
 _SPDX_ID = re.compile(r"(?!LicenseRef-)[A-Za-z0-9.+-]+")  # one licence id; an expression or LicenseRef has no page
 _URL = re.compile(r"https?://\S+")
+_SPDX_PAGES = "https://spdx.org/licenses/"
 
 
 def format_of(path: str) -> str | None:
@@ -364,24 +365,26 @@ def _datacite(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:  # noqa:
         },
     )
 
-    def put(term: str, value: str, extra: dict[str, str] | None = None) -> None:
+    def put(term: str, value: str | None, extra: dict[str, str] | None = None, text: str | None = None) -> None:
         for names, attrs, leaf in datacite_slots(str(rows["datacite", term])):
             if names[0] not in _DATACITE_ORDER:
                 continue  # an alternative for the REST JSON that the XML has no element for, such as ``url``
             node = _wrappers(root, names[:-1])
             year = names[-1] == "publicationYear"
-            text = _xml(str(day[0]) if year and day else value)
+            shown = _xml(f"{day[0]:04d}" if year and day else value or "")
             el = ET.SubElement(node, names[-1], attrs | (extra or {}))
-            if leaf:
-                el.set(leaf, text)
-            if not leaf or leaf == "resourceTypeGeneral":
-                el.text = text
+            if leaf and value is not None:
+                el.set(leaf, shown)
+            if text is not None:
+                el.text = _xml(text)
+            elif not leaf or leaf == "resourceTypeGeneral":
+                el.text = shown
 
     put("identifier", rec["identifier"])
     for term, role in (("author", "creator"), ("contributor", "contributor")):
         row = str(rows["datacite", term])
         names = datacite_slots(row)[0][0]
-        for p in (p for p in rec.get(term, ()) if p.name):
+        for p in (p for p in rec.get(term, ()) if p.name and _xml(p.name)):
             node = ET.SubElement(_wrappers(root, names[:-1]), names[-1])
             if term == "contributor":
                 node.set("contributorType", "Other")  # required; the source holds no role
@@ -390,14 +393,20 @@ def _datacite(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:  # noqa:
     put("publisher", rec["publisher"])
     put("datePublished", "-".join(f"{part:02d}" if i else f"{part:04d}" for i, part in enumerate(day or ())))
     put("resourceType", "Software")
-    for keyword in rec.get("keywords", ()):
+    for keyword in dict.fromkeys(filter(None, map(_xml, rec.get("keywords", ())))):
         put("keywords", keyword)
     for term in ("version", "description"):
-        if rec.get(term):
+        if _xml(rec.get(term) or ""):
             put(term, rec[term])
-    if licence := rec.get("license"):
-        put("license", f"https://spdx.org/licenses/{licence}" if _SPDX_ID.fullmatch(licence) else licence)
-    if rec.get("codeRepository"):
+    if licence := _xml(rec.get("license") or ""):
+        if _SPDX_ID.fullmatch(licence):  # SPDX attribute names are the schema's; no row names them
+            spdx = {"rightsIdentifier": licence, "rightsIdentifierScheme": "SPDX", "schemeURI": _SPDX_PAGES}
+            put("license", f"{_SPDX_PAGES}{licence}.html", spdx)
+        elif _URL.fullmatch(licence):
+            put("license", licence)
+        else:
+            put("license", None, text=licence)  # an expression or LicenseRef has no URI: the text is the licence
+    if _xml(rec.get("codeRepository") or ""):
         put("codeRepository", rec["codeRepository"], {"relatedIdentifierType": "URL"})
     root[:] = sorted(root, key=lambda el: _DATACITE_ORDER.index(el.tag))
     ET.indent(root)
@@ -405,10 +414,14 @@ def _datacite(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:  # noqa:
 
 
 def _datacite_require(rec: dict[str, Any], day: tuple[int, ...] | None) -> None:
-    for value, why in (
-        (rec.get("identifier"), "no file gives a DOI: set `doi` in CITATION.cff or `identifier` in codemeta.json"),
-        (_people(rec), "no file gives an author"),
-        (rec.get("publisher"), "no file gives a publisher: set `publisher` in codemeta.json"),
+    for value, why in (  # checked after cleaning, so a value of only control characters counts as missing
+        (_xml(rec["name"]), "no file gives a title"),
+        (
+            _xml(rec.get("identifier") or ""),
+            "no file gives a DOI: set `doi` in CITATION.cff or `identifier` in codemeta.json",
+        ),
+        ([p for p in _people(rec) if _xml(p.name or "")], "no file gives an author"),
+        (_xml(str(rec.get("publisher") or "")), "no file gives a publisher: set `publisher` in codemeta.json"),
         (day, "no release year: set `date-released` in CITATION.cff or `datePublished` in codemeta.json"),
     ):
         if not value:
@@ -434,13 +447,13 @@ def _datacite_person(node: ET.Element, p: Person, term: str, role: str) -> None:
     rows = load_mapping()
     given_row, family_row, orcid_row = (str(rows["datacite", t]) for t in person_terms(term))
     row = str(rows["datacite", term])
-    personal = not p.organization and bool(p.family)
+    personal = not p.organization
     name = ET.SubElement(node, f"{role}Name", {"nameType": "Personal" if personal else "Organizational"})
-    # DataCite: a personal name is "Family, Given" when the name is not split
-    name.text = _xml(f"{p.family}, {p.given}" if personal and p.given else p.family if personal else p.name or "")
+    # DataCite writes a personal name "Family, Given" when both parts are known, else as given
+    name.text = _xml(f"{p.family}, {p.given}" if personal and p.family and p.given else p.name or "")
     if personal:
         for sub, value in ((given_row, p.given), (family_row, p.family)):
-            if value:
+            if value and _xml(value):
                 ET.SubElement(node, datacite_slots(relative(sub, row))[0][0][-1]).text = _xml(value)
     if p.orcid:
         names, attrs, _ = datacite_slots(relative(orcid_row, row))[0]
@@ -448,7 +461,11 @@ def _datacite_person(node: ET.Element, p: Person, term: str, role: str) -> None:
 
 
 def _xml(value: str) -> str:
-    return _XML_BAD.sub("", value)
+    """``value`` as XML 1.0 text: no forbidden characters, whitespace runs (CR included) as one space.
+
+    One space keeps a file that a checkout turned to CRLF equal to what is exported.
+    """
+    return " ".join(_XML_BAD.sub("", value).split())
 
 
 _WRITERS = {"bibtex": _bibtex, "csl-json": _csl, "apa": _apa, "jsonld": _jsonld, "datacite": _datacite}
