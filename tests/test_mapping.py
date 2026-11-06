@@ -62,6 +62,10 @@ def _row(data: dict, fmt: str, term: str) -> dict:
         (lambda d: _row(d, "julia", "author.@id").update(path="orcid"), "julia author.@id: mapping path 'orcid'"),
         (lambda d: d["rows"].remove(_row(d, "pkg-info", "name")), "no row for pkg-info name"),
         (lambda d: d["rows"].remove(_row(d, "cff-1.2.0", "author.@id")), "no row for cff-1.2.0 author.@id"),
+        (lambda d: d["rows"].remove(_row(d, "codemeta", "publisher")), "no row for codemeta publisher"),
+        (lambda d: d["rows"].remove(_row(d, "datacite", "publisher")), "no row for datacite publisher"),
+        (lambda d: d["rows"].remove(_row(d, "datacite", "resourceType")), "no row for datacite resourceType"),
+        (lambda d: d["rows"].remove(_row(d, "datacite", "author.@id")), "no row for datacite author.@id"),
         (
             lambda d: _row(d, "pep621", "author").update(path=None),
             "pep621 author.givenName has a path but pep621 author has none",
