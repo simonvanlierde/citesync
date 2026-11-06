@@ -141,7 +141,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     exports = {
         path: export.text(path, rec)
         for path in config.exports
-        if (path, None) in fix and rec.get("name") and export.writable(root, path)
+        if (path, None) in fix and rec.get("name") and export.writable(root, path) and not export.refusal(path, rec)
     }
     texts |= exports
     done |= {(path, None) for path in exports}
@@ -294,6 +294,8 @@ def union(docs: list[Doc], config: Config) -> dict[str, Any]:
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
     """What to do about a finding write left: why write skipped it, or that a manifest field can be opted in."""
+    if finding.rule == "export-stale" and finding.message.startswith("can't be made"):
+        return "set the missing field in the source"
     if (reason := skipped.get((str(finding.file), str(finding.term)))) is not None:
         return f"edit it by hand: {reason}"
     if (

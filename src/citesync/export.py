@@ -1,4 +1,4 @@
-"""Citations made from the source's record: BibTeX, CSL-JSON, APA 7 and schema.org JSON-LD.
+"""Citations made from the source's record: BibTeX, CSL-JSON, APA 7, JSON-LD and DataCite XML.
 
 A repo lists the files in the ``exports`` setting; the suffix picks the format. ``write``
 keeps them in step and ``check`` reports one that isn't (``export-stale``).
@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import re
 import unicodedata
+import xml.etree.ElementTree as ET
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -15,16 +16,23 @@ from citesync.check import Finding
 from citesync.config import Config
 from citesync.errors import CheckError
 from citesync.formats import Doc, Person
-from citesync.mapping import load_mapping
+from citesync.mapping import _parse, load_mapping, person_terms, relative
 
 # suffix: format; the longest suffix is tried first, so citation.csl.json is never plain JSON
-SUFFIXES = {".csl.json": "csl-json", ".apa.txt": "apa", ".bib": "bibtex", ".jsonld": "jsonld"}
+SUFFIXES = {
+    ".csl.json": "csl-json",
+    ".apa.txt": "apa",
+    ".bib": "bibtex",
+    ".jsonld": "jsonld",
+    ".datacite.xml": "datacite",
+}
 # The file each format goes to when no path is given: the playground's names.
 DEFAULT_NAMES = {
     "csl-json": "citation.csl.json",
     "apa": "citation.apa.txt",
     "bibtex": "citation.bib",
     "jsonld": "schema.jsonld",
+    "datacite": "citation.datacite.xml",
 }
 
 _TEX = {
@@ -43,7 +51,9 @@ _TEX = {
 _LATIN = str.maketrans(
     {"ł": "l", "ø": "o", "đ": "d", "ħ": "h", "\u0131": "i", "ß": "ss", "æ": "ae", "œ": "oe", "þ": "th"}
 )
-_SPDX_ID = re.compile(r"[A-Za-z0-9.+-]+")
+_SPDX_ID = re.compile(r"(?!LicenseRef-)[A-Za-z0-9.+-]+")  # one licence id; an expression or LicenseRef has no page
+_URL = re.compile(r"https?://\S+")
+_SPDX_PAGES = "https://spdx.org/licenses/"
 
 
 def format_of(path: str) -> str | None:
@@ -63,10 +73,16 @@ def record(docs: list[Doc]) -> dict[str, Any]:
     An unreadable doc has an empty record, so it gives nothing.
     """
     merged: dict[str, Any] = {}
+    where: dict[str, str] = {}  # term to "file: field", for messages about a value that can't be used
+    rows = load_mapping()
     for doc in docs:
         for term, value in doc.record.items():
             merged.setdefault(term, value)
-    return merged
+            where.setdefault(term, f"{doc.path}: {_field(rows[doc.format, term])}")
+    for doc in docs:
+        for term in doc.unusable:
+            where.setdefault(term, f"{doc.path}: {_field(rows[doc.format, term])}")
+    return merged | {"_where": where}
 
 
 def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
@@ -103,7 +119,12 @@ def citations(rec: dict[str, Any]) -> tuple[dict[str, str], list[str]]:
     """Every format under its default name, and the notes once each."""
     files, notes = {}, []
     for fmt, name in DEFAULT_NAMES.items():
-        files[name], left = render(fmt, rec)
+        try:
+            files[name], left = render(fmt, rec)
+        except CheckError:
+            if fmt != "datacite":  # the others need only a title; DataCite also needs a DOI and a publisher
+                raise
+            continue
         notes += left
     return files, list(dict.fromkeys(notes))
 
@@ -120,6 +141,20 @@ def key(rec: dict[str, Any]) -> str:
     return re.sub(r"[^a-z0-9]+", "-", ascii_).strip("-") or "software"
 
 
+def _field(path: str | None) -> str:
+    """The top-level key of a row's path, which holds the value whichever alternative matched: ``publisher``."""
+    return re.split(r"[.\[]", str(path).split(" | ")[0])[0]
+
+
+def refusal(path: str, rec: dict[str, Any]) -> str | None:
+    """Why the export at ``path`` can't be made from ``rec``, or None when it can."""
+    try:
+        text(path, rec)
+    except CheckError as err:
+        return str(err)
+    return None
+
+
 def stale(root: Path, docs: list[Doc], config: Config) -> list[Finding]:
     """An ``export-stale`` finding for each listed export that is missing or differs from what the source gives."""
     if not config.exports or not docs[0].readable:
@@ -131,6 +166,8 @@ def stale(root: Path, docs: list[Doc], config: Config) -> list[Finding]:
         file = root / path
         if not writable(root, path):
             found.append(Finding(path, None, "export-stale", "can't be written: a link, a folder, or under a file"))
+        elif reason := refusal(path, rec):
+            found.append(Finding(path, None, "export-stale", f"can't be made: {reason}"))
         elif not file.is_file():
             found.append(Finding(path, None, "export-stale", "missing"))
         elif file.read_bytes().decode("utf-8", "replace").replace("\r\n", "\n") != text(path, rec):
@@ -236,7 +273,10 @@ def _jsonld(rec: dict[str, Any], _day: tuple[int, ...] | None) -> str:
     if doi := rec.get("identifier"):
         data["identifier"] = f"https://doi.org/{doi}"
     if licence := rec.get("license"):
-        data["license"] = f"https://spdx.org/licenses/{licence}" if _SPDX_ID.fullmatch(licence) else licence
+        if _SPDX_ID.fullmatch(licence):
+            data["license"] = f"https://spdx.org/licenses/{licence}"
+        elif _URL.fullmatch(licence):
+            data["license"] = licence  # schema.org takes a URL here; an expression or LicenseRef has none
     if keywords := rec.get("keywords"):
         data["keywords"] = list(keywords)
     for term in ("author", "contributor"):
@@ -267,4 +307,188 @@ def _initials(given: str | None) -> str:
     )
 
 
-_WRITERS = {"bibtex": _bibtex, "csl-json": _csl, "apa": _apa, "jsonld": _jsonld}
+# DataCite Metadata Schema 4.7. Its top-level elements must come in this order (the xs:sequence).
+_DATACITE_ORDER = (
+    "identifier", "creators", "titles", "publisher", "publicationYear", "resourceType", "subjects",
+    "contributors", "dates", "relatedIdentifiers", "version", "rightsList", "descriptions",
+)  # fmt: skip
+_DATACITE_NS = "http://datacite.org/schema/kernel-4"
+_DATACITE_XSD = "http://schema.datacite.org/meta/kernel-4.7/metadata.xsd"
+# Where a DataCite JSON key and its XML element or attribute differ. The rows are the REST JSON paths.
+_XML_NAMES = {"doi": "identifier", "types": "resourceType", "rightsUri": "rightsURI"}
+_XML_ATTRIBUTES = {"rightsUri", "resourceTypeGeneral"}  # JSON keys that are XML attributes
+_XML_FIXED = {"doi": {"identifierType": "DOI"}}  # attributes the XML needs and the JSON key implies
+_XML_BAD = re.compile("[^\t\n\r -\ud7ff\ue000-\ufffd\U00010000-\U0010ffff]")  # not allowed in XML 1.0
+
+
+def datacite_slots(path: str) -> list[tuple[list[str], dict[str, str], str | None]]:
+    """Where the DataCite XML holds the value of a row's JSON path: one slot per alternative.
+
+    A slot is the element names from the root down, the attributes that element needs, and the
+    attribute that holds the value (None when the element's text does). The rule, step by step:
+
+    - ``key[]`` at the top is a wrapper and its singular item: ``titles[]`` is ``<titles><title>``;
+      deeper, it is only the item (``nameIdentifiers[]`` is ``<nameIdentifier>``). The singular drops
+      ``List`` or a trailing ``s``.
+    - a step that repeats the item's name (``titles[].title``) is the item itself.
+    - ``[k=v]`` is the attribute ``k="v"`` on the item.
+    - ``publisher.name`` is the text of ``publisher``: the JSON nests a name that the XML holds as text.
+    - the few names in ``_XML_NAMES`` differ between JSON and XML.
+    """
+    slots = []
+    for (steps,) in _parse(path):
+        if len(steps) > 1 and steps[-1][0] == "name" and not steps[-2][3]:
+            steps = steps[:-1]  # noqa: PLW2901
+        names, attrs, leaf, item = [], {}, None, ""
+        for i, (key, fkey, fvalue, is_list) in enumerate(steps):
+            attrs |= _XML_FIXED.get(key, {})
+            xml = _XML_NAMES.get(key, key)
+            if key in _XML_ATTRIBUTES:
+                leaf = xml
+            elif xml != item:
+                item = ""
+                if is_list:
+                    item = xml.removesuffix("List") if xml.endswith("List") else xml.removesuffix("s")
+                    names += [xml, item] if i == 0 else [item]
+                else:
+                    names.append(xml)
+            if fkey:
+                attrs[fkey] = str(fvalue)
+        if (names, attrs, leaf) not in slots:  # ``publisher.name | publisher`` is one element
+            slots.append((names, attrs, leaf))
+    return slots
+
+
+def _datacite(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:  # noqa: C901 - one branch per property
+    """DataCite 4.7 XML, each element placed where codemeta-drift's datacite rows say (``datacite_slots``).
+
+    Raises:
+        CheckError: when the record lacks a property the schema requires: DOI, author, publisher or release year.
+    """
+    _datacite_require(rec, day)
+    rows = load_mapping()
+    root = ET.Element(
+        "resource",
+        {
+            "xmlns": _DATACITE_NS,
+            "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            "xsi:schemaLocation": f"{_DATACITE_NS} {_DATACITE_XSD}",
+        },
+    )
+
+    def put(term: str, value: str | None, extra: dict[str, str] | None = None, text: str | None = None) -> None:
+        for names, attrs, leaf in datacite_slots(str(rows["datacite", term])):
+            if names[0] not in _DATACITE_ORDER:
+                continue  # an alternative for the REST JSON that the XML has no element for, such as ``url``
+            node = _wrappers(root, names[:-1])
+            year = names[-1] == "publicationYear"
+            shown = _xml(f"{day[0]:04d}" if year and day else value or "")
+            el = ET.SubElement(node, names[-1], attrs | (extra or {}))
+            if leaf and value is not None:
+                el.set(leaf, shown)
+            if text is not None:
+                el.text = _xml(text)
+            elif not leaf or leaf == "resourceTypeGeneral":
+                el.text = shown
+
+    put("identifier", rec["identifier"])
+    for term, role in (("author", "creator"), ("contributor", "contributor")):
+        row = str(rows["datacite", term])
+        names = datacite_slots(row)[0][0]
+        for p in (p for p in rec.get(term, ()) if p.name and _xml(p.name)):
+            node = ET.SubElement(_wrappers(root, names[:-1]), names[-1])
+            if term == "contributor":
+                node.set("contributorType", "Other")  # a value choice: required, and the source holds no role
+            _datacite_person(node, p, term, role)
+    put("name", rec["name"])
+    put("publisher", rec["publisher"])
+    put("datePublished", "-".join(f"{part:02d}" if i else f"{part:04d}" for i, part in enumerate(day or ())))
+    put("resourceType", "Software")  # fixed on purpose: citesync describes software
+    for keyword in dict.fromkeys(filter(None, map(_xml, rec.get("keywords", ())))):
+        put("keywords", keyword)
+    for term in ("version", "description"):
+        if _xml(rec.get(term) or ""):
+            put(term, rec[term])
+    if licence := _xml(rec.get("license") or ""):
+        if _SPDX_ID.fullmatch(licence):  # SPDX attribute names are the schema's; no row names them
+            spdx = {"rightsIdentifier": licence, "rightsIdentifierScheme": "SPDX", "schemeURI": _SPDX_PAGES}
+            put("license", f"{_SPDX_PAGES}{licence}.html", spdx)
+        elif _URL.fullmatch(licence):
+            put("license", licence)
+        else:
+            put("license", None, text=licence)  # an expression or LicenseRef has no URI: the text is the licence
+    if _xml(rec.get("codeRepository") or ""):
+        put("codeRepository", rec["codeRepository"], {"relatedIdentifierType": "URL"})
+    root[:] = sorted(root, key=lambda el: _DATACITE_ORDER.index(el.tag))
+    ET.indent(root)
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"
+
+
+def _datacite_require(rec: dict[str, Any], day: tuple[int, ...] | None) -> None:
+    where = rec.get("_where", {})
+    publisher = (
+        f"{where['publisher']} can't be used: give a name, or an Organization with a name"
+        if "publisher" in where and not rec.get("publisher")
+        else "no file gives a publisher: set `publisher` in codemeta.json"
+    )
+    year = (
+        f"{where.get('datePublished', 'the release date')} ({rec['datePublished']!r}) can't be used:"
+        " write YYYY, YYYY-MM or YYYY-MM-DD"
+        if rec.get("datePublished")
+        else "no release year: set `date-released` in CITATION.cff or `datePublished` in codemeta.json"
+    )
+    for value, why in (  # checked after cleaning, so a value of only control characters counts as missing
+        (_xml(rec["name"]), "no file gives a title"),
+        (
+            _xml(rec.get("identifier") or ""),
+            "no file gives a DOI: set `doi` in CITATION.cff or `identifier` in codemeta.json",
+        ),
+        ([p for p in _people(rec) if _xml(p.name or "")], "no file gives an author"),
+        (_xml(str(rec.get("publisher") or "")), publisher),
+        (day, year),
+    ):
+        if not value:
+            msg = f"{why}, which DataCite requires"
+            raise CheckError(msg)
+
+
+def _wrappers(root: ET.Element, names: list[str]) -> ET.Element:
+    """The element under ``root`` named by ``names`` (``creators``), made when it isn't there yet."""
+    node = root
+    for name in names:
+        found = node.find(name)
+        node = found if found is not None else ET.SubElement(node, name)
+    return node
+
+
+def _datacite_person(node: ET.Element, p: Person, term: str, role: str) -> None:
+    """A creator or contributor: the name, and for a person the given and family names and the ORCID.
+
+    NOTE: ``creatorName`` and ``contributorName`` are required children of the element the
+    ``author`` and ``contributor`` rows name, and no row names them; the schema fixes them.
+    """
+    rows = load_mapping()
+    given_row, family_row, orcid_row = (str(rows["datacite", t]) for t in person_terms(term))
+    row = str(rows["datacite", term])
+    personal = not p.organization
+    name = ET.SubElement(node, f"{role}Name", {"nameType": "Personal" if personal else "Organizational"})
+    # DataCite writes a personal name "Family, Given" when both parts are known, else as given
+    name.text = _xml(f"{p.family}, {p.given}" if personal and p.family and p.given else p.name or "")
+    if personal:
+        for sub, value in ((given_row, p.given), (family_row, p.family)):
+            if value and _xml(value):
+                ET.SubElement(node, datacite_slots(relative(sub, row))[0][0][-1]).text = _xml(value)
+    if p.orcid:
+        names, attrs, _ = datacite_slots(relative(orcid_row, row))[0]
+        ET.SubElement(node, names[-1], attrs).text = f"https://orcid.org/{p.orcid}"
+
+
+def _xml(value: str) -> str:
+    """``value`` as XML 1.0 text: no forbidden characters, whitespace runs (CR included) as one space.
+
+    One space keeps a file that a checkout turned to CRLF equal to what is exported.
+    """
+    return " ".join(_XML_BAD.sub("", value).split())
+
+
+_WRITERS = {"bibtex": _bibtex, "csl-json": _csl, "apa": _apa, "jsonld": _jsonld, "datacite": _datacite}

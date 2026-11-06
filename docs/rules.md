@@ -162,9 +162,9 @@ To fix: Run `citesync write` to create codemeta.json or .zenodo.json; use `cites
 
 A file listed under `exports` is missing or differs from what the source gives. Severity: error.
 
-Each `exports` entry is a citation made from the source: BibTeX (`.bib`), CSL-JSON (`.csl.json`), APA 7 (`.apa.txt`) or schema.org JSON-LD (`.jsonld`). The file must equal what `citesync export` prints for its format, with CRLF line ends read as LF. A term the source doesn't hold comes from the first other file that holds it. `write` rewrites the whole file, so don't edit an export by hand.
+Each `exports` entry is a citation made from the source: BibTeX (`.bib`), CSL-JSON (`.csl.json`), APA 7 (`.apa.txt`), schema.org JSON-LD (`.jsonld`) or DataCite XML (`.datacite.xml`). The file must equal what `citesync export` prints for its format, with CRLF line ends read as LF. A term the source doesn't hold comes from the first other file that holds it. `write` rewrites the whole file, so don't edit an export by hand.
 
-To fix: Run `citesync write`.
+To fix: Run `citesync write`; for an export that can't be made, set the missing field in the source.
 
 ## unreadable
 

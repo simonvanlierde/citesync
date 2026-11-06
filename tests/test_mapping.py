@@ -62,6 +62,10 @@ def _row(data: dict, fmt: str, term: str) -> dict:
         (lambda d: _row(d, "julia", "author.@id").update(path="orcid"), "julia author.@id: mapping path 'orcid'"),
         (lambda d: d["rows"].remove(_row(d, "pkg-info", "name")), "no row for pkg-info name"),
         (lambda d: d["rows"].remove(_row(d, "cff-1.2.0", "author.@id")), "no row for cff-1.2.0 author.@id"),
+        (lambda d: d["rows"].remove(_row(d, "codemeta", "publisher")), "no row for codemeta publisher"),
+        (lambda d: d["rows"].remove(_row(d, "datacite", "publisher")), "no row for datacite publisher"),
+        (lambda d: d["rows"].remove(_row(d, "datacite", "resourceType")), "no row for datacite resourceType"),
+        (lambda d: d["rows"].remove(_row(d, "datacite", "author.@id")), "no row for datacite author.@id"),
         (
             lambda d: _row(d, "pep621", "author").update(path=None),
             "pep621 author.givenName has a path but pep621 author has none",
@@ -138,3 +142,14 @@ def test_a_plus_path_in_a_written_format_is_refused() -> None:
             row["path"] = "author + contributors[]"
     with pytest.raises(CheckError, match="npm author reads parts with \\+"):
         check_mapping(data, "mapping-local.json")
+
+
+def test_publisher_is_read_for_the_exports_only(tmp_path) -> None:  # noqa: ANN001
+    from citesync.formats import read_doc  # noqa: PLC0415
+    from citesync.mapping import EXPORT_TERMS, TERMS  # noqa: PLC0415
+
+    assert EXPORT_TERMS == ("publisher",)
+    assert not set(EXPORT_TERMS) & set(TERMS)
+    doc = {"@context": "https://w3id.org/codemeta/3.0", "name": "x", "publisher": {"name": "Example Press"}}
+    (tmp_path / "codemeta.json").write_text(json.dumps(doc), encoding="utf-8")
+    assert read_doc(tmp_path, "codemeta.json", load_mapping()).record["publisher"] == "Example Press"
