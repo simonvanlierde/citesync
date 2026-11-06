@@ -186,9 +186,20 @@ def test_jsonld_is_plain_schema_org() -> None:
         ],
         "contributor": [{"@type": "Organization", "name": "Example Optics Institute"}],
     }
-    assert json.loads(render("jsonld", {"name": "x", "license": "MIT OR Apache-2.0"})[0])["license"] == (
-        "MIT OR Apache-2.0"
-    )
+
+
+@pytest.mark.parametrize(
+    ("licence", "expected"),
+    [
+        ("MIT", "https://spdx.org/licenses/MIT"),
+        ("https://example.org/licence", "https://example.org/licence"),
+        ("MIT OR Apache-2.0", None),
+        ("LicenseRef-lab-terms", None),
+        ("see LICENSE", None),
+    ],
+)
+def test_jsonld_licence_is_a_real_url_or_left_out(licence: str, expected: str | None) -> None:
+    assert json.loads(render("jsonld", {"name": "x", "license": licence})[0]).get("license") == expected
 
 
 def test_credit_matrix_fixture_matches_its_about_page() -> None:

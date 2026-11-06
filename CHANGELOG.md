@@ -19,6 +19,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
 
+### Fixed
+
+- The `schema.jsonld` export writes `license` only as a URL: the SPDX page for a single licence id, or the URL the source gives. A `LicenseRef-` id, an expression such as `MIT OR Apache-2.0` and other text are left out instead of written as a made-up or non-URL value.
+
 ## [0.4.0] - 2026-11-01
 
 ### Added

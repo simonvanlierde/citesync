@@ -51,7 +51,8 @@ _TEX = {
 _LATIN = str.maketrans(
     {"ł": "l", "ø": "o", "đ": "d", "ħ": "h", "\u0131": "i", "ß": "ss", "æ": "ae", "œ": "oe", "þ": "th"}
 )
-_SPDX_ID = re.compile(r"[A-Za-z0-9.+-]+")
+_SPDX_ID = re.compile(r"(?!LicenseRef-)[A-Za-z0-9.+-]+")  # one licence id; an expression or LicenseRef has no page
+_URL = re.compile(r"https?://\S+")
 
 
 def format_of(path: str) -> str | None:
@@ -260,7 +261,10 @@ def _jsonld(rec: dict[str, Any], _day: tuple[int, ...] | None) -> str:
     if doi := rec.get("identifier"):
         data["identifier"] = f"https://doi.org/{doi}"
     if licence := rec.get("license"):
-        data["license"] = f"https://spdx.org/licenses/{licence}" if _SPDX_ID.fullmatch(licence) else licence
+        if _SPDX_ID.fullmatch(licence):
+            data["license"] = f"https://spdx.org/licenses/{licence}"
+        elif _URL.fullmatch(licence):
+            data["license"] = licence  # schema.org takes a URL here; an expression or LicenseRef has none
     if keywords := rec.get("keywords"):
         data["keywords"] = list(keywords)
     for term in ("author", "contributor"):
