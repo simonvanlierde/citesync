@@ -19,7 +19,7 @@ def test_templates_omit_unusable_names_and_versions_without_inventing_replacemen
         assert "dependencies" not in data
     assert not {"name", "version"} & tomllib.loads(templates["Project.toml"]).keys()
     assert not any(line.startswith(("Package:", "Version:")) for line in templates["DESCRIPTION"].splitlines())
-    assert len(notes) == 18
+    assert len(notes) == 19
     for note in (
         "DESCRIPTION: Package omitted; use letters, numbers and dots, starting with a letter.",
         "DESCRIPTION: Version omitted; R needs two or more numbers, such as 1.4.0.",
@@ -31,6 +31,9 @@ def test_templates_omit_unusable_names_and_versions_without_inventing_replacemen
     ):
         assert note in notes
     assert "version" not in templates["_extension.yml"]
+    assert "authors" not in tomllib.loads(templates["typst.toml"]).get("package", {})
+    assert "typst.toml: add authors, license, description; typst/packages requires them." in notes
+    assert "typst.toml: add a handle or email to each author." not in notes
     assert json.loads(templates["package.json"])["private"] is True
     assert "build-system" not in tomllib.loads(templates["pyproject.toml"])
 

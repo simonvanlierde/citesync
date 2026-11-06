@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -403,6 +404,9 @@ def test_typst_and_quarto_templates_carry_the_field_each_row_names_and_read_back
 def test_the_typst_template_keeps_the_publishable_version_rule():
     from citesync.playground_exports import package_templates  # noqa: PLC0415
 
+    leading_digit = package_templates({"name": "3d-plot", "version": "1.0.0"})[0]["typst.toml"]
+    assert "name" not in tomllib.loads(leading_digit)["package"]
+    assert "authors" not in leading_digit
     templates, notes = package_templates({"name": "Lens Grind", "version": "1.4.0-rc.1"})
     assert "version" not in templates["typst.toml"]
     assert "name" not in templates["typst.toml"]
@@ -410,3 +414,14 @@ def test_the_typst_template_keeps_the_publishable_version_rule():
     assert "typst.toml: name omitted; use lower-case letters, numbers and hyphens, such as lensgrind." in notes
     assert "title = " not in templates["typst.toml"]
     assert "title: Lens Grind\nversion: 1.4.0-rc.1\n" in templates["_extension.yml"]
+
+
+def test_a_row_that_is_not_a_plain_key_path_stops_the_plugin_templates(monkeypatch: pytest.MonkeyPatch):
+    from citesync import playground_exports  # noqa: PLC0415
+
+    rows = dict(playground_exports.load_mapping())
+    for broken, match in (({("typst", "name"): "a | b"}, "plain key path"), ({}, "no typst row for name")):
+        patched = {k: v for k, v in rows.items() if k != ("typst", "name") or broken} | broken
+        monkeypatch.setattr(playground_exports, "load_mapping", lambda patched=patched: patched)
+        with pytest.raises(CheckError, match=match):
+            playground_exports.package_templates({"name": "lensgrind"})

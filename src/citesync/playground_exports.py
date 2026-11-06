@@ -10,7 +10,7 @@ from packaging.utils import InvalidName, canonicalize_name
 from ruamel.yaml import YAML
 
 from citesync import codecs
-from citesync.errors import CannotWrite
+from citesync.errors import CannotWrite, CheckError
 from citesync.mapping import load_mapping
 from citesync.research_metadata import R_PACKAGE
 
@@ -18,7 +18,7 @@ _CARGO_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 _NPM_NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*")
 _R_VERSION = re.compile(r"\d+(?:[.-]\d+)+")
 _JULIA_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-_TYPST_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+_TYPST_NAME = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")  # an identifier, so no leading digit
 _TYPST_VERSION = re.compile(r"\d+\.\d+\.\d+")
 _R_GPL = re.compile(r"(A?L?GPL)-(\d)(?:\.0|(\.\d))-(only|or-later)")
 
@@ -65,7 +65,13 @@ def _plugin_fields(record: dict[str, Any], notes: list[str], fmt: str, filename:
     data: dict[str, Any] = {}
 
     def put(term: str, value: object) -> None:
+        if (fmt, term) not in rows:
+            msg = f"the mapping has no {fmt} row for {term}"
+            raise CheckError(msg)
         if path := rows[(fmt, term)]:  # a term the format has no place for is dropped
+            if any(mark in path.removesuffix("[]") for mark in (" | ", " + ", "[")):
+                msg = f"the mapping's {fmt} {term} path {path!r} is more than a plain key path"
+                raise CheckError(msg)
             *parents, key = path.removesuffix("[]").split(".")
             node = data
             for parent in parents:
@@ -93,13 +99,20 @@ def _plugin_fields(record: dict[str, Any], notes: list[str], fmt: str, filename:
 def _typst_manifest(record: dict[str, Any], notes: list[str]) -> str:
     """A Typst typst.toml, each field at the path of codemeta-drift's typst row."""
     data, put = _plugin_fields(record, notes, "typst", "typst.toml")
-    put("author", [person.name for person in record.get("author", ()) if person.name])
+    names = [person.name for person in record.get("author", ()) if person.name]
+    if names:
+        put("author", names)
     for term in ("license", "description", "codeRepository"):
         if record.get(term):
             put(term, record[term])
     if record.get("keywords"):
         put("keywords", list(record["keywords"]))
-    notes.append("typst.toml: add the entrypoint and compiler version, and a handle or email to each author.")
+    notes.append("typst.toml: add the entrypoint and compiler version.")
+    if names:
+        notes.append("typst.toml: add a handle or email to each author.")
+    required = (("authors", names), ("license", record.get("license")), ("description", record.get("description")))
+    if missing := [term for term, value in required if not value]:
+        notes.append(f"typst.toml: add {', '.join(missing)}; typst/packages requires them.")
     return "# Incomplete metadata template: review entrypoint, compiler and exclude.\n" + tomlkit.dumps(data)
 
 
