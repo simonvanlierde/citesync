@@ -78,10 +78,10 @@ def record(docs: list[Doc]) -> dict[str, Any]:
     for doc in docs:
         for term, value in doc.record.items():
             merged.setdefault(term, value)
-            where.setdefault(term, f"{doc.path}: {str(rows[doc.format, term]).split(' | ')[0]}")
+            where.setdefault(term, f"{doc.path}: {_field(rows[doc.format, term])}")
     for doc in docs:
         for term in doc.unusable:
-            where.setdefault(term, f"{doc.path}: {str(rows[doc.format, term]).split(' | ')[0]}")
+            where.setdefault(term, f"{doc.path}: {_field(rows[doc.format, term])}")
     return merged | {"_where": where}
 
 
@@ -139,6 +139,11 @@ def key(rec: dict[str, Any]) -> str:
     title = re.split(":|\\s[-\u2013\u2014]\\s", rec.get("name", ""), maxsplit=1)[0]
     ascii_ = unicodedata.normalize("NFKD", title.lower().translate(_LATIN)).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", "-", ascii_).strip("-") or "software"
+
+
+def _field(path: str | None) -> str:
+    """The top-level key of a row's path, which holds the value whichever alternative matched: ``publisher``."""
+    return re.split(r"[.\[]", str(path).split(" | ")[0])[0]
 
 
 def refusal(path: str, rec: dict[str, Any]) -> str | None:
