@@ -20,7 +20,7 @@ public: true
 publish_to_pypi: true
 python_dir: .
 python_layout: src
-python_min: '3.12'
+python_min: '3.13'
 python_version: '3.14'
 stacks:
 - python
