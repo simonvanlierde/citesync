@@ -140,7 +140,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     exports = {
         path: export.text(path, rec)
         for path in config.exports
-        if (path, None) in fix and rec.get("name") and export.writable(root, path)
+        if (path, None) in fix and rec.get("name") and export.writable(root, path) and not export.refusal(path, rec)
     }
     texts |= exports
     done |= {(path, None) for path in exports}

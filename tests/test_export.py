@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -535,3 +536,158 @@ def test_a_named_source_that_is_missing_is_an_error(tmp_path: Path, run: "Run", 
     code, out, err = run(*command, "--root", str(root), "--source", "codemeta.json")
     assert (code, out) == (2, "")
     assert err.startswith("citesync: codemeta.json: the source file is missing")
+
+
+# DataCite XML
+DATACITE_XSD = Path(__file__).parent / "datacite-4.7" / "metadata.xsd"
+NS = {"d": "http://datacite.org/schema/kernel-4"}
+ORCID_URL = "https://orcid.org/0000-0002-1825-0097"
+REPO = "https://example.org/lensgrind"
+PUBLISHER_MISSING = "no file gives a publisher: set `publisher` in codemeta.json"
+FULL = LENSGRIND | {
+    "publisher": "Example Press",
+    "description": "Grinds <lenses> & more.",
+    "contributor": (TU,),
+    "swhid": "swh:1:rel:" + "0" * 40,
+}
+
+
+def _valid(xml: str) -> ET.Element:
+    """Validate against the official 4.7 XSD in tests/datacite-4.7 (schema.datacite.org, whitespace trimmed)."""
+    import xmlschema  # noqa: PLC0415
+
+    xmlschema.XMLSchema(str(DATACITE_XSD)).validate(xml)
+    return ET.fromstring(xml)  # noqa: S314 - our own output
+
+
+@pytest.mark.parametrize(
+    "rec",
+    [
+        FULL,
+        {"name": "x", "author": (LAB,), "identifier": "10.5555/x", "publisher": "P", "datePublished": "2026"},
+        {"name": "x", "author": (TU,), "identifier": "10.5555/x", "publisher": "P", "datePublished": "2026-10"},
+        {"name": "t</title> & \x00 “q”", "author": (LAB,), "identifier": "10.5/x", "publisher": "P&Q",
+         "datePublished": "2026-10-31", "license": "LicenseRef-x y"},
+    ],
+    ids=["full", "year-only-organisation", "year-month", "markup-and-control-characters"],
+)  # fmt: skip
+def test_datacite_validates_against_the_official_schema(rec: dict) -> None:
+    root = _valid(render("datacite", rec)[0])
+    assert root.findtext("d:titles/d:title", namespaces=NS) == rec["name"].replace("\x00", "")
+
+
+@pytest.mark.parametrize(
+    ("term", "xpath", "expected"),
+    [
+        ("name", "d:titles/d:title", "lensgrind"),
+        ("version", "d:version", "1.4.0"),
+        ("author", "d:creators/d:creator/d:creatorName", "Skłodowska-Curie, Marie"),
+        ("author.givenName", "d:creators/d:creator/d:givenName", "Marie"),
+        ("author.familyName", "d:creators/d:creator/d:familyName", "Skłodowska-Curie"),
+        ("author.@id", "d:creators/d:creator/d:nameIdentifier[@nameIdentifierScheme='ORCID']", ORCID_URL),
+        ("contributor", "d:contributors/d:contributor/d:contributorName", "Tu, Youyou"),
+        ("contributor.givenName", "d:contributors/d:contributor/d:givenName", "Youyou"),
+        ("contributor.familyName", "d:contributors/d:contributor/d:familyName", "Tu"),
+        ("license", "d:rightsList/d:rights[@rightsURI]", None),
+        ("identifier", "d:identifier[@identifierType='DOI']", "10.5555/lensgrind"),
+        ("codeRepository", "d:relatedIdentifiers/d:relatedIdentifier[@relationType='IsSupplementTo']", REPO),
+        ("description", "d:descriptions/d:description[@descriptionType='Abstract']", "Grinds <lenses> & more."),
+        ("keywords", "d:subjects/d:subject", "optics"),
+        ("datePublished", "d:dates/d:date[@dateType='Issued']", "2026-10-31"),
+        ("datePublished", "d:publicationYear", "2026"),
+        ("publisher", "d:publisher", "Example Press"),
+        ("resourceType", "d:resourceType[@resourceTypeGeneral='Software']", "Software"),
+    ],
+)  # fmt: skip
+def test_datacite_carries_the_field_each_row_names(term: str, xpath: str, expected: str | None) -> None:
+    from citesync.export import datacite_slots  # noqa: PLC0415
+    from citesync.mapping import load_mapping  # noqa: PLC0415
+
+    assert load_mapping()["datacite", term]  # the row exists; the xpath is what the row's path gives
+    root = ET.fromstring(render("datacite", FULL)[0])  # noqa: S314
+    node = root.find(xpath, NS)
+    assert node is not None, f"{term}: nothing at {xpath}"
+    if expected is not None:
+        assert node.text == expected
+    slots = datacite_slots(str(load_mapping()["datacite", term]))
+    assert any(f"d:{names[-1]}" in xpath for names, _, _ in slots)
+
+
+@pytest.mark.parametrize(
+    ("path", "slots"),
+    [
+        ("titles[].title", [(["titles", "title"], {}, None)]),
+        ("creators[]", [(["creators", "creator"], {}, None)]),
+        (
+            "creators[].nameIdentifiers[nameIdentifierScheme=ORCID].nameIdentifier",
+            [(["creators", "creator", "nameIdentifier"], {"nameIdentifierScheme": "ORCID"}, None)],
+        ),
+        ("rightsList[].rightsUri", [(["rightsList", "rights"], {}, "rightsURI")]),
+        ("doi", [(["identifier"], {"identifierType": "DOI"}, None)]),
+        ("publisher.name | publisher", [(["publisher"], {}, None)]),
+        ("types.resourceTypeGeneral", [(["resourceType"], {}, "resourceTypeGeneral")]),
+        (
+            "dates[dateType=Issued].date | publicationYear",
+            [(["dates", "date"], {"dateType": "Issued"}, None), (["publicationYear"], {}, None)],
+        ),
+    ],
+)  # fmt: skip
+def test_a_row_path_becomes_its_xml_slot(path: str, slots: list) -> None:
+    from citesync.export import datacite_slots  # noqa: PLC0415
+
+    assert datacite_slots(path) == slots
+
+
+@pytest.mark.parametrize(
+    ("drop", "message"),
+    [
+        ("identifier", "no file gives a DOI: set `doi` in CITATION.cff or `identifier` in codemeta.json"),
+        ("publisher", "no file gives a publisher: set `publisher` in codemeta.json, which DataCite requires"),
+        ("author", "no file gives an author, which DataCite requires"),
+        ("datePublished", "no release year: set `date-released`"),
+    ],
+)
+def test_datacite_refuses_what_the_schema_requires(drop: str, message: str) -> None:
+    with pytest.raises(CheckError, match=message):
+        render("datacite", {k: v for k, v in FULL.items() if k != drop})
+    with pytest.raises(CheckError, match="release year"):
+        render("datacite", FULL | {"datePublished": "Jan 2026"})
+
+
+def _add_publisher(root: Path, value: str) -> None:
+    meta = root / "codemeta.json"
+    text = meta.read_text(encoding="utf-8").replace('"datePublished"', f'"publisher": {value}, "datePublished"')
+    meta.write_text(text, encoding="utf-8")
+
+
+def test_datacite_is_made_from_a_codemeta_publisher(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    code, _, err = run("export", "--root", str(root), "--format", "datacite")
+    assert (code, err) == (2, f"citesync: {PUBLISHER_MISSING}, which DataCite requires\n")
+    _add_publisher(root, '{"@type": "Organization", "name": "Example Press"}')
+    code, out, err = run("export", "--root", str(root), "--format", "datacite")
+    assert (code, err) == (0, "")
+    assert _valid(out).findtext("d:publisher", namespaces=NS) == "Example Press"
+
+
+def test_datacite_export_is_checked_and_written(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    (root / "citesync.toml").write_text('exports = ["citation.datacite.xml"]\n', encoding="utf-8")
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 1
+    assert "citation.datacite.xml: error[export-stale] can't be made: no file gives a publisher" in out
+    assert run("write", "--root", str(root))[0] == 1
+    assert not (root / "citation.datacite.xml").exists()
+    _add_publisher(root, '"Example Press"')
+    assert run("write", "--root", str(root))[0] == 0
+    assert run("check", "--root", str(root))[0] == 0
+    _valid((root / "citation.datacite.xml").read_text(encoding="utf-8"))
+    (root / "citation.datacite.xml").unlink()
+    (root / "citation.datacite.xml").symlink_to(root / "CITATION.cff")
+    assert "can't be written" in run("check", "--root", str(root))[1]
+    assert run("write", "--root", str(root))[0] == 1
+    assert (root / "CITATION.cff").read_text(encoding="utf-8").count("cff-version") == 1
+
+
+def test_datacite_note_for_a_swhid_it_cannot_place() -> None:
+    assert "swh:1:rel" not in render("datacite", FULL)[0]

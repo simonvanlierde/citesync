@@ -10,9 +10,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - The playground makes incomplete R DESCRIPTION and Julia Project.toml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
+- `citesync export --format datacite` prints DataCite Metadata Schema 4.7 XML (`citation.datacite.xml`, resource type `Software`). List a `.datacite.xml` file under `exports` to have `write` keep it in step and `check` report it as `export-stale`. It needs a DOI, an author, a publisher and a release year, and says which source field to set when one is missing ([citation exports](docs/export.md)).
 
 ### Changed
 
+- The vendored codemeta-drift mapping is pinned to commit 80bf213 (schema 1.7, the `publisher` and `resourceType` rows), until its next release.
 - The field mapping uses [codemeta-drift 0.6.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.6.0), which adds rows for DataCite, typst.toml and Quarto extensions among others, and mapping paths can now combine parts with `+` and filter on a member of a list.
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).

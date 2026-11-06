@@ -51,6 +51,7 @@ const outputLabels = {
   "citation.csl.json": "citation.csl.json — CSL-JSON",
   "citation.apa.txt": "citation.apa.txt — APA reference",
   "schema.jsonld": "schema.jsonld — Website structured data",
+  "citation.datacite.xml": "citation.datacite.xml — DataCite metadata",
 };
 const templateLabels = {
   "pyproject.toml": "Python",
