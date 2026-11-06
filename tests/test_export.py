@@ -661,7 +661,7 @@ def test_a_row_path_becomes_its_xml_slot(path: str, slots: list) -> None:
 def test_datacite_refuses_what_the_schema_requires(drop: str, message: str) -> None:
     with pytest.raises(CheckError, match=message):
         render("datacite", {k: v for k, v in FULL.items() if k != drop})
-    with pytest.raises(CheckError, match="release year"):
+    with pytest.raises(CheckError, match="can't be used"):
         render("datacite", FULL | {"datePublished": "Jan 2026"})
 
 
@@ -791,3 +791,46 @@ def test_datacite_keywords_skip_blanks_and_repeats() -> None:
     rec = FULL | {"keywords": ("optics", "\x00", "optics\n ", "lens  grind")}
     root = _valid(render("datacite", rec)[0])
     assert [e.text for e in root.findall("d:subjects/d:subject", NS)] == ["optics", "lens grind"]
+
+
+def _datacite_repo(tmp_path: Path, publisher: str = '"Example Press"') -> Path:
+    root = _repo(tmp_path)
+    _add_publisher(root, publisher)
+    return root
+
+
+def test_a_publisher_that_cannot_be_decoded_names_its_file_and_field(tmp_path: Path, run: "Run") -> None:
+    root = _datacite_repo(tmp_path, '{"@type": "Organization", "name": ["a"]}')
+    code, _, err = run("export", "--root", str(root), "--format", "datacite")
+    assert code == 2
+    assert err == (
+        "citesync: codemeta.json: publisher can't be used: give a name, or an Organization with a name,"
+        " which DataCite requires\n"
+    )
+
+
+def test_a_list_of_organisations_gives_the_first_name(tmp_path: Path, run: "Run") -> None:
+    orgs = '[{"@type": "Organization", "name": "One"}, {"@type": "Organization", "name": "Two"}]'
+    out = run("export", "--root", str(_datacite_repo(tmp_path, orgs)), "--format", "datacite")[1]
+    assert _valid(out).findtext("d:publisher", namespaces=NS) == "One"
+    mixed = '[{"@type": "Organization", "name": "One"}, "Two"]'
+    root = _datacite_repo(tmp_path / "b", mixed)
+    assert "publisher can't be used" in run("export", "--root", str(root), "--format", "datacite")[2]
+
+
+def test_a_date_that_cannot_be_used_names_its_file_and_field(tmp_path: Path, run: "Run") -> None:
+    root = _datacite_repo(tmp_path)
+    cff = root / "CITATION.cff"
+    cff.write_text(cff.read_text(encoding="utf-8").replace("date-released: 2026-01-15", 'date-released: "Jan 2026"'))
+    err = run("export", "--root", str(root), "--format", "datacite")[2]
+    assert err.startswith("citesync: CITATION.cff: date-released ('Jan 2026') can't be used: write YYYY")
+
+
+def test_a_stale_export_that_cannot_be_made_says_to_set_the_field(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    (root / "citesync.toml").write_text('exports = ["citation.datacite.xml"]\n', encoding="utf-8")
+    out = run("write", "--root", str(root))[1]
+    assert "no file gives a publisher: set `publisher` in codemeta.json, which DataCite requires" in out
+    assert "(set the missing field in the source)" in out
+    assert "edit it by hand" not in out
+    assert "set the missing field in the source" in run("explain", "export-stale")[1]

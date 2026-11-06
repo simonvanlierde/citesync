@@ -73,10 +73,16 @@ def record(docs: list[Doc]) -> dict[str, Any]:
     An unreadable doc has an empty record, so it gives nothing.
     """
     merged: dict[str, Any] = {}
+    where: dict[str, str] = {}  # term to "file: field", for messages about a value that can't be used
+    rows = load_mapping()
     for doc in docs:
         for term, value in doc.record.items():
             merged.setdefault(term, value)
-    return merged
+            where.setdefault(term, f"{doc.path}: {str(rows[doc.format, term]).split(' | ')[0]}")
+    for doc in docs:
+        for term in doc.unusable:
+            where.setdefault(term, f"{doc.path}: {str(rows[doc.format, term]).split(' | ')[0]}")
+    return merged | {"_where": where}
 
 
 def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
@@ -387,12 +393,12 @@ def _datacite(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:  # noqa:
         for p in (p for p in rec.get(term, ()) if p.name and _xml(p.name)):
             node = ET.SubElement(_wrappers(root, names[:-1]), names[-1])
             if term == "contributor":
-                node.set("contributorType", "Other")  # required; the source holds no role
+                node.set("contributorType", "Other")  # a value choice: required, and the source holds no role
             _datacite_person(node, p, term, role)
     put("name", rec["name"])
     put("publisher", rec["publisher"])
     put("datePublished", "-".join(f"{part:02d}" if i else f"{part:04d}" for i, part in enumerate(day or ())))
-    put("resourceType", "Software")
+    put("resourceType", "Software")  # fixed on purpose: citesync describes software
     for keyword in dict.fromkeys(filter(None, map(_xml, rec.get("keywords", ())))):
         put("keywords", keyword)
     for term in ("version", "description"):
@@ -414,6 +420,18 @@ def _datacite(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:  # noqa:
 
 
 def _datacite_require(rec: dict[str, Any], day: tuple[int, ...] | None) -> None:
+    where = rec.get("_where", {})
+    publisher = (
+        f"{where['publisher']} can't be used: give a name, or an Organization with a name"
+        if "publisher" in where and not rec.get("publisher")
+        else "no file gives a publisher: set `publisher` in codemeta.json"
+    )
+    year = (
+        f"{where.get('datePublished', 'the release date')} ({rec['datePublished']!r}) can't be used:"
+        " write YYYY, YYYY-MM or YYYY-MM-DD"
+        if rec.get("datePublished")
+        else "no release year: set `date-released` in CITATION.cff or `datePublished` in codemeta.json"
+    )
     for value, why in (  # checked after cleaning, so a value of only control characters counts as missing
         (_xml(rec["name"]), "no file gives a title"),
         (
@@ -421,8 +439,8 @@ def _datacite_require(rec: dict[str, Any], day: tuple[int, ...] | None) -> None:
             "no file gives a DOI: set `doi` in CITATION.cff or `identifier` in codemeta.json",
         ),
         ([p for p in _people(rec) if _xml(p.name or "")], "no file gives an author"),
-        (_xml(str(rec.get("publisher") or "")), "no file gives a publisher: set `publisher` in codemeta.json"),
-        (day, "no release year: set `date-released` in CITATION.cff or `datePublished` in codemeta.json"),
+        (_xml(str(rec.get("publisher") or "")), publisher),
+        (day, year),
     ):
         if not value:
             msg = f"{why}, which DataCite requires"

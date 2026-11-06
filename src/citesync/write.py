@@ -293,6 +293,8 @@ def union(docs: list[Doc], config: Config) -> dict[str, Any]:
 
 def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]) -> str:
     """What to do about a finding write left: why write skipped it, or that a manifest field can be opted in."""
+    if finding.rule == "export-stale" and finding.message.startswith("can't be made"):
+        return "set the missing field in the source"
     if (reason := skipped.get((str(finding.file), str(finding.term)))) is not None:
         return f"edit it by hand: {reason}"
     if (
