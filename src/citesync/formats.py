@@ -27,12 +27,12 @@ MANIFESTS = {
     "pyproject.toml": "pep621",
     "Cargo.toml": "cargo",
     "package.json": "npm",
-    # Plugin manifests hold their fields where Cargo and npm do: typst.toml's [package], and
-    # Quarto's top-level version and one author string, so they read through those rows.
-    "typst.toml": "cargo",
-    "_extension.yml": "npm",
-    "_extension.yaml": "npm",
+    "typst.toml": "typst",
+    "_extension.yml": "quarto",
+    "_extension.yaml": "quarto",
 }
+ONE_AUTHOR = frozenset({"npm", "quarto"})
+"""The formats whose one ``author`` is a single entry, not a list."""
 IMPORTS = {
     "PKG-INFO": "pkg-info",
     "METADATA": "pkg-info",
@@ -318,7 +318,7 @@ def _is_release(fmt: str, data: dict[str, Any]) -> bool:
 
 
 def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, Any]:
-    if fmt == "cargo" and PurePosixPath(rel).name == "Cargo.toml":  # a typst.toml has no workspace
+    if fmt == "cargo":
         return _adapt_cargo(data, root, rel)
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
         dynamic = set(project.get("dynamic", []))  # a dynamic field is skipped, the rest still checked
@@ -437,7 +437,7 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
             # NOTE: the rows read Author and Author-email as one value each, but each holds a list of people.
             # Drop this once codemeta-drift's rows read them as Author[] + Author-email[].
             found = [el for value in found for el in value]
-        if fmt == "npm" and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
+        if fmt in ONE_AUTHOR and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
             msg = f"{term} holds a list, but this file takes one {term}"
             raise TypeError(msg)
         people = (person(fmt, el, path, mapping, term, alternative) for el in found)

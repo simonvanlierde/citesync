@@ -7,7 +7,17 @@ from pathlib import Path
 from citesync import codecs
 from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
-from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, same_name, slots
+from citesync.formats import (
+    CITATION_FILES,
+    MANIFESTS,
+    ONE_AUTHOR,
+    Doc,
+    Person,
+    format_of,
+    read_doc,
+    same_name,
+    slots,
+)
 from citesync.mapping import FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import MISMATCH, RULES, url
 
@@ -375,7 +385,7 @@ def _same_people(ref: Doc, doc: Doc, term: str, *, names: bool) -> bool:
     """
     a: tuple[Person, ...] = ref.record[term]
     b: tuple[Person, ...] = doc.record[term]
-    if term == "author" and "npm" in {ref.format, doc.format}:
+    if term == "author" and ONE_AUTHOR & {ref.format, doc.format}:
         a, b = a[:1], b[:1]
     if names and len(a) != len(b):
         return False

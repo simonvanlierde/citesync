@@ -13,6 +13,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `typst.toml` and `_extension.yml` are read through their own rows in the field mapping, not Cargo's and npm's. `init` and `export` now take a Quarto extension's `title` as its name; `check` still doesn't compare it. `typst.toml` keywords are now compared with their separators (`big data` is not `big-data`), as other manifests' are; set `keywords-ignore-separators = true` to keep the old leniency ([plugin manifests](docs/formats.md#plugin-manifests)).
 - The field mapping uses [codemeta-drift 0.6.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.6.0), which adds rows for DataCite, typst.toml and Quarto extensions among others, and mapping paths can now combine parts with `+` and filter on a member of a list.
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).

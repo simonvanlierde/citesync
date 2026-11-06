@@ -44,6 +44,7 @@ from citesync.formats import (
     CITATION_FILES,
     IMPORTS,
     MANIFESTS,
+    ONE_AUTHOR,
     Doc,
     Person,
     cff_person,
@@ -351,7 +352,7 @@ def _rewrite(
     zenodo_contributor_type: str | None,
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
-    if doc.format == "cff-1.2.0" or doc.path.endswith((".yml", ".yaml")):  # Quarto's _extension.yml
+    if doc.format in {"cff-1.2.0", "quarto"}:
         yaml = _yaml(text)
         data = yaml.load(text)
         skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
@@ -529,10 +530,10 @@ def _encode(doc: Doc, source: Doc, term: str, value: Any, old: Any, keyword_key:
     """``value`` spelled for ``doc``'s format, in the shape ``old`` has; ``keyword_key`` compares keywords."""
     fmt = doc.format
     if term == "version":
-        if fmt in {"cargo", "npm"}:
+        if fmt in {"cargo", "npm", "typst", "quarto"}:
             semver = codecs.version_encode_semver(value)
             # Typst takes only major.minor.patch: a pre-release or build tag makes the package unpublishable.
-            if PurePosixPath(doc.path).name == "typst.toml" and not re.fullmatch(r"\d+\.\d+\.\d+", semver):
+            if fmt == "typst" and not re.fullmatch(r"\d+\.\d+\.\d+", semver):
                 msg = f"Typst package versions are major.minor.patch only, not {semver}"
                 raise CannotWrite(msg)
             return semver
@@ -677,9 +678,10 @@ def _people(
     """
     items = list(old) if isinstance(old, list) else [old]
     decoded = [person(fmt, el, path, mapping, term) for el in items]
-    npm = term == "author" and "npm" in {fmt, source.format}
-    # only npm itself has one author slot: a new file from a merged npm-format source takes them all
-    people: tuple[Person, ...] = source.record[term][:1] if npm and fmt == "npm" else source.record[term]
+    npm = term == "author" and bool(ONE_AUTHOR & {fmt, source.format})
+    # only a one-author format has one author slot: a new file from a merged one-author source takes them all
+    one = term == "author" and fmt in ONE_AUTHOR
+    people: tuple[Person, ...] = source.record[term][:1] if one else source.record[term]
     matches = _matches(decoded, people)
     used = {i for i in matches if i is not None}
     if fmt == "zenodo" and term == "contributor" and None in matches and zenodo_contributor_type is None:
@@ -690,7 +692,7 @@ def _people(
     ):
         msg = f"{nameless.orcid} has no name, and this file has no place for an ORCID"
         raise CannotWrite(msg)
-    kept = {matches[0]} if npm and fmt == "npm" else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
+    kept = {matches[0]} if one else {i for i, q in enumerate(decoded) if i in used or npm or q is None}
     # a new name with no ORCID may be a dropped entry renamed: its ORCID can't be moved over safely, nor lost
     renamed = any(i is None and not p.orcid and not p.organization for p, i in zip(people, matches, strict=True))
     for i, el in enumerate(items):  # before any entry changes, so a skipped field stays as it was
@@ -716,7 +718,7 @@ def _people(
         out.append(items[i])
     out += [el for i, el in enumerate(items) if i not in used and (npm or decoded[i] is None)]
     if not isinstance(old, list):
-        return out[0] if len(out) == 1 or fmt == "npm" else out
+        return out[0] if len(out) == 1 or one else out
     _relist(old, out)
     return old
 
@@ -809,7 +811,7 @@ def _new_person(
     fields = _fields(fmt, p, path, mapping, term)
     if fmt == "zenodo" and term == "contributor" and zenodo_contributor_type is not None:
         fields["type"] = zenodo_contributor_type
-    if fmt == "cargo" or (fmt == "npm" and not isinstance(like, dict)):
+    if fmt in {"cargo", "typst", "quarto"} or (fmt == "npm" and not isinstance(like, dict)):
         return p.name or ""
     if fmt == "pep621":
         table = tomlkit.inline_table()
