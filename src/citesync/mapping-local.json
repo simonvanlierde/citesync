@@ -130,7 +130,7 @@
       "format": "cff-1.2.0",
       "term": "publisher",
       "path": null,
-      "source": "curated:the cell is empty; cff-1.2.0 has no publisher field",
+      "source": "curated:the cell is empty; CFF has publisher only inside references[] and preferred-citation, which describe other works",
       "crosswalk_cell": ""
     },
     {
@@ -263,8 +263,8 @@
     {
       "format": "codemeta",
       "term": "publisher",
-      "path": "publisher",
-      "source": "curated:codemeta's own term",
+      "path": "publisher.name | publisher",
+      "source": "curated:CodeMeta's publisher is an Organization or Person, so a bare publisher is an object and its name is the publisher's name; a string, which is also legal, is read as the name",
       "crosswalk_cell": null
     },
     {
@@ -400,7 +400,7 @@
       "format": "zenodo",
       "term": "publisher",
       "path": null,
-      "source": "curated:the cell is empty; zenodo has no publisher field",
+      "source": "curated:the cell is empty; imprint_publisher exists but only for books, reports and chapters, and Zenodo names itself as the publisher in its DataCite record",
       "crosswalk_cell": ""
     },
     {
@@ -1352,7 +1352,7 @@
       "format": "bibtex",
       "term": "resourceType",
       "path": null,
-      "source": "curated:CodeMeta has no term for the resource type; bibtex has no field for it",
+      "source": "curated:CodeMeta has no term for the resource type; BibTeX states it in the entry type (@software), which a path cannot reach",
       "crosswalk_cell": null
     },
     {
@@ -1493,8 +1493,8 @@
       "format": "datacite",
       "term": "publisher",
       "path": "publisher.name | publisher",
-      "source": "curated:the cell says publisher, the XML element; since schema 4.5 the REST JSON holds an object whose name is the publisher, and an older record holds the name as a string",
-      "comment": "A publisher object may also carry publisherIdentifier (a ROR, say), publisherIdentifierScheme, schemeUri and lang. Schema 4.7 is current; publisher is mandatory.",
+      "source": "curated:the cell says publisher, the XML element; the REST API returns the name as a string by default, and an object with a name key (since schema 4.5) only when the request has publisher=true",
+      "comment": "Read a string as the name and an object's name key as the name. An object may also carry publisherIdentifier (a ROR, say), publisherIdentifierScheme, schemeUri and lang. Schema 4.7 is current; publisher is mandatory.",
       "crosswalk_cell": "publisher"
     },
     {
@@ -1912,7 +1912,7 @@
       "format": "maven",
       "term": "publisher",
       "path": null,
-      "source": "curated:the cell is empty; maven has no publisher field",
+      "source": "curated:the cell is empty; Maven's <organization> names who produces the project, which is closer to CodeMeta's producer than to its publisher",
       "crosswalk_cell": ""
     },
     {
@@ -3170,7 +3170,7 @@
       "format": "bio-tools",
       "term": "resourceType",
       "path": null,
-      "source": "curated:CodeMeta has no term for the resource type; bio-tools has no field for it",
+      "source": "curated:CodeMeta has no term for the resource type; toolType only subdivides software, so a consumer defaults to Software",
       "crosswalk_cell": null
     },
     {
@@ -3583,7 +3583,7 @@
       "format": "publiccode-0.8",
       "term": "resourceType",
       "path": null,
-      "source": "curated:CodeMeta has no term for the resource type; publiccode-0.8 has no field for it",
+      "source": "curated:CodeMeta has no term for the resource type; softwareType only subdivides software, so a consumer defaults to Software",
       "crosswalk_cell": null
     },
     {
@@ -3854,14 +3854,14 @@
       "format": "spdx-2.3",
       "term": "publisher",
       "path": null,
-      "source": "curated:the cell is empty; spdx-2.3 has no publisher field",
+      "source": "curated:the cell is empty; PackageSupplier is CodeMeta's provider (SPDX_2_3.csv), and the author rows already read it",
       "crosswalk_cell": ""
     },
     {
       "format": "spdx-2.3",
       "term": "resourceType",
       "path": null,
-      "source": "curated:CodeMeta has no term for the resource type; spdx-2.3 has no field for it",
+      "source": "curated:CodeMeta has no term for the resource type; primaryPackagePurpose only subdivides software, so a consumer defaults to Software",
       "crosswalk_cell": null
     },
     {
@@ -3990,8 +3990,8 @@
     {
       "format": "codemeta-2",
       "term": "publisher",
-      "path": "publisher",
-      "source": "crosswalk:crosswalks/codemeta-V2.csv@3.1",
+      "path": "publisher.name | publisher",
+      "source": "curated:CodeMeta's publisher is an Organization or Person, so a bare publisher is an object and its name is the publisher's name; a string, which is also legal, is read as the name",
       "crosswalk_cell": "publisher"
     },
     {
@@ -4134,8 +4134,8 @@
     {
       "format": "dcat-3",
       "term": "publisher",
-      "path": "dcterms:publisher",
-      "source": "crosswalk:crosswalks/DCAT-3.csv@3.1",
+      "path": "dcterms:publisher.foaf:name | dcterms:publisher",
+      "source": "curated:the cell says dcterms:publisher, whose value is an agent (usually a foaf:Agent), so its name is foaf:name; an IRI value has no name sub-field",
       "crosswalk_cell": "dcterms:publisher"
     },
     {
@@ -4143,6 +4143,7 @@
       "term": "resourceType",
       "path": "dcterms:type",
       "source": "curated:CodeMeta has no term for the resource type; DCAT states a dataset's kind with dcterms:type; the node's own @type is dcat:Dataset",
+      "comment": "The value is an IRI object, usually from the DCMI Type vocabulary (dctype:Software, dctype:Dataset); a record may give several types.",
       "crosswalk_cell": null
     },
     {
@@ -4277,8 +4278,8 @@
     {
       "format": "doap",
       "term": "publisher",
-      "path": "doap:vendor",
-      "source": "curated:the cell says vendor, DOAP's doap:vendor; the path names it with its prefix",
+      "path": "doap:vendor.foaf:name | doap:vendor",
+      "source": "curated:the cell says vendor, DOAP's doap:vendor, whose value is an organisation node; its name is foaf:name, and the path names both keys with their prefix",
       "crosswalk_cell": "vendor"
     },
     {
@@ -4427,6 +4428,7 @@
       "term": "publisher",
       "path": "claims.P123[].mainsnak.datavalue.value.id",
       "source": "curated:the cell says P123, which is not a key of the entity JSON; publisher holds items, so the value is the id of the item under the statement's main snak",
+      "comment": "Wikidata has no free-text publisher. P123 holds items, and the label of each Q id is the publisher's name.",
       "crosswalk_cell": "P123"
     },
     {
@@ -4434,7 +4436,7 @@
       "term": "resourceType",
       "path": "claims.P31[].mainsnak.datavalue.value.id",
       "source": "curated:CodeMeta has no term for the resource type; a Wikidata item states its kind with instance of (P31), whose value is an item id",
-      "comment": "Q7397 is software.",
+      "comment": "P31 (instance of) usually names a subclass of software (Q7397), so a consumer follows subclass of (P279) up to Q7397.",
       "crosswalk_cell": null
     }
   ]

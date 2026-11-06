@@ -278,14 +278,15 @@ def date_decode(raw: object) -> str | None:
 
 
 def publisher_decode(raw: object) -> str | None:
-    """A publisher's name: the text itself, or the ``name`` of a schema.org Organization.
+    """A publisher's name: the text the row reads (``publisher.name`` or ``publisher``).
 
-    A list gives the first name when every item is an Organization with one, else nothing.
+    The row takes an Organization's ``name`` itself. Its second alternative reads a list whole, and that
+    gives the first name when every item is an Organization with one, else nothing.
     """
     if isinstance(raw, list):
-        names = [publisher_decode(item) if isinstance(item, dict) else None for item in raw]
+        names = [version_decode(item.get("name")) if isinstance(item, dict) else None for item in raw]
         return names[0] if names and all(names) else None
-    return version_decode(raw.get("name") if isinstance(raw, dict) else raw)
+    return version_decode(raw)
 
 
 def version_key(version: str) -> "Version | str":

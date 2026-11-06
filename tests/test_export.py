@@ -804,7 +804,7 @@ def test_a_publisher_that_cannot_be_decoded_names_its_file_and_field(tmp_path: P
     code, _, err = run("export", "--root", str(root), "--format", "datacite")
     assert code == 2
     assert err == (
-        "citesync: codemeta.json: publisher can't be used: give a name, or an Organization with a name,"
+        "citesync: codemeta.json: publisher.name can't be used: give a name, or an Organization with a name,"
         " which DataCite requires\n"
     )
 
@@ -815,7 +815,7 @@ def test_a_list_of_organisations_gives_the_first_name(tmp_path: Path, run: "Run"
     assert _valid(out).findtext("d:publisher", namespaces=NS) == "One"
     mixed = '[{"@type": "Organization", "name": "One"}, "Two"]'
     root = _datacite_repo(tmp_path / "b", mixed)
-    assert "publisher can't be used" in run("export", "--root", str(root), "--format", "datacite")[2]
+    assert "publisher.name can't be used" in run("export", "--root", str(root), "--format", "datacite")[2]
 
 
 def test_a_date_that_cannot_be_used_names_its_file_and_field(tmp_path: Path, run: "Run") -> None:

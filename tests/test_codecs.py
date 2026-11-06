@@ -358,8 +358,7 @@ def test_date_decode_keeps_what_is_not_iso(raw: object, expected: str | None) ->
     ("raw", "expected"),
     [
         ("Example Press", "Example Press"),
-        ({"@type": "Organization", "name": "Example Press"}, "Example Press"),
-        ({"@type": "Organization"}, None),
+        ({"@type": "Organization", "name": "Example Press"}, None),  # the row reads the name, not the object
         (["a"], None),
         (None, None),
     ],
