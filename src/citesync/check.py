@@ -7,7 +7,18 @@ from pathlib import Path
 from citesync import codecs
 from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
-from citesync.formats import CITATION_FILES, MANIFESTS, Doc, Person, format_of, read_doc, same_name, slots
+from citesync.formats import (
+    CITATION_FILES,
+    MANIFESTS,
+    ONE_AUTHOR,
+    TITLE_NAMES,
+    Doc,
+    Person,
+    format_of,
+    read_doc,
+    same_name,
+    slots,
+)
 from citesync.mapping import FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import MISMATCH, RULES, url
 
@@ -235,9 +246,14 @@ ZENODO_GAPS = {
 }
 
 
+def _compares(doc: Doc, term: str) -> bool:
+    """Whether ``doc`` holds ``term`` as a citation file does: a manifest's name is an id, a description a summary."""
+    return doc.is_citation or term not in {"name", "description"} or (term == "name" and doc.format in TITLE_NAMES)
+
+
 def has_slot(doc: Doc, term: str) -> bool:
-    """Whether ``doc`` can be the reference for ``term``: a manifest's name and description never are."""
-    return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
+    """Whether ``doc`` can be the reference for ``term``: not a manifest description, nor a name that is an id."""
+    return term in doc.slots and _compares(doc, term)
 
 
 def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
@@ -287,7 +303,7 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
         kw_key = cargo_keyword_key(kw_key, ref, doc)
         return _keywords_differ(ref, doc, kw_key) if both_citation else _keywords_subset(ref, doc, kw_key)
     else:  # name, description, datePublished: only citation files have a release date
-        if not both_citation:
+        if not (both_citation or (term == "name" and _compares(ref, term) and _compares(doc, term))):
             return None  # a manifest name is a package id, a description a one-line summary
         equal = a == b
     if equal:
@@ -375,7 +391,7 @@ def _same_people(ref: Doc, doc: Doc, term: str, *, names: bool) -> bool:
     """
     a: tuple[Person, ...] = ref.record[term]
     b: tuple[Person, ...] = doc.record[term]
-    if term == "author" and "npm" in {ref.format, doc.format}:
+    if term == "author" and ONE_AUTHOR & {ref.format, doc.format}:
         a, b = a[:1], b[:1]
     if names and len(a) != len(b):
         return False

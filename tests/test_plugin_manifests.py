@@ -26,7 +26,7 @@ compiler = "0.14.0"
 """
 QUARTO = """\
 # Quarto reads this file; citesync keeps version and author in step.
-title: synthagree filter
+title: synthagree
 author: Ada Lovelace
 version: {version}
 quarto-required: ">=1.4.0"
@@ -136,3 +136,14 @@ def test_a_list_author_is_reported_not_skipped(tmp_path: Path, run: "Run", name:
     code, out, _ = run("check", "--root", str(tmp_path))
     assert code == 1
     assert f"{name}: error[unreadable] unexpected shape (author holds a list, but this file takes one author)" in out
+
+
+def test_a_quarto_title_that_disagrees_with_the_source_is_reported(tmp_path: Path, run: "Run") -> None:
+    # The quarto rows read `title` as the name; the npm rows it used to read through have no such key.
+    root = _repo(tmp_path, "1.2.3")
+    quarto = root / QUARTO_PATH
+    quarto.write_text(QUARTO.format(version="1.2.3").replace("title: synthagree", "title: other"), encoding="utf-8")
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 1
+    assert f"{QUARTO_PATH}:2:1: error[name-mismatch] name: 'other', CITATION.cff has 'synthagree'" in out
+    assert "add name to write-manifests" not in out
