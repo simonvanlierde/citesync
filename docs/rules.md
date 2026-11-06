@@ -18,7 +18,7 @@ To fix: Add an explicit supported value in the source metadata, then generate th
 
 The title differs from the source's. Severity: error.
 
-CFF `title` and CodeMeta and Zenodo `name`/`title` compare as written, with whitespace collapsed. Manifests are not compared, because a manifest `name` is a package id.
+CFF `title` and CodeMeta and Zenodo `name`/`title` compare as written, with whitespace collapsed. Manifests are not compared: a manifest `name` is a package id, and a Quarto `title` a display title.
 
 To fix: Make the file agree with the source, or the other way round if the source is wrong.
 
@@ -34,7 +34,7 @@ To fix: Make the file agree with the source, or the other way round if the sourc
 
 The authors differ from the source's. Severity: error.
 
-Citation files must list the same people in the same order, with equal ORCIDs where both have one. Names compare case-insensitively. Zenodo's `Family, Given` and npm or Cargo `Name <email>` count as names. Manifests are compared on names only, and npm's one `author` with the first author.
+Citation files must list the same people in the same order, with equal ORCIDs where both have one. Names compare case-insensitively. Zenodo's `Family, Given` and npm, Cargo or Typst `Name <email>` count as names. Manifests are compared on names only. npm's one `author` and Quarto's one `author` string are compared with the first author.
 
 To fix: Make the file agree with the source, or the other way round if the source is wrong.
 

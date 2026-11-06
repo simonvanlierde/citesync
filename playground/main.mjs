@@ -59,6 +59,8 @@ const templateLabels = {
   "package.json": "JavaScript",
   DESCRIPTION: "R",
   "Project.toml": "Julia",
+  "typst.toml": "Typst",
+  "_extension.yml": "Quarto",
 };
 const examples = {
   "pyproject.toml":

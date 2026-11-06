@@ -14,7 +14,7 @@ from typing import Any
 from citesync.errors import CheckError
 
 SCHEMA_MAJOR = "1"
-FORMATS = ("cff-1.2.0", "codemeta", "zenodo", "pep621", "cargo", "npm")
+FORMATS = ("cff-1.2.0", "codemeta", "zenodo", "pep621", "cargo", "npm", "typst", "quarto")
 """The formats citesync reads and writes."""
 IMPORTED = ("pkg-info", "r-description", "julia")
 """The formats citesync only reads, as a source."""

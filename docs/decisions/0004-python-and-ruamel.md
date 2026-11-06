@@ -1,4 +1,4 @@
-# 0004. Python 3.12 and ruamel.yaml
+# 0004. Python 3.13 and ruamel.yaml
 
 - Status: accepted
 - Date: 2026-10-28
@@ -9,7 +9,7 @@ With a pluggable source ([0001](0001-pluggable-source.md)), CITATION.cff is a fi
 
 ## Decision
 
-citesync is written in Python 3.12 or newer, and uses ruamel.yaml for YAML round trips.
+citesync is written in Python 3.13 or newer, and uses ruamel.yaml for YAML round trips.
 
 ## Consequences
 

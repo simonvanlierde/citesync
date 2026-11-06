@@ -10,8 +10,8 @@ Reading, updating and creating a file are separate operations:
 | pyproject.toml | Yes, `[project]` metadata | Selected fields, opt-in | No |
 | Cargo.toml | Yes, package metadata | Selected fields, opt-in | No |
 | package.json | Yes, npm package metadata | Selected fields, opt-in | No |
-| typst.toml | Yes, Typst package metadata, read as Cargo's `[package]` | Selected fields, opt-in | No |
-| _extension.yml / _extension.yaml | Yes, a Quarto extension's `version` and `author`, read as npm's | Selected fields, opt-in | No |
+| typst.toml | Yes, Typst package metadata (`[package]`) | Selected fields, opt-in | No |
+| _extension.yml / _extension.yaml | Yes, a Quarto extension's `title`, `version` and `author` | Selected fields, opt-in | No |
 | DESCRIPTION | Yes, static R package metadata | Never | No |
 | Project.toml / JuliaProject.toml | Yes, Julia metadata | Never | No |
 | PKG-INFO / METADATA | Yes, Python Core Metadata | Never | No |
@@ -26,7 +26,7 @@ The [configuration reference](config.md) lists the manifest fields that can be u
 
 ## Plugin manifests
 
-A Typst package's `typst.toml` and a Quarto extension's `_extension.yml` carry a version and authors that should move with each release. Their fields sit where Cargo.toml and package.json keep theirs, so citesync reads them through the same mapping rows: `typst.toml` gives `version`, `authors`, `license`, `description`, `repository` and `keywords`; `_extension.yml` gives `version` and its one `author` (an `author` list makes the file `unreadable`). A Quarto extension lives under `_extensions/<name>/`, so list it under `manifests`:
+A Typst package's `typst.toml` and a Quarto extension's `_extension.yml` carry a version and authors that should move with each release. citesync reads them through their own rows in the field mapping: `typst.toml` gives `name`, `version`, `authors`, `license`, `description`, `repository` and `keywords`; `_extension.yml` gives `title` (as the name), `version` and its one `author` (an `author` list makes the file `unreadable`). A field a format has no row path for, such as a Quarto extension's licence or keywords, is neither read nor written. A Quarto extension lives under `_extensions/<name>/`, so list it under `manifests`:
 
 ```toml
 manifests = ["typst/typst.toml", "quarto/_extensions/lensgrind/_extension.yml"]

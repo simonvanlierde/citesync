@@ -9,11 +9,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- The playground makes incomplete R DESCRIPTION and Julia Project.toml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
+- The playground makes incomplete R DESCRIPTION, Julia Project.toml, Typst typst.toml and Quarto _extension.yml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
 - `citesync export --format datacite` prints DataCite Metadata Schema 4.7 XML (`citation.datacite.xml`, resource type `Software`). List a `.datacite.xml` file under `exports` to have `write` keep it in step and `check` report it as `export-stale`. It needs a DOI, an author, a publisher and a release year, and says which source field to set when one is missing ([citation exports](docs/export.md)).
 
 ### Changed
 
+- `typst.toml` and `_extension.yml` are read through their own rows in the field mapping, not Cargo's and npm's. `init` and `export` now take a Quarto extension's `title` as its name; `check` still doesn't compare it. `typst.toml` keywords are now compared with their separators (`big data` is not `big-data`), as other manifests' are; set `keywords-ignore-separators = true` to keep the old leniency ([plugin manifests](docs/formats.md#plugin-manifests)).
 - The vendored codemeta-drift mapping is pinned to commit a29b657 (schema 1.7, the `publisher` and `resourceType` rows), until its next release.
 - The field mapping uses [codemeta-drift 0.6.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.6.0), which adds rows for DataCite, typst.toml and Quarto extensions among others, and mapping paths can now combine parts with `+` and filter on a member of a list.
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
@@ -22,6 +23,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - The `schema.jsonld` export writes `license` only as a URL: the SPDX page for a single licence id, or the URL the source gives. A `LicenseRef-` id, an expression such as `MIT OR Apache-2.0` and other text are left out instead of written as a made-up or non-URL value.
+
+### Removed
+
+- **Breaking:** Python 3.12 is no longer supported. citesync needs Python 3.13 or newer.
 
 ## [0.4.0] - 2026-11-01
 
