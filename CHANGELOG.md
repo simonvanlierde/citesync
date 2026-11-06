@@ -18,6 +18,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
 
+### Fixed
+
+- `init` reads the manifests the `manifests` setting lists, so a Quarto extension under `_extensions/<name>/` can give the new CITATION.cff ([init](docs/init.md)).
+
 ### Removed
 
 - **Breaking:** Python 3.12 is no longer supported. citesync needs Python 3.13 or newer.
