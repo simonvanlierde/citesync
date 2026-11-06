@@ -36,7 +36,7 @@
       "required": ["format", "term", "path", "source"],
       "properties": {
         "format": {
-          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, pkg-info, r-description, julia, bibtex, datacite, setup-py, ruby-gem, maven, cpan-meta-2, nuget, pubspec, cabal, typst, quarto, github, figshare, bio-tools, leiningen, octave, publiccode-0.8, swmath, spdx-2.3, codemeta-2, dcat-3, doap, wikidata. A versioned format puts its version in the id.",
+          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, pkg-info, r-description, julia, bibtex, datacite, setup-py, ruby-gem, maven, cpan-meta-2, nuget, pubspec, cabal, typst, quarto, github, figshare, bio-tools, leiningen, octave, publiccode-0.8, swmath, spdx-2.3, codemeta-2, dcat-3, doap, wikidata, ris, endnote. A versioned format puts its version in the id.",
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9.]+)*$"
         },
