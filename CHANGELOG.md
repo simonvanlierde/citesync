@@ -9,7 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- The playground makes incomplete R DESCRIPTION and Julia Project.toml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
+- The playground makes incomplete R DESCRIPTION, Julia Project.toml, Typst typst.toml and Quarto _extension.yml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
 
 ### Changed
 
