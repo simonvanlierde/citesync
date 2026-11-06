@@ -518,6 +518,14 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
   await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText([
     "Project.toml — Julia (incomplete)",
   ]);
+  await output.fill("quarto");
+  await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText([
+    "_extension.yml — Quarto (incomplete)",
+  ]);
+  await output.fill("typst");
+  await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText([
+    "typst.toml — Typst (incomplete)",
+  ]);
   await output.fill("description");
   await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText(["DESCRIPTION — R (incomplete)"]);
   await output.fill("bibtex");

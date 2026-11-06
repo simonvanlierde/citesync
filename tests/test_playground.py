@@ -116,7 +116,15 @@ def test_extra_exports_are_separated_from_incomplete_package_templates():
         }
     )
     assert {"citation.bib", "citation.csl.json"} <= result["files"].keys()
-    assert set(result["templates"]) == {"pyproject.toml", "Cargo.toml", "package.json", "DESCRIPTION", "Project.toml"}
+    assert set(result["templates"]) == {
+        "pyproject.toml",
+        "Cargo.toml",
+        "package.json",
+        "DESCRIPTION",
+        "Project.toml",
+        "typst.toml",
+        "_extension.yml",
+    }
     assert "zip" not in result
     assert "template_zip" not in result
     csl = json.loads(result["files"]["citation.csl.json"])
@@ -324,4 +332,81 @@ def test_an_author_given_only_by_orcid_keeps_every_file():
         ],
     }
     result = generate({"filename": "codemeta.json", "text": json.dumps(codemeta)})
-    assert {"CITATION.cff", "DESCRIPTION", "Project.toml"} <= result["files"].keys() | result["templates"].keys()
+    assert {"CITATION.cff", "DESCRIPTION", "Project.toml", "typst.toml", "_extension.yml"} <= result[
+        "files"
+    ].keys() | result["templates"].keys()
+
+
+def test_typst_and_quarto_templates_carry_the_field_each_row_names_and_read_back(tmp_path: Path):
+    import io  # noqa: PLC0415
+    import tomllib  # noqa: PLC0415
+
+    from ruamel.yaml import YAML  # noqa: PLC0415
+
+    from citesync.formats import Person  # noqa: PLC0415
+    from citesync.mapping import load_mapping, resolve  # noqa: PLC0415
+    from citesync.playground_exports import package_templates  # noqa: PLC0415
+
+    record = {
+        "name": "lensgrind",
+        "version": "1.4.0",
+        "description": "Measure microscope optics.",
+        "license": "Apache-2.0",
+        "codeRepository": "https://github.com/example/lensgrind",
+        "keywords": ("optics", "lens"),
+        "author": (
+            Person("Marie Skłodowska-Curie", "Marie", "Skłodowska-Curie", "0000-0002-1825-0097"),
+            Person(None, orcid="0000-0002-1825-0097"),
+            Person("Tu Youyou", "Youyou", "Tu"),
+        ),
+    }
+    templates, notes = package_templates(record)
+    rows = load_mapping()
+    typst = tomllib.loads(templates["typst.toml"])
+    quarto = YAML(typ="safe").load(io.StringIO(templates["_extension.yml"]))
+    for fmt, doc, expected in (
+        (
+            "typst",
+            typst,
+            {
+                "name": ["lensgrind"],
+                "version": ["1.4.0"],
+                "author": ["Marie Skłodowska-Curie", "Tu Youyou"],
+                "license": ["Apache-2.0"],
+                "description": ["Measure microscope optics."],
+                "codeRepository": ["https://github.com/example/lensgrind"],
+                "keywords": [["optics", "lens"]],
+            },
+        ),
+        ("quarto", quarto, {"name": ["lensgrind"], "version": ["1.4.0"], "author": ["Marie Skłodowska-Curie"]}),
+    ):
+        for term, values in expected.items():
+            path = rows[(fmt, term)]
+            assert path is not None
+            assert resolve(doc, path) == values, (fmt, term)
+    assert "0000-0002" not in templates["typst.toml"] + templates["_extension.yml"]  # neither format has an ORCID
+    assert set(quarto) == {"title", "version", "author"}
+    assert "_extension.yml: only the first author is carried over; Quarto has one author string." in notes
+
+    from citesync.formats import read_doc  # noqa: PLC0415
+
+    for filename in ("typst.toml", "_extension.yml"):
+        (tmp_path / filename).write_text(templates[filename], encoding="utf-8")
+        doc = read_doc(tmp_path, filename, rows)
+        assert doc.record["version"] == "1.4.0"
+    assert [p.name for p in read_doc(tmp_path, "typst.toml", rows).record["author"]] == [
+        "Marie Skłodowska-Curie",
+        "Tu Youyou",
+    ]
+
+
+def test_the_typst_template_keeps_the_publishable_version_rule():
+    from citesync.playground_exports import package_templates  # noqa: PLC0415
+
+    templates, notes = package_templates({"name": "Lens Grind", "version": "1.4.0-rc.1"})
+    assert "version" not in templates["typst.toml"]
+    assert "name" not in templates["typst.toml"]
+    assert "typst.toml: version omitted: Typst package versions are major.minor.patch only, not 1.4.0-rc.1" in notes
+    assert "typst.toml: name omitted; use lower-case letters, numbers and hyphens, such as lensgrind." in notes
+    assert "title = " not in templates["typst.toml"]
+    assert "title: Lens Grind\nversion: 1.4.0-rc.1\n" in templates["_extension.yml"]

@@ -1,20 +1,25 @@
 """Explicitly incomplete package metadata templates for the playground."""
 
+import io
 import json
 import re
 from typing import Any
 
 import tomlkit
 from packaging.utils import InvalidName, canonicalize_name
+from ruamel.yaml import YAML
 
 from citesync import codecs
 from citesync.errors import CannotWrite
+from citesync.mapping import load_mapping
 from citesync.research_metadata import R_PACKAGE
 
 _CARGO_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 _NPM_NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*")
 _R_VERSION = re.compile(r"\d+(?:[.-]\d+)+")
 _JULIA_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_TYPST_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+_TYPST_VERSION = re.compile(r"\d+\.\d+\.\d+")
 _R_GPL = re.compile(r"(A?L?GPL)-(\d)(?:\.0|(\.\d))-(only|or-later)")
 
 
@@ -49,7 +54,67 @@ def package_templates(record: dict[str, Any]) -> tuple[dict[str, str], list[str]
         )
     templates["DESCRIPTION"] = _description(record, notes)
     templates["Project.toml"] = _julia_project(record, notes)
+    templates["typst.toml"] = _typst_manifest(record, notes)
+    templates["_extension.yml"] = _quarto_manifest(record, notes)
     return templates, notes
+
+
+def _plugin_fields(record: dict[str, Any], notes: list[str], fmt: str, filename: str) -> tuple[dict[str, Any], Any]:
+    """The name and version of a plugin manifest, and ``put(term, value)``, which writes at the row's path."""
+    rows = load_mapping()
+    data: dict[str, Any] = {}
+
+    def put(term: str, value: object) -> None:
+        if path := rows[(fmt, term)]:  # a term the format has no place for is dropped
+            *parents, key = path.removesuffix("[]").split(".")
+            node = data
+            for parent in parents:
+                node = node.setdefault(parent, {})
+            node[key] = value
+
+    if fmt == "quarto" or _TYPST_NAME.fullmatch(record["name"]):
+        put("name", record["name"])
+    else:
+        notes.append(f"{filename}: name omitted; use lower-case letters, numbers and hyphens, such as lensgrind.")
+    if version := record.get("version"):
+        try:
+            semver = codecs.version_encode_semver(version)
+            if fmt == "typst" and not _TYPST_VERSION.fullmatch(semver):
+                msg = f"Typst package versions are major.minor.patch only, not {semver}"  # as write's typst.toml rule
+                raise CannotWrite(msg)  # noqa: TRY301
+            put("version", semver)
+        except CannotWrite as error:
+            notes.append(f"{filename}: version omitted: {error}")
+    else:
+        notes.append(f"{filename}: add a release version before using this template.")
+    return data, put
+
+
+def _typst_manifest(record: dict[str, Any], notes: list[str]) -> str:
+    """A Typst typst.toml, each field at the path of codemeta-drift's typst row."""
+    data, put = _plugin_fields(record, notes, "typst", "typst.toml")
+    put("author", [person.name for person in record.get("author", ()) if person.name])
+    for term in ("license", "description", "codeRepository"):
+        if record.get(term):
+            put(term, record[term])
+    if record.get("keywords"):
+        put("keywords", list(record["keywords"]))
+    notes.append("typst.toml: add the entrypoint and compiler version, and a handle or email to each author.")
+    return "# Incomplete metadata template: review entrypoint, compiler and exclude.\n" + tomlkit.dumps(data)
+
+
+def _quarto_manifest(record: dict[str, Any], notes: list[str]) -> str:
+    """A Quarto _extension.yml, each field at the path of codemeta-drift's quarto row."""
+    data, put = _plugin_fields(record, notes, "quarto", "_extension.yml")
+    names = [person.name for person in record.get("author", ()) if person.name]
+    if names:
+        put("author", names[0])
+    if len(names) > 1:
+        notes.append("_extension.yml: only the first author is carried over; Quarto has one author string.")
+    notes.append("_extension.yml: add quarto-required and contributes under _extensions/<name>/.")
+    buffer = io.StringIO()
+    YAML().dump(data, buffer)
+    return "# Incomplete metadata template: review quarto-required and contributes.\n" + buffer.getvalue()
 
 
 def _description(record: dict[str, Any], notes: list[str]) -> str:
