@@ -33,8 +33,6 @@ MANIFESTS = {
 }
 ONE_AUTHOR = frozenset({"npm", "quarto"})
 """The formats whose one ``author`` is a single entry, not a list."""
-TITLE_NAMES = frozenset({"quarto"})
-"""The manifest formats whose ``name`` is a human title, which check compares as a citation file's is."""
 IMPORTS = {
     "PKG-INFO": "pkg-info",
     "METADATA": "pkg-info",

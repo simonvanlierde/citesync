@@ -38,7 +38,7 @@ from citesync.check import (
     near_misses,
     read_docs,
 )
-from citesync.config import MANIFEST_TERMS, Config
+from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
     CITATION_FILES,
@@ -300,7 +300,6 @@ def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]
         finding.file
         and finding.term
         and format_of(finding.file) in MANIFESTS.values()
-        and finding.term in MANIFEST_TERMS
         and finding.term not in config.write_manifests
     ):
         return f"edit it by hand, or add {finding.term} to write-manifests"

@@ -38,7 +38,7 @@ _FIELDS = {
         "The title differs from the source's.",
         (
             "CFF `title` and CodeMeta and Zenodo `name`/`title` compare as written, with whitespace collapsed."
-            " Manifests are not compared, because a manifest `name` is a package id."
+            " Manifests are not compared: a manifest `name` is a package id, and a Quarto `title` a display title."
         ),
     ),
     "version": (
@@ -51,8 +51,9 @@ _FIELDS = {
         "The authors differ from the source's.",
         (
             "Citation files must list the same people in the same order, with equal ORCIDs where both have one."
-            " Names compare case-insensitively. Zenodo's `Family, Given` and npm or Cargo `Name <email>` count"
-            " as names. Manifests are compared on names only, and npm's one `author` with the first author."
+            " Names compare case-insensitively. Zenodo's `Family, Given` and npm, Cargo or Typst `Name <email>` count"
+            " as names. Manifests are compared on names only. npm's one `author` and Quarto's one `author` string"
+            " are compared with the first author."
         ),
     ),
     "contributor": (

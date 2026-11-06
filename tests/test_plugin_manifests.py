@@ -26,7 +26,7 @@ compiler = "0.14.0"
 """
 QUARTO = """\
 # Quarto reads this file; citesync keeps version and author in step.
-title: synthagree
+title: synthagree filter
 author: Ada Lovelace
 version: {version}
 quarto-required: ">=1.4.0"
@@ -138,12 +138,32 @@ def test_a_list_author_is_reported_not_skipped(tmp_path: Path, run: "Run", name:
     assert f"{name}: error[unreadable] unexpected shape (author holds a list, but this file takes one author)" in out
 
 
-def test_a_quarto_title_that_disagrees_with_the_source_is_reported(tmp_path: Path, run: "Run") -> None:
-    # The quarto rows read `title` as the name; the npm rows it used to read through have no such key.
+def test_a_quarto_title_is_not_compared_with_the_source(tmp_path: Path, run: "Run") -> None:
+    # `title` is a display title, so it routinely differs from the citation title.
+    code, out, _ = run("check", "--root", str(_repo(tmp_path, "1.2.3")))
+    assert code == 0, out
+    assert "name-mismatch" not in out
+
+
+def test_init_takes_a_quarto_extension_title_as_the_name(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "_extension.yml").write_text(QUARTO.format(version="1.2.3"), encoding="utf-8")
+    code, out, _ = run("init", "--diff", "--root", str(tmp_path))
+    assert code == 0, out
+    assert "title: synthagree filter" in out
+
+
+def test_typst_keywords_compare_with_their_separators(tmp_path: Path, run: "Run") -> None:
+    # Typst Universe takes spaces in a keyword, so the Cargo rule that ignores separators does not apply.
     root = _repo(tmp_path, "1.2.3")
-    quarto = root / QUARTO_PATH
-    quarto.write_text(QUARTO.format(version="1.2.3").replace("title: synthagree", "title: other"), encoding="utf-8")
+    cff = root / "CITATION.cff"
+    cff.write_text(cff.read_text(encoding="utf-8").replace('"alpha"', '"big data"', 1), encoding="utf-8")
+    typst = root / TYPST_PATH
+    typst.write_text(TYPST.format(version="1.2.3").replace('"alpha"', '"big-data"'), encoding="utf-8")
+    (root / "citesync.toml").write_text(f'manifests = ["{TYPST_PATH}"]\n', encoding="utf-8")
     code, out, _ = run("check", "--root", str(root))
     assert code == 1
-    assert f"{QUARTO_PATH}:2:1: error[name-mismatch] name: 'other', CITATION.cff has 'synthagree'" in out
-    assert "add name to write-manifests" not in out
+    assert "keywords-not-subset" in out
+    (root / "citesync.toml").write_text(
+        f'manifests = ["{TYPST_PATH}"]\nkeywords-ignore-separators = true\n', encoding="utf-8"
+    )
+    assert run("check", "--root", str(root))[0] == 0
