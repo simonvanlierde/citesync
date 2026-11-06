@@ -138,3 +138,14 @@ def test_a_plus_path_in_a_written_format_is_refused() -> None:
             row["path"] = "author + contributors[]"
     with pytest.raises(CheckError, match="npm author reads parts with \\+"):
         check_mapping(data, "mapping-local.json")
+
+
+def test_publisher_is_read_for_the_exports_only(tmp_path) -> None:  # noqa: ANN001
+    from citesync.formats import read_doc  # noqa: PLC0415
+    from citesync.mapping import EXPORT_TERMS, TERMS  # noqa: PLC0415
+
+    assert EXPORT_TERMS == ("publisher",)
+    assert not set(EXPORT_TERMS) & set(TERMS)
+    doc = {"@context": "https://w3id.org/codemeta/3.0", "name": "x", "publisher": {"name": "Example Press"}}
+    (tmp_path / "codemeta.json").write_text(json.dumps(doc), encoding="utf-8")
+    assert read_doc(tmp_path, "codemeta.json", load_mapping()).record["publisher"] == "Example Press"

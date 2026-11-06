@@ -352,3 +352,17 @@ def test_date_decode_keeps_the_day(day: dt.date, time: dt.time) -> None:
 @pytest.mark.parametrize(("raw", "expected"), [("January 2026", "January 2026"), ("", None), (None, None)])
 def test_date_decode_keeps_what_is_not_iso(raw: object, expected: str | None) -> None:
     assert codecs.date_decode(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Example Press", "Example Press"),
+        ({"@type": "Organization", "name": "Example Press"}, "Example Press"),
+        ({"@type": "Organization"}, None),
+        (["a"], None),
+        (None, None),
+    ],
+)
+def test_publisher_decode_takes_a_name_or_an_organization(raw: object, expected: str | None) -> None:
+    assert codecs.publisher_decode(raw) == expected

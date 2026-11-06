@@ -20,7 +20,7 @@ from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
 from citesync.errors import CheckError, UnreadableError
-from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
+from citesync.mapping import EXPORT_TERMS, PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {
@@ -159,7 +159,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
         data = _adapt(fmt, data, root, rel)
         if fmt == "codemeta":
             roles = dangling_roles(data)
-        for term in TERMS:
+        for term in TERMS + EXPORT_TERMS:
             path = mapping[fmt, term]
             if path is None:
                 continue
@@ -468,6 +468,7 @@ _DECODE = {
     "swhid": codecs.swhid_decode,
     "codeRepository": codecs.repo_decode,
     "datePublished": codecs.date_decode,
+    "publisher": codecs.publisher_decode,
 }
 
 

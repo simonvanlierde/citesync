@@ -31,6 +31,8 @@ TERMS = (
     "keywords",
     "datePublished",
 )
+EXPORT_TERMS = ("publisher",)
+"""Terms read into the record for the exports only: check and write leave them alone."""
 PEOPLE = ("author", "contributor")
 """The terms that hold a list of people."""
 

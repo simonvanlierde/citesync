@@ -277,6 +277,11 @@ def date_decode(raw: object) -> str | None:
     return text[:10] if text and _ISO_DATE.match(text) else text
 
 
+def publisher_decode(raw: object) -> str | None:
+    """A publisher's name: the text itself, or the ``name`` of a schema.org Organization."""
+    return version_decode(raw.get("name") if isinstance(raw, dict) else raw)
+
+
 def version_key(version: str) -> "Version | str":
     """The parsed PEP 440 version, or for one that isn't (``unreleased``) the string itself.
 
