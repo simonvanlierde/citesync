@@ -261,7 +261,8 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
     if config.source != "CITATION.cff" and not (root / config.source).is_file():
         msg = f"{config.source}: the source file is missing from {root}"
         raise CheckError(msg)
-    first = next((p for p in (config.source, *CITATION_FILES, *MANIFESTS) if (root / p).is_file()), None)
+    manifests = MANIFESTS if config.manifests is None else config.manifests  # as discover lists them
+    first = next((p for p in (config.source, *CITATION_FILES, *manifests) if (root / p).is_file()), None)
     if first is None:
         msg = f"no codemeta.json, .zenodo.json or package manifest in {root} to make a CITATION.cff from"
         raise CheckError(msg)
