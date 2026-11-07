@@ -12,6 +12,7 @@ from hypothesis import strategies as st
 
 from citesync.check import check
 from citesync.config import Config
+from citesync.core_metadata import parse
 from citesync.errors import UnreadableError
 from citesync.formats import load, read_doc
 from citesync.mapping import load_mapping, resolve
@@ -120,6 +121,22 @@ def test_author_order_survives_contact_enrichment(tmp_path: Path) -> None:
     )
     people = read_doc(tmp_path, "METADATA", load_mapping()).record["author"]
     assert [person.name for person in people] == ["Antonie van Leeuwenhoek", "Marie Skłodowska-Curie"]
+
+
+@pytest.mark.parametrize(
+    ("author", "names"),
+    [
+        ("Ada Lovelace, Grace Hopper", ["Ada Lovelace", "Grace Hopper"]),
+        ("Datadog, Inc.", ["Datadog, Inc."]),
+        ("Gurobi Optimization, LLC", ["Gurobi Optimization, LLC"]),
+        ("Dmitry Sagalovskiy, Grist Labs, Inc", ["Dmitry Sagalovskiy", "Grist Labs, Inc"]),
+        ("Robert Bradshaw, Stefan Behnel, et al.", ["Robert Bradshaw", "Stefan Behnel"]),
+        ('"Smith, Jane", Tu Youyou', ["Smith, Jane", "Tu Youyou"]),
+    ],
+)
+def test_author_splits_at_commas_but_keeps_a_company_suffix(author: str, names: list[str]) -> None:
+    data = parse(f"Metadata-Version: 2.4\nName: lensgrind\nVersion: 1.0\nAuthor: {author}\n", "METADATA")
+    assert data["Author"] == names
 
 
 def test_an_author_email_comment_keeps_the_address_out_of_the_name(tmp_path: Path) -> None:
