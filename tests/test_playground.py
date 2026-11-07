@@ -395,6 +395,7 @@ def test_typst_and_quarto_templates_carry_the_field_each_row_names_and_read_back
         (tmp_path / filename).write_text(templates[filename], encoding="utf-8")
         doc = read_doc(tmp_path, filename, rows)
         assert doc.record["version"] == "1.4.0"
+        assert doc.record["name"] == "lensgrind"
     assert [p.name for p in read_doc(tmp_path, "typst.toml", rows).record["author"]] == [
         "Marie Skłodowska-Curie",
         "Tu Youyou",

@@ -296,3 +296,15 @@ def test_init_keeps_a_licence_list_when_zenodo_license_list_is_ignored(tmp_path:
     assert _cff(tmp_path)["license"] == ["MIT", "Apache-2.0"]
     code, out, _ = run("check", "--root", str(tmp_path))
     assert code == 0, out
+
+
+def test_init_reads_a_quarto_extension_listed_under_manifests(tmp_path: Path, run: "Run") -> None:
+    ext = tmp_path / "_extensions" / "lensgrind"
+    ext.mkdir(parents=True)
+    (ext / "_extension.yml").write_text("title: Lens Grind\nauthor: Grace Hopper\nversion: 1.3.0\n", encoding="utf-8")
+    (tmp_path / ".citesync.toml").write_text('manifests = ["_extensions/lensgrind/_extension.yml"]\n', encoding="utf-8")
+    code, _, err = run("init", "--root", str(tmp_path))
+    assert code == 0, err
+    data = _cff(tmp_path)
+    assert (data["title"], data["version"]) == ("Lens Grind", "1.3.0")
+    assert data["authors"] == [{"given-names": "Grace", "family-names": "Hopper"}]
