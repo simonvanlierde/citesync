@@ -828,22 +828,22 @@
     {
       "format": "pkg-info",
       "term": "author",
-      "path": "Author + Author-email",
-      "source": "curated:the cell says Author; packaging tools write an author who has an email to Author-email as 'Name <email>', and only a name-only author to Author",
+      "path": "Author + Author-email[]",
+      "source": "curated:the cell says Author; Author is one free-text string (core metadata spec), and an author who has an email goes to Author-email as 'Name <email>', a list of addresses",
       "crosswalk_cell": "Author"
     },
     {
       "format": "pkg-info",
       "term": "author.givenName",
-      "path": "Author + Author-email",
-      "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
+      "path": "Author + Author-email[]",
+      "source": "curated:no cell; Author is free text and Author-email holds 'Name <email>' addresses, so a consumer takes a name from an address and splits Author no further",
       "crosswalk_cell": ""
     },
     {
       "format": "pkg-info",
       "term": "author.familyName",
-      "path": "Author + Author-email",
-      "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
+      "path": "Author + Author-email[]",
+      "source": "curated:no cell; Author is free text and Author-email holds 'Name <email>' addresses, so a consumer takes a name from an address and splits Author no further",
       "crosswalk_cell": ""
     },
     {
