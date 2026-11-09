@@ -1,7 +1,7 @@
 {
   "name": "citesync-playground",
   "private": true,
-  "packageManager": "pnpm@12.16.1",
+  "packageManager": "pnpm@12.17.0",
   "scripts": {
     "check": "biome check --diagnostic-level=warn playground/*.mjs playwright.config.mjs && node --test playground/*.test.mjs",
     "test:browser": "playwright test"
