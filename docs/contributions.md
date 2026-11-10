@@ -61,7 +61,7 @@ does not establish that every contribution has reached every format.
 
 The hand-written fixture checks the citesync boundary without installing Matrix.
 The existing [playground CI job](../.github/workflows/pages.yml) also runs the
-Matrix integration tests using `credit-matrix@0.10.0`, pinned in `package.json`
+Matrix integration tests using `credit-matrix@0.11.0`, pinned in `package.json`
 and `pnpm-lock.yaml`. Run the same check locally:
 
 ```sh

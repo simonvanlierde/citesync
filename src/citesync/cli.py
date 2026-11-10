@@ -196,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901, PLR0911 - a retur
         if args.command == "export":
             return _export(args.root, config, args.format)
         if getattr(args, "diff", False):
-            return _write_diff(args.root, config)
+            return _write_diff(args.root, config, quiet=args.quiet)
         written, skipped, fixed = _write(args.root, config) if args.command == "write" else ({}, {}, None)
         findings, files, unused = check(args.root, config)
     except CheckError as err:
@@ -275,13 +275,13 @@ def _fixable(root: Path, config: Config) -> list[Finding] | None:
         return None
 
 
-def _write_diff(root: Path, config: Config) -> int:
+def _write_diff(root: Path, config: Config, *, quiet: bool) -> int:
     """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
     from citesync.write import write  # noqa: PLC0415
 
     texts, _, unreadable, fixed = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
-    if texts:
+    if texts and not quiet:
         print(f"would fix {_count(len(fixed), 'finding')} in {_count(len(texts), 'file')}", file=sys.stderr)
     for f in unreadable:  # the diff can't show a file write never touches, so say so
         print(f"{f.where}: error[unreadable] {f.message}", file=sys.stderr)

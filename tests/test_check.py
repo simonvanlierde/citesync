@@ -295,6 +295,7 @@ def test_exit_2(files: dict[str, str], args: list[str], message: str, tmp_path: 
         ("CITATION.cff", CFF.replace("1.2.0", "1.1.0").encode(), "cff-version '1.1.0', citesync reads 1.2.0", None),
         ("codemeta.json", b"{", "Expecting property name enclosed in double quotes", (1, 2)),
         ("codemeta.json", b'{"@context": "https://schema.org"}', "is not CodeMeta", None),
+        ("codemeta.json", b'{"name": "x"}', "has no @context, so it isn't CodeMeta", None),
         ("codemeta.json", b"[]", "the top level is not a mapping", None),
         ("pyproject.toml", b"[project\n", "Expected ']' at the end of a table declaration", (1, 9)),
         ("Cargo.toml", b'package = "x"\n', "unexpected shape", None),

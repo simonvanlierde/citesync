@@ -192,7 +192,7 @@ RULES = {
     "export-stale": Rule(
         "error",
         "A file listed under `exports` is missing or differs from what the source gives.",
-        "Run `citesync write`.",
+        "Run `citesync write`. A link or folder at that path, which write won't replace, has to move first.",
         "Each `exports` entry is a citation made from the source: BibTeX (`.bib`), CSL-JSON (`.csl.json`), APA 7"
         " (`.apa.txt`) or schema.org JSON-LD (`.jsonld`). The file must equal what `citesync export` prints for its"
         " format, with CRLF line ends read as LF. A term the source doesn't hold comes from the first other file"
