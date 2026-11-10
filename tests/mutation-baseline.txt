@@ -3,8 +3,8 @@
 citesync.check.xǁFindingǁsort_key__mutmut_3  every finding with no file gets the same stand-in, and they already sort last
 citesync.check.xǁFindingǁsort_key__mutmut_5  only unreadable has no term, and a file has at most one, so its stand-in is never compared
 citesync.check.x_compare_term__mutmut_28  authors compare with orcid_only=True, where kw_key is not read
-citesync.check.x__same_people__mutmut_18  zip's strict=None is falsy, the same as False
-citesync.check.x__same_people__mutmut_21  zip's strict defaults to False
+citesync.check.x__same_people__mutmut_16  zip's strict=None is falsy, the same as False
+citesync.check.x__same_people__mutmut_19  zip's strict defaults to False
 citesync.check.x_git_tags__mutmut_12  encoding=None reads the locale's encoding, UTF-8 wherever the tests run, and git files are ASCII
 citesync.check.x_git_tags__mutmut_14  "UTF-8" and "utf-8" name the same codec
 citesync.check.x_git_tags__mutmut_22  encoding=None reads the locale's encoding, UTF-8 wherever the tests run, and git files are ASCII
@@ -43,10 +43,11 @@ citesync.write.x__new_codemeta__mutmut_46  _encode reads only the stand-in Doc's
 citesync.write.x__new_codemeta__mutmut_47  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_56  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_98  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
+citesync.write.x__new_codemeta__mutmut_42  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.write.x__yaml__mutmut_8  any width past the longest line keeps every line whole
 citesync.write.x__yaml__mutmut_9  any width past the longest line keeps every line whole
-citesync.write.x__encode__mutmut_78  the codeRepository branch reads neither source nor keyword_key
-citesync.write.x__encode__mutmut_82  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_81  the codeRepository branch reads neither source nor keyword_key
+citesync.write.x__encode__mutmut_85  the codeRepository branch reads neither source nor keyword_key
 citesync.write.x__identifier__mutmut_24  a PropertyValue's value or url is a string, and spelling a string never calls decode
 citesync.write.x__keywords__mutmut_24  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__relist__mutmut_10  zip's strict=None is falsy, the same as False
@@ -74,12 +75,13 @@ citesync.write.x__new_cff__mutmut_134  any width past the longest line keeps eve
 citesync.write.x__new_cff__mutmut_135  mapping=None keeps ruamel's default of 2
 citesync.write.x__new_cff__mutmut_138  mapping's default is 2
 citesync.write.x__new_cff__mutmut_141  init writes no mapping inside a mapping, the only place this indent shows
+citesync.write.x__new_cff__mutmut_3  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.check.x_read_docs__mutmut_55  readable is only read as a truth value, and None is falsy like False
 citesync.write.x__apply__mutmut_42  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
 citesync.write.x__apply__mutmut_98  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
-citesync.write.x__new_person__mutmut_44  a person with no name is rejected before reaching Cargo or npm
-citesync.write.x__new_person__mutmut_46  tomlkit writes a plain dict in an array as the same inline table
-citesync.write.x__new_person__mutmut_47  tomlkit writes a plain dict in an array as the same inline table
+citesync.write.x__new_person__mutmut_48  a person with no name is rejected before reaching Cargo or npm
+citesync.write.x__new_person__mutmut_50  tomlkit writes a plain dict in an array as the same inline table
+citesync.write.x__new_person__mutmut_51  tomlkit writes a plain dict in an array as the same inline table
 citesync.write.x__new_zenodo__mutmut_11  a blank string selects the output shape; its contents are not read
 citesync.write.x__new_zenodo__mutmut_135  json.dumps reads ensure_ascii as a truth value, and None is falsy like False
 citesync.write.x__new_zenodo__mutmut_24  a blank string selects the output shape; its contents are not read
@@ -97,27 +99,30 @@ citesync.write.x__new_zenodo__mutmut_6  a blank string selects the output shape;
 citesync.write.x__new_zenodo__mutmut_60  the encoder reads only the stand-in Doc format
 citesync.write.x__new_zenodo__mutmut_61  release is not read by citation-format encoders
 citesync.write.x__new_zenodo__mutmut_70  release is not read by citation-format encoders
-citesync.write.x__people__mutmut_132  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_133  matches has one entry per person, so strict never fires
+citesync.write.x__new_zenodo__mutmut_57  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x__people__mutmut_126  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_130  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_129  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_213  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
-citesync.write.x__people__mutmut_65  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_210  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__people__mutmut_67  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_66  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_62  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_97  matches has one entry per person, so strict never fires
-citesync.write.x__people__mutmut_98  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_63  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_91  matches has one entry per person, so strict never fires
+citesync.write.x__people__mutmut_95  matches has one entry per person, so strict never fires
 citesync.write.x__people__mutmut_94  matches has one entry per person, so strict never fires
-citesync.write.x__rewrite__mutmut_20  only JSON CodeMeta reads context
-citesync.write.x__rewrite__mutmut_22  only Zenodo reads the default contributor type
-citesync.write.x__rewrite__mutmut_58  only JSON CodeMeta reads context
-citesync.write.x__rewrite__mutmut_60  only Zenodo reads the default contributor type
-citesync.write.x_write__mutmut_128  without a context, no (file, @context) error exists for done to mark fixed
+citesync.write.x__rewrite__mutmut_16  only JSON CodeMeta reads context
+citesync.write.x__rewrite__mutmut_18  only Zenodo reads the default contributor type
+citesync.write.x__rewrite__mutmut_54  only JSON CodeMeta reads context
+citesync.write.x__rewrite__mutmut_56  only Zenodo reads the default contributor type
+citesync.write.x_write__mutmut_126  without a context, no (file, @context) error exists for done to mark fixed
 citesync.write.x_write__mutmut_69  UTF-8 and utf-8 name the same codec
-citesync.write.x_write__mutmut_74  the Unicode escape differs only in hex letter case and denotes the same BOM
-citesync.write.x_write__mutmut_77  the Unicode escape differs only in hex letter case and denotes the same BOM
 citesync.write.x_citation_file__mutmut_33  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_34  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_46  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_47  _encode reads only the stand-in Doc's format
 citesync.write.x__replace__mutmut_2  the loop sets rel before anything in it can raise, so its start value is never read
 citesync.write.x__replace__mutmut_3  the loop sets rel before anything in it can raise, so its start value is never read
+citesync.write.x_citation_file__mutmut_23  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_citation_file__mutmut_36  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_write__mutmut_154  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_write__mutmut_165  a new file's Doc is only encoded into, and encoding never reads its path
