@@ -308,3 +308,20 @@ def test_init_reads_a_quarto_extension_listed_under_manifests(tmp_path: Path, ru
     data = _cff(tmp_path)
     assert (data["title"], data["version"]) == ("Lens Grind", "1.3.0")
     assert data["authors"] == [{"given-names": "Grace", "family-names": "Hopper"}]
+
+
+def test_init_names_a_manifest_it_skipped(tmp_path: Path, run: "Run") -> None:
+    """A private package.json is no release, so init leaves it out as check does, and says so."""
+    codemeta = {"@context": "https://w3id.org/codemeta/3.0", "name": "radium", "author": [{"name": "Tu Youyou"}]}
+    (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
+    package = {"name": "radium-docs", "private": True, "license": "UNLICENSED", "keywords": ["site"]}
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    code, out, _ = run("init", "--root", str(tmp_path))
+    assert code == 0
+    assert 'package.json: skipped, "private": true, so it is never published; list it under manifests to read it' in out
+    assert "license" not in _cff(tmp_path)
+    (tmp_path / "CITATION.cff").unlink()
+    _, _, err = run("init", "--diff", "--root", str(tmp_path))
+    assert "package.json: skipped" in err
+    _, _, err = run("export", "--format", "cff", "--root", str(tmp_path))
+    assert "package.json: skipped" in err

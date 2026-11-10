@@ -338,8 +338,9 @@ def _export(root: Path, config: Config, fmt: str) -> int:
 
     mapping = load_mapping()
     if fmt == "cff":  # built as init builds it, so it needs no CITATION.cff to read
-        text, skipped = citation_file(fmt, root, config, _merged(root, config, mapping), mapping)
-        notes = [f"leaving out {term}: {why}" for term, why in skipped.items()]
+        source, left_out = _merged(root, config, mapping)
+        text, skipped = citation_file(fmt, root, config, source, mapping)
+        notes = [f"leaving out {term}: {why}" for term, why in skipped.items()] + left_out
     else:
         docs, read = read_docs(root, config, mapping)
         if not docs[0].readable:
@@ -361,11 +362,11 @@ def _init(root: Path, config: Config, *, diff: bool) -> int:
     """Write a new CITATION.cff, or with ``diff`` print it as a diff from nothing."""
     from citesync.write import init  # noqa: PLC0415
 
-    text, skipped, splits = init(root, config, dry_run=diff)
+    text, skipped, splits, left_out = init(root, config, dry_run=diff)
     left = "; ".join(f"{term}: {why}" for term, why in skipped.items())
     notes = [
         f"check the name split: {name!r} became given {given!r}, family {family!r}" for name, given, family in splits
-    ]
+    ] + left_out
     if diff:  # the notes go to stderr, so stdout stays a diff a tool can read
         sys.stdout.write(_diff(root, {"CITATION.cff": text}))
         for line in ([f"leaving out {left}"] if left else []) + notes:

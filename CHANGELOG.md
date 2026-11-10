@@ -33,6 +33,7 @@ To upgrade from 0.4.0:
 ### Fixed
 
 - An empty `.git` folder, such as a stray `/tmp/.git`, no longer marks a repo root. Like git, citesync now needs a `.git` folder with `HEAD`, or a `.git` file. Before, a stray one moved the root, and GitHub and SARIF output gave paths relative to the wrong folder.
+- `citesync init` and `export --format cff` name each manifest they skipped, such as a private package.json, and say how to read it. Before, its licence and keywords were left out without a word ([init](docs/init.md)).
 - A codemeta.json that holds its version as `softwareVersion` is checked against the source, and `write` updates it there. Before, its version was never compared.
 - The `schema.jsonld` export writes `license` only as a URL: the SPDX page for a single licence id, or the URL the source gives. A `LicenseRef-` id, an expression such as `MIT OR Apache-2.0` and other text are left out instead of written as a made-up or non-URL value.
 - A PKG-INFO or METADATA `Author` such as `Datadog, Inc.` is one author, not two: a company suffix stays with the name before it, and an `et al.` entry is dropped ([formats](docs/formats.md#python-distribution-metadata)).
