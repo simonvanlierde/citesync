@@ -93,7 +93,7 @@ def test_a_drifted_dataset_file_fails_and_write_leaves_it(name: str, tmp_path: P
     code, out, _ = run("write", "--root", str(root))
     assert code == 1
     assert (root / "release" / name).read_bytes() == before
-    assert "made from codemeta.json" in out
+    assert "(it is made from codemeta.json: run `sourceledger release` again after `citesync write`)" in out
 
 
 def test_an_ro_crate_author_is_read_through_its_reference(tmp_path: Path, run: "Run") -> None:
