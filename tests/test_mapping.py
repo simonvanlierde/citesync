@@ -5,6 +5,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from importlib.resources import files
+from pathlib import Path
 
 import jsonschema
 import pytest
@@ -154,3 +155,23 @@ def test_publisher_is_read_for_the_exports_only(tmp_path) -> None:  # noqa: ANN0
     doc = {"@context": "https://w3id.org/codemeta/3.0", "name": "x", "publisher": {"name": "Example Press"}}
     (tmp_path / "codemeta.json").write_text(json.dumps(doc), encoding="utf-8")
     assert read_doc(tmp_path, "codemeta.json", load_mapping()).record["publisher"] == "Example Press"
+
+
+_RAW_FILES = {"ro-crate": "ro-crate-metadata.json", "croissant": "croissant.json"}
+
+
+@pytest.mark.parametrize(
+    "case", [c for c in VECTORS if c.get("raw_input", {}).get("format") in _RAW_FILES], ids=lambda c: c["name"]
+)
+def test_raw_input_vector_through_the_reader(case: dict, tmp_path: Path) -> None:
+    """A dataset file as written, read and adapted as citesync reads it, resolves as the vector expects.
+
+    The pkg-info vectors are left out: citesync's parser drops an Author-email's address, which the vectors keep.
+    """
+    from citesync.formats import _adapt, load  # noqa: PLC0415
+
+    fmt = case["raw_input"]["format"]
+    path = tmp_path / _RAW_FILES[fmt]
+    path.write_text(case["raw_input"]["text"], encoding="utf-8")
+    data = _adapt(fmt, load(path, path.name), tmp_path, path.name, load_mapping())
+    assert resolve(data, case["path"]) == case["expected"]
