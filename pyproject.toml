@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.scripts]
-citesync = "citesync.cli:main"
+citesync = "citesync.cli:entry"
 
 [project.urls]
 Homepage = "https://simonvanlierde.com/citesync/"

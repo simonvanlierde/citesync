@@ -1,9 +1,10 @@
 """Command line: ``citesync check|write|init|config|rules|explain``.
 
 Exit codes: 0 when the files agree (after ``write``, once it has written), 1 on any error
-finding (that ``write`` may not fix), 2 when citesync couldn't run. ``write --diff`` exits 1
-when it would change a file or can't read one, as ``ruff format --diff`` does. ``write`` then wrote nothing,
-unless moving a written file into place failed: files moved before it stay written.
+finding (that ``write`` may not fix), 2 on a usage error, 3 when citesync couldn't run, 130 after
+Ctrl-C. ``write --diff`` exits 1 when it would change a file or can't read one, as ``ruff format --diff``
+does. ``write`` then wrote nothing, unless moving a written file into place failed: files moved before
+it stay written.
 """
 
 import argparse
@@ -14,14 +15,16 @@ import re
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from citesync.check import Finding, check
 from citesync.config import Config, did_you_mean, find_root, git_top, load_config, render
 from citesync.errors import CheckError
 from citesync.rules import DOCS_URL, RULES, explain, url
 
-JSON_VERSION = 1
+JSON_SCHEMA_VERSION = 1
+EXIT_COULD_NOT_RUN = 3
+EXIT_INTERRUPTED = 130
 # the keys of citesync.export._WRITERS, spelled out so the parser needs no import of that module
 _EXPORT_FORMATS = ("bibtex", "csl-json", "apa", "jsonld", "datacite")
 _CITATION_FILES = ("cff", "codemeta", "zenodo")  # made by write's builders, so never under exports
@@ -105,7 +108,9 @@ to match one source file."""
 _EPILOG = f"""exit codes:
   0  no error finding (warnings and info don't fail)
   1  an error finding; with write --diff, a change to make or a file it can't read
-  2  citesync couldn't run: a bad config or option, a missing source file
+  2  usage error: an unknown command, option or rule
+  3  citesync couldn't run: a bad config, a missing source file
+  130  interrupted with Ctrl-C
 
 config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
 [workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
@@ -179,32 +184,68 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:  # noqa: C901, PLR0911 - a return per command
+def main(argv: list[str] | None = None) -> int:
     """Run the command line and return its exit code."""
     _utf8_streams()
     args = _parse(argv)
+    try:
+        return _run(args)
+    except CheckError as err:
+        return _failed(args, str(err), EXIT_COULD_NOT_RUN)
+    except KeyboardInterrupt:
+        return _failed(args, "interrupted", EXIT_INTERRUPTED)
+    except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
+        where = f"{args.root}: " if getattr(args, "root", None) else ""
+        return _failed(args, f"{where}unexpected error: {type(err).__name__}: {err}", EXIT_COULD_NOT_RUN)
+
+
+def entry() -> NoReturn:
+    """The ``citesync`` command: run :func:`main`, and after Ctrl-C die of SIGINT, as the shell expects.
+
+    A shell loop stops on Ctrl-C only when the command was killed by the signal; exit 130 alone doesn't stop it.
+    """
+    code = main()
+    if code == EXIT_INTERRUPTED and sys.platform != "win32":
+        import signal  # noqa: PLC0415
+
+        sys.stdout.flush()
+        sys.stderr.flush()
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        os.kill(os.getpid(), signal.SIGINT)
+    sys.exit(code)
+
+
+def _failed(args: argparse.Namespace, message: str, code: int) -> int:
+    """Report a run that couldn't finish: ``citesync: <message>`` on stderr, or with JSON a report of the error."""
+    if getattr(args, "format", None) == "json":
+        errors = [{"message": message, "help": None}]
+        print(json.dumps({"schema_version": JSON_SCHEMA_VERSION, "tool": _tool(), "errors": errors}, indent=2))
+    else:
+        print(f"citesync: {message}", file=sys.stderr)
+    return code
+
+
+def _tool() -> dict[str, str]:
+    return {"name": "citesync", "version": _version()}
+
+
+def _run(args: argparse.Namespace) -> int:
+    """Run the parsed command; :func:`main` turns what it raises into an exit code."""
     if args.command in {"rules", "explain"}:
         return _rules(args)
-    try:
-        args.root = args.root or find_root(Path.cwd())
-        config = load_config(args.root, args.source)
-        if args.command == "config":
-            print(f"# root: {args.root}\n{render(config)}")
-            return 0
-        if args.command == "init":
-            return _init(args.root, config, diff=args.diff)
-        if args.command == "export":
-            return _export(args.root, config, args.format)
-        if getattr(args, "diff", False):
-            return _write_diff(args.root, config)
-        written, skipped, fixed = _write(args.root, config) if args.command == "write" else ({}, {}, None)
-        findings, files, unused = check(args.root, config)
-    except CheckError as err:
-        print(f"citesync: {err}", file=sys.stderr)
-        return 2
-    except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
-        print(f"citesync: {args.root}: unexpected error: {type(err).__name__}: {err}", file=sys.stderr)
-        return 2
+    args.root = args.root or find_root(Path.cwd())
+    config = load_config(args.root, args.source)
+    if args.command == "config":
+        print(f"# root: {args.root}\n{render(config)}")
+        return 0
+    if args.command == "init":
+        return _init(args.root, config, diff=args.diff)
+    if args.command == "export":
+        return _export(args.root, config, args.format)
+    if getattr(args, "diff", False):
+        return _write_diff(args.root, config)
+    written, skipped, fixed = _write(args.root, config) if args.command == "write" else ({}, {}, None)
+    findings, files, unused = check(args.root, config)
     failed = any(f.severity == "error" for f in findings)
     if args.command == "check" and failed and args.format == "text" and not args.quiet:
         fixed = _fixable(args.root, config)  # only a failing check pays for write's imports
@@ -345,10 +386,11 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace, fixed
     if args.format == "json":
         summary = {"files": files, "errors": counts["error"], "warnings": counts["warning"], "info": counts["info"]}
         report = {
-            "version": JSON_VERSION,
-            "tool": {"name": "citesync", "version": _version()},
+            "schema_version": JSON_SCHEMA_VERSION,
+            "tool": _tool(),
             "summary": summary,
             "findings": [f.as_dict() for f in findings],
+            "errors": [],
         }
         print(json.dumps(report, indent=2))
         return
@@ -500,4 +542,4 @@ def _escape(text: str, *, property_: bool = False) -> str:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    entry()

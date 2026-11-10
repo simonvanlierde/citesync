@@ -593,7 +593,7 @@ def test_a_dangling_symlink_out_of_the_repo_is_not_created(tmp_path: Path, run: 
     (root / "codemeta.json").symlink_to(tmp_path / "victim.json")
 
     code, _, err = run("write", "--root", str(root))
-    assert (code, err) == (2, "citesync: codemeta.json: resolves outside the repo root, so write won't write it\n")
+    assert (code, err) == (3, "citesync: codemeta.json: resolves outside the repo root, so write won't write it\n")
     assert not (tmp_path / "victim.json").exists()
 
 
@@ -680,7 +680,7 @@ def test_a_failed_write_changes_no_file(tmp_path: Path, run: "Run", monkeypatch:
 
     monkeypatch.setattr("citesync.write.tempfile.mkstemp", failing_mkstemp)
     code, _, err = run("write", "--root", str(root))
-    assert (code, "No space left on device" in err) == (2, True)
+    assert (code, "No space left on device" in err) == (3, True)
     assert _snapshot(root) == before
     # beside its file, so the move is a rename on one file system, and hidden
     assert calls[0] == {"dir": root, "prefix": ".codemeta.json.", "suffix": ".tmp"}
@@ -1718,7 +1718,7 @@ def test_a_folder_it_cannot_write_into_is_a_clear_error(tmp_path: Path, run: "Ru
         code, _, err = run("write", "--root", str(root))
     finally:
         (root / "ro").chmod(stat.S_IRWXU)
-    assert (code, err) == (2, "citesync: ro/citation.bib: can't write: Permission denied\n")
+    assert (code, err) == (3, "citesync: ro/citation.bib: can't write: Permission denied\n")
     assert sorted(p.name for p in (root / "ro").iterdir()) == []
 
 
@@ -1730,4 +1730,4 @@ def test_a_folder_it_cannot_create_is_a_clear_error(tmp_path: Path, run: "Run") 
         code, _, err = run("write", "--root", str(root))
     finally:
         root.chmod(stat.S_IRWXU)
-    assert (code, err) == (2, "citesync: sub/codemeta.json: can't write: Permission denied\n")
+    assert (code, err) == (3, "citesync: sub/codemeta.json: can't write: Permission denied\n")
