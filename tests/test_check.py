@@ -279,11 +279,11 @@ def test_every_sarif_result_has_a_location(tmp_path: Path, run: "Run") -> None:
         ({"CITATION.cff": CFF}, ["--source", "README.md"], "--source: source must name one of"),
     ],
 )
-def test_exit_2(files: dict[str, str], args: list[str], message: str, tmp_path: Path, run: "Run") -> None:
+def test_exit_3(files: dict[str, str], args: list[str], message: str, tmp_path: Path, run: "Run") -> None:
     for name, text in files.items():
         (tmp_path / name).write_text(text, encoding="utf-8")
     code, out, err = run("check", "--root", str(tmp_path), *args)
-    assert (code, out) == (2, "")
+    assert (code, out) == (3, "")
     assert message in err
 
 
@@ -370,7 +370,7 @@ def test_unreadable_source_leaves_the_rest_checked(tmp_path: Path, run: "Run") -
     assert report["summary"] == {"files": 3, "errors": 2, "warnings": 0, "info": 11}
 
 
-def test_unexpected_error_is_exit_2(tmp_path: Path, run: "Run", monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unexpected_error_is_exit_3(tmp_path: Path, run: "Run", monkeypatch: pytest.MonkeyPatch) -> None:
     def boom(*_: object) -> None:
         msg = "boom"
         raise RuntimeError(msg)
@@ -378,7 +378,7 @@ def test_unexpected_error_is_exit_2(tmp_path: Path, run: "Run", monkeypatch: pyt
     monkeypatch.setattr("citesync.cli.check", boom)
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     code, out, err = run("check", "--root", str(tmp_path))
-    assert (code, out) == (2, "")
+    assert (code, out) == (3, "")
     assert err == f"citesync: {tmp_path}: unexpected error: RuntimeError: boom\n"
 
 
@@ -914,7 +914,9 @@ EPILOG = """\
 exit codes:
   0  no error finding (warnings and info don't fail)
   1  an error finding; with write --diff, a change to make or a file it can't read
-  2  citesync couldn't run: a bad config or option, a missing source file
+  2  usage error: an unknown command, option or rule
+  3  citesync couldn't run: a bad config, a missing source file
+  130  interrupted with Ctrl-C
 
 config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
 [workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json

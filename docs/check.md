@@ -69,6 +69,8 @@ A config error names the bad entry first and suggests the closest valid one. An 
 | ---: | --- |
 | 0 | no error finding: warnings and info don't fail a run |
 | 1 | an error finding, an unreadable file included |
-| 2 | citesync couldn't run: a bad config or option, a missing source file, or an internal error. stdout is empty and stderr says why (a bad option prints the usage first). A missing source names the root it looked in |
+| 2 | usage error: an unknown command or option, an option that doesn't go with another, or an unknown rule for `explain`. stdout is empty; stderr prints the usage and says why |
+| 3 | citesync couldn't run: a bad config, a missing source file, a file it can't write, or an internal error. stdout is empty and stderr says why, or with `--json` the report holds the error. A missing source names the root it looked in |
+| 130 | interrupted with Ctrl-C. Files `write` moved into place before stay written. The command then ends by SIGINT, as Ctrl-C does, so a shell loop around it stops too |
 
 The JSON, GitHub and SARIF formats are in [output.md](output.md).
