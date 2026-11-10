@@ -190,3 +190,13 @@ def test_write_leaves_a_dataset_file_even_with_every_manifest_field_on(name: str
     before = (root / "release" / name).read_bytes()
     assert run("write", "--root", str(root))[0] == 1
     assert (root / "release" / name).read_bytes() == before
+
+
+def test_an_ro_crate_finding_points_at_its_field(tmp_path: Path, run: "Run") -> None:
+    crate = _crate(version="1.3.0")
+    root = _repo(tmp_path, "ro-crate-metadata.json", crate)
+    (root / "release" / "ro-crate-metadata.json").write_text(json.dumps(crate, indent=2), encoding="utf-8")
+    lines = (root / "release" / "ro-crate-metadata.json").read_text(encoding="utf-8").splitlines()
+    line = next(n for n, text in enumerate(lines, 1) if '"version"' in text)
+    _, out, _ = run("check", "--root", str(root))
+    assert f"release/ro-crate-metadata.json:{line}:" in out
