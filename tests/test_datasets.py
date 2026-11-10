@@ -137,3 +137,56 @@ def test_an_ro_crate_without_a_root_entity_is_unreadable(tmp_path: Path, run: "R
     assert code == 1
     assert "unreadable" in out
     assert "no root data entity" in out
+
+
+ISBN = {"@id": "#isbn", "@type": "PropertyValue", "propertyID": "isbn", "value": "978-0-00-000000-0"}
+WRONG = "10.5555/lensgrind.old"
+
+
+@pytest.mark.parametrize(
+    ("identifier", "entities"),
+    [
+        (f"https://doi.org/{WRONG}", []),
+        ([{"@id": f"https://doi.org/{WRONG}"}], []),
+        ([{"@id": "#doi"}], [{"@id": "#doi", "@type": "PropertyValue", "url": f"https://doi.org/{WRONG}"}]),
+        ([{"@id": "#doi"}], [{"@id": "#doi", "@type": "PropertyValue", "value": f"doi:{WRONG}"}]),
+        ([{"@id": "#isbn"}, f"https://doi.org/{WRONG}"], [ISBN]),
+    ],
+    ids=["string", "doi-as-id", "property-value-url", "property-value-doi-value", "after-another-identifier"],
+)
+def test_an_ro_crate_doi_is_read_from_each_identifier_shape(
+    identifier: object, entities: list, tmp_path: Path, run: "Run"
+) -> None:
+    """A wrong DOI in each shape is a finding, so the DOI was read: a value check can't find is never compared."""
+    crate = _crate(identifier=identifier)
+    crate["@graph"] += entities
+    code, out, _ = run("check", "--root", str(_repo(tmp_path, "ro-crate-metadata.json", crate)))
+    assert code == 1
+    assert WRONG in out
+
+
+@pytest.mark.parametrize("name", MAKERS)
+def test_a_wrong_orcid_under_codemeta_3s_id_is_found(name: str, tmp_path: Path, run: "Run") -> None:
+    """An author copied from a CodeMeta 3 file keeps its ``id``, which sourceledger puts beside a local ``@id``."""
+    curie = {k: v for k, v in CURIE.items() if k != "@id"} | {
+        "@id": "#author-1",
+        "id": "https://orcid.org/0000-0002-9079-593X",
+    }
+    if name == "croissant.json":
+        data = _croissant(creator=[curie, LEEUWENHOEK])
+    else:
+        data = _crate(author=[{"@id": "#author-1"}, {"@id": "#author-2"}])
+        data["@graph"][2] = curie
+    code, out, _ = run("check", "--root", str(_repo(tmp_path, name, data)))
+    assert code == 1
+    assert "0000-0002-9079-593X" in out
+
+
+@pytest.mark.parametrize("name", MAKERS)
+def test_write_leaves_a_dataset_file_even_with_every_manifest_field_on(name: str, tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path, name, MAKERS[name](version="1.3.0"))
+    with (root / "citesync.toml").open("a", encoding="utf-8") as config:
+        config.write('write-manifests = "all"\n')
+    before = (root / "release" / name).read_bytes()
+    assert run("write", "--root", str(root))[0] == 1
+    assert (root / "release" / name).read_bytes() == before

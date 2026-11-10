@@ -30,7 +30,9 @@ The [configuration reference](config.md) lists the manifest fields that can be u
 
 sourceledger's `release` copies the name, description, licence, version, DOI, release date and authors from codemeta.json into `ro-crate-metadata.json` and `croissant.json`. `check` compares them with the source like a citation file, on every field they hold, so a release made from a stale codemeta.json shows up. It finds them at the repo root; a release folder goes under `manifests`, such as `manifests = ["pyproject.toml", "release/ro-crate-metadata.json"]`. `write` never changes them: fix the source, run `citesync write`, then `sourceledger release` again.
 
-An RO-Crate is read from its root data entity, the `@graph` entry with `@id` `./`. Each reference there, such as an author written as `{"@id": "https://orcid.org/..."}`, is read through the entity with that `@id`. A crate without that entry, such as a detached crate whose root is a URL, is [`unreadable`](rules.md#unreadable). Both files are read through codemeta-drift's `ro-crate` and `croissant` rows ([decision 0002](decisions/0002-vendored-mapping.md)).
+An RO-Crate is read from its root data entity, the `@graph` entry with `@id` `./`. Each reference there, such as an author written as `{"@id": "https://orcid.org/..."}`, is read through the entity with that `@id`. A crate without that entry, such as a detached crate whose root is a URL, is [`unreadable`](rules.md#unreadable). A DOI may be a string, an `@id`, or a PropertyValue's `url` or `doi:` `value`; citesync takes the first value spelled as a DOI. A finding in an RO-Crate points at its `@graph` key, not at the field.
+
+Not compared, because citesync can't read them as values: a person reference with no entity in `@graph`, keywords given as `DefinedTerm` references, and Croissant keys with the `sc:` prefix, such as `sc:name`. sourceledger writes none of these. Both files are read through codemeta-drift's `ro-crate` and `croissant` rows ([decision 0002](decisions/0002-vendored-mapping.md)).
 
 ## Plugin manifests
 

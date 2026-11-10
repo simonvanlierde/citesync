@@ -4878,15 +4878,15 @@
       "term": "license",
       "path": "@graph[@id=./].license[].@id | @graph[@id=./].license[]",
       "source": "curated:no RO-Crate crosswalk upstream; RO-Crate 1.3, https://w3id.org/ro/crate/1.3, describes the crate in its root data entity, the @graph entity with @id ./; the spec recommends a reference to a licence entity whose @id is its URL, and allows a plain string; license may repeat",
-      "comment": "The URL is usually an SPDX licence URL; the consumer converts between URL and SPDX id.",
+      "comment": "The URL is usually an SPDX licence URL; the consumer converts between URL and SPDX id. On a list that holds both strings and objects, the first alternative reads only the objects.",
       "crosswalk_cell": null
     },
     {
       "format": "ro-crate",
       "term": "identifier",
-      "path": "@graph[@id=./].identifier[].@id | @graph[@id=./].identifier[]",
-      "source": "curated:no RO-Crate crosswalk upstream; RO-Crate 1.3, https://w3id.org/ro/crate/1.3, describes the crate in its root data entity, the @graph entity with @id ./; identifier is schema.org's: a DOI is a string URI (RO-Crate 1.1) or a reference to a PropertyValue whose @id is the DOI URL (1.2 and later)",
-      "comment": "identifier may repeat; a DOI is told from other identifiers by its spelling. On a list that holds both strings and references, the first alternative reads only the references.",
+      "path": "@graph[@id=./].identifier[].url + @graph[@id=./].identifier[].value + @graph[@id=./].identifier[].@id + @graph[@id=./].identifier[]",
+      "source": "curated:no RO-Crate crosswalk upstream; RO-Crate 1.3, https://w3id.org/ro/crate/1.3, describes the crate in its root data entity, the @graph entity with @id ./; identifier is schema.org's: a DOI is a string URI (RO-Crate 1.1) or a reference to a PropertyValue (1.2 and later), whose url the spec recommends and whose @id its example makes the DOI URL",
+      "comment": "identifier may repeat. The path gives the url, value and @id of every identifier object, then every element itself, so a DOI may come back more than once, as a URL or a doi: value, beside local ids and whole objects; the consumer picks the DOI by its spelling and skips the objects.",
       "crosswalk_cell": null
     },
     {
@@ -4916,7 +4916,7 @@
       "term": "keywords",
       "path": "@graph[@id=./].keywords",
       "source": "curated:no RO-Crate crosswalk upstream; RO-Crate 1.3, https://w3id.org/ro/crate/1.3, describes the crate in its root data entity, the @graph entity with @id ./; keywords is schema.org's",
-      "comment": "A string of comma-separated keywords or a list of them; the consumer splits a string on commas.",
+      "comment": "A string of comma-separated keywords or a list of them; the consumer splits a resolved string on commas.",
       "crosswalk_cell": null
     },
     {
@@ -5019,15 +5019,15 @@
       "term": "license",
       "path": "license[].@id | license[]",
       "source": "curated:no Croissant crosswalk upstream; Croissant 1.1, http://mlcommons.org/croissant/1.1, describes the dataset in the document's top object, an sc:Dataset; license is required and may repeat, each a URL string or a CreativeWork with @id",
-      "comment": "The URL is usually an SPDX licence URL; the consumer converts between URL and SPDX id.",
+      "comment": "The URL is usually an SPDX licence URL; the consumer converts between URL and SPDX id. On a list that holds both strings and objects, the first alternative reads only the objects.",
       "crosswalk_cell": null
     },
     {
       "format": "croissant",
       "term": "identifier",
-      "path": "identifier[].@id | identifier[]",
-      "source": "curated:no Croissant crosswalk upstream; Croissant 1.1, http://mlcommons.org/croissant/1.1, describes the dataset in the document's top object, an sc:Dataset; identifier is schema.org's: a DOI is a string URI or a PropertyValue whose @id is the DOI URL",
-      "comment": "identifier may repeat; a DOI is told from other identifiers by its spelling. On a list that holds both strings and objects, the first alternative reads only the objects.",
+      "path": "identifier[].url + identifier[].value + identifier[].@id + identifier[]",
+      "source": "curated:no Croissant crosswalk upstream; Croissant 1.1, http://mlcommons.org/croissant/1.1, describes the dataset in the document's top object, an sc:Dataset; Croissant does not define identifier, so it is schema.org's, a string or a PropertyValue, read as for RO-Crate",
+      "comment": "identifier may repeat. The path gives the url, value and @id of every identifier object, then every element itself, so a DOI may come back more than once, as a URL or a doi: value, beside local ids and whole objects; the consumer picks the DOI by its spelling and skips the objects.",
       "crosswalk_cell": null
     },
     {
@@ -5057,7 +5057,7 @@
       "term": "keywords",
       "path": "keywords",
       "source": "curated:no Croissant crosswalk upstream; Croissant 1.1, http://mlcommons.org/croissant/1.1, describes the dataset in the document's top object, an sc:Dataset; keywords is schema.org's",
-      "comment": "A string of comma-separated keywords or a list of them; the consumer splits a string on commas.",
+      "comment": "A string of comma-separated keywords or a list of them; the consumer splits a resolved string on commas.",
       "crosswalk_cell": null
     },
     {

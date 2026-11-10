@@ -134,8 +134,11 @@ class Doc:
 
     @property
     def is_citation(self) -> bool:
-        """CITATION.cff, codemeta.json or .zenodo.json."""
-        return self.format in CITATION_FILES.values()
+        """CITATION.cff, codemeta.json, .zenodo.json, or a dataset file, which copies codemeta.json whole.
+
+        These agree on every field, keywords and release date too; a manifest only on what it shares.
+        """
+        return self.format in CITATION_FILES.values() or self.format in DATASET_FILES.values()
 
 
 def format_of(path: str) -> str:
@@ -437,7 +440,10 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str, mapping: Mappin
         lists = _list_keys(fmt, mapping)
         return _adapt_ro_crate(data, lists, rel) if fmt == "ro-crate" else _as_lists(data, lists)
     if fmt == "codemeta":
-        return {k: [v] if k in PEOPLE and isinstance(v, dict) else v for k, v in data.items()}
+        data = dict(data)
+        for key in PEOPLE:
+            if isinstance(people := data.get(key), dict):  # JSON-LD allows one node for a list of one
+                data[key] = [people]
     return data
 
 
@@ -585,6 +591,10 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
             raise TypeError(msg)
         people = (person(fmt, el, path, mapping, term, alternative) for el in found)
         return tuple(p for p in people if p) or None
+    if (
+        " + " in path and term in _DECODE
+    ):  # parts read together: the first value its decoder takes, a DOI by its spelling
+        return next((value for raw in resolve(data, path) if (value := _DECODE[term](raw)) is not None), None)
     slot = locate(fmt, term, data, path)
     if slot is None:
         return None
@@ -646,7 +656,12 @@ def person(  # noqa: C901 - one branch per format's person shape
             return None
         rel = relative(path, parent, alternative)
         values = [element] if rel == "" else resolve(element, rel)
-        values = [_ld(element, "id")] if fmt in _JSONLD and rel == "@id" and isinstance(element, dict) else values
+        if (
+            fmt in _JSONLD and rel == "@id" and isinstance(element, dict)
+        ):  # sourceledger keeps CodeMeta 3's id beside a local @id
+            values = [
+                next((v for v in (element.get("@id"), element.get("id")) if codemeta_orcid(v)), _ld(element, "id"))
+            ]
         return values[0] if values else None
 
     def text(value: object) -> str | None:

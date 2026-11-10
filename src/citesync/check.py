@@ -252,15 +252,7 @@ ZENODO_GAPS = {
 
 def has_slot(doc: Doc, term: str) -> bool:
     """Whether ``doc`` can be the reference for ``term``: a manifest's name and description never are."""
-    return term in doc.slots and (_whole(doc) or term not in {"name", "description"})
-
-
-def _whole(doc: Doc) -> bool:
-    """Whether ``doc`` holds the whole citation: a citation file, or a dataset file copied from codemeta.json.
-
-    Such files agree on every field, keywords and release date too; a manifest only on what it shares.
-    """
-    return doc.is_citation or doc.format in DATASETS
+    return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
 
 
 def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
@@ -300,7 +292,7 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
     compare by ``kw_key`` (:func:`keyword_key`).
     """
     a, b = ref.record[term], doc.record[term]
-    both_citation = _whole(ref) and _whole(doc)
+    both_citation = ref.is_citation and doc.is_citation
     if term in _KEY:
         equal = a == b or _KEY[term](a) == _KEY[term](b)  # equal text needs no parsing (packaging costs 2.5 ms)
     elif term in PEOPLE:
@@ -375,9 +367,9 @@ def _keywords_differ(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
     """A manifest's keywords must all be in the citation file's, whichever is the source."""
-    if not _whole(ref) and not _whole(doc):
+    if not ref.is_citation and not doc.is_citation:
         return None  # no rule between two manifests
-    manifest, citation = (ref, doc) if _whole(doc) else (doc, ref)
+    manifest, citation = (ref, doc) if doc.is_citation else (doc, ref)
     known = set(map(key, citation.record["keywords"]))
     extra = [k for k in manifest.record["keywords"] if key(k) not in known]
     if not extra:

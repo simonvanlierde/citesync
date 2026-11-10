@@ -1,7 +1,7 @@
 # Vendored from simonvanlierde/codemeta-drift; tests/test_mapping.py checks the sha256 lines.
 tag pr95
-commit fe47131ea0f804682f02e6e22e5a83111c7e9f5d
-sha256 954d9ce72c109bce3a3c3dee3bc0fd619788ab0663c0353f4ba5472e65d8b4cb mapping-local.json examples/mapping-3.1.json
-sha256 1681f1d9b679f43c7a5d20cfc813ff0b3694acbf0cad3974a8c9edfd29d56b28 mapping-4.0.json examples/mapping-4.0.json
+commit 9037229313db80701c8b4a404c1193af70386007
+sha256 5a2d640e509ce558fd0df8e3d99c9048fb7dc5e2d73b70ba1a367ae1d369c911 mapping-local.json examples/mapping-3.1.json
+sha256 9469e0d4727c18ce9ec19a24de4264f2bd822d213d7679c0de0e1ea0b3bc8e80 mapping-4.0.json examples/mapping-4.0.json
 sha256 8c3dc9f4ce49e50b9fe3c6fbd4ba6082ca100439974b3f531485740218b2aa7b mapping.schema.json src/codemeta_drift/mapping.schema.json
-sha256 eb8fe6ed9c79513643eecc538ebfd0b5ec0efb8327ce55646e81c90615f4b859 mapping-vectors.json src/codemeta_drift/mapping-vectors.json
+sha256 ed8da2f3c48ac71030d4f9e071052d810d9ed7c9ef1584fb26e103bec59c014b mapping-vectors.json src/codemeta_drift/mapping-vectors.json
