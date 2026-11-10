@@ -3,7 +3,7 @@
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.7.0"
+    "version": "0.7.1"
   },
   "context_terms": [
     "address",
