@@ -31,6 +31,8 @@ TERMS = (
     "keywords",
     "datePublished",
 )
+EXPORT_TERMS = ("publisher",)
+"""Terms read into the record for the exports only: check and write leave them alone."""
 PEOPLE = ("author", "contributor")
 """The terms that hold a list of people."""
 
@@ -41,6 +43,8 @@ def person_terms(term: str) -> tuple[str, str, str]:
 
 
 PERSON_TERMS = tuple(sub for term in PEOPLE for sub in person_terms(term))
+DATACITE_TERMS = (*(t for t in TERMS if t != "swhid"), *PERSON_TERMS, *EXPORT_TERMS, "resourceType")
+"""The datacite rows the DataCite export reads; the SWHID row is left out, since the export can't place it."""
 
 _KEY = r"@?[A-Za-z_][A-Za-z0-9_@-]*(?::[A-Za-z_][A-Za-z0-9_-]*)?"  # a prefixed key such as dcterms:creator
 _STEP = re.compile(rf"^({_KEY})(?:\[\]|\[({_KEY})=([A-Za-z0-9_.-]+)\])?$")
@@ -70,7 +74,7 @@ def load_mapping() -> Mapping:
 
     Raises:
         CheckError: on an unknown schema major, a duplicate row, or a missing row
-            for a term citesync reads.
+            for a term citesync reads or a row the DataCite export reads.
     """
     name = "mapping-local.json"
     # NOTE: read beside this module, not through importlib.resources, whose imports cost 5 ms a run.
@@ -93,8 +97,12 @@ def check_mapping(data: dict[str, Any], name: str) -> Mapping:  # noqa: C901 - o
             raise CheckError(msg)
         rows[key] = row["path"]
     missing = [
-        f"{fmt} {term}" for fmt in FORMATS + IMPORTED for term in TERMS + PERSON_TERMS if (fmt, term) not in rows
+        f"{fmt} {term}"
+        for fmt in FORMATS + IMPORTED
+        for term in TERMS + PERSON_TERMS + EXPORT_TERMS
+        if (fmt, term) not in rows
     ]
+    missing += [f"datacite {term}" for term in DATACITE_TERMS if ("datacite", term) not in rows]
     if missing:
         msg = f"{name}: no row for {', '.join(missing)}"
         raise CheckError(msg)

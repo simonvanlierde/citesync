@@ -22,7 +22,17 @@ from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
 from citesync.errors import CheckError, UnreadableError
-from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, context_terms, person_terms, relative, resolve
+from citesync.mapping import (
+    EXPORT_TERMS,
+    PEOPLE,
+    PERSON_TERMS,
+    TERMS,
+    Mapping,
+    context_terms,
+    person_terms,
+    relative,
+    resolve,
+)
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {
@@ -100,6 +110,7 @@ class Doc:
         dangling_roles: For codemeta.json, (list, ORCID) for each Role whose person isn't listed.
         import_notes: (term, message) for distribution values omitted during import.
         stray_terms: For codemeta.json, (key path, rule id, message) for each key its CodeMeta context doesn't define.
+        unusable: The export-only terms the file holds a value for that citesync can't decode.
         zenodo_gaps: For a CITATION.cff with no .zenodo.json beside it, (key, rule id) for each
             key Zenodo refuses or drops when it archives a release.
     """
@@ -115,6 +126,7 @@ class Doc:
     zenodo_gaps: tuple[tuple[str, str], ...] = ()
     import_notes: tuple[tuple[str, str], ...] = ()
     stray_terms: tuple[tuple[str, str, str], ...] = ()
+    unusable: tuple[str, ...] = ()
 
     @property
     def is_citation(self) -> bool:
@@ -157,20 +169,22 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
     stray = stray_terms(data, version) if fmt == "codemeta" and version else ()
-    record, roles = {}, ()
+    record, roles, unusable = {}, (), []
     no_zenodo = not (root / rel).with_name(".zenodo.json").is_file()
     gaps = zenodo_gaps(data) if fmt == CITATION_FILES["CITATION.cff"] and no_zenodo else ()
     try:
         data = _adapt(fmt, data, root, rel)
         if fmt == "codemeta":
             roles = dangling_roles(data)
-        for term in TERMS:
+        for term in TERMS + EXPORT_TERMS:
             path = mapping[fmt, term]
             if path is None:
                 continue
             value = _read_term(fmt, term, data, path, mapping)
             if value is not None:
                 record[term] = value
+            elif term in EXPORT_TERMS and locate(fmt, term, data, path):
+                unusable.append(term)
     except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
         raise UnreadableError(rel, f"unexpected shape ({err})") from err
     if keep_empty_contributors and fmt == "zenodo" and data.get("contributors") == []:
@@ -186,6 +200,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
         stray_terms=stray,
         zenodo_gaps=gaps,
         import_notes=tuple(data.get("_import_notes", ())) if PurePosixPath(rel).name in IMPORTS else (),
+        unusable=tuple(unusable),
     )
 
 
@@ -555,6 +570,7 @@ _DECODE = {
     "swhid": codecs.swhid_decode,
     "codeRepository": codecs.repo_decode,
     "datePublished": codecs.date_decode,
+    "publisher": codecs.publisher_decode,
 }
 
 
