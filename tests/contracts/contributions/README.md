@@ -41,7 +41,7 @@ Their MIT licence is in `MATRIX-LICENSE`.
 - `matrix-roster.json` SHA-256: `65d930d8c62987f88d3751f9206cfb3a1541838befd90ae79b81d67a807045fb`
 - `matrix-attribution.json` SHA-256: `5f7283afd7d9c6215c0776bacf2f57798ba9143075d8adba835ceec206bee4d0`
 
-The existing playground CI job installs the pinned `credit-matrix@0.10.0`
+The existing playground CI job installs the pinned `credit-matrix@0.11.0`
 development dependency and runs `tests/test_matrix_consumer.py`. The producer
 expectation is compared before citesync runs; `expected.json` remains the
 independent oracle for CFF and Zenodo. Python-only runs skip these four tests

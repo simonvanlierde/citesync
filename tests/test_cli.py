@@ -220,6 +220,7 @@ def test_diff_counts_on_stderr(tmp_path: Path, run: "Run") -> None:
     code, out, err = run("write", "--diff", "--root", str(root))
     assert (code, err) == (1, "would fix 9 findings in 4 files\n")
     assert out.startswith("--- a/")
+    assert run("write", "--diff", "-q", "--root", str(root))[2] == ""
 
 
 def test_verbose_names_a_skipped_manifest(tmp_path: Path, run: "Run") -> None:

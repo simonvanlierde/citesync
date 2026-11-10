@@ -297,6 +297,8 @@ def codemeta_version(context: object) -> str | None:
 def _detect_version(fmt: str, data: dict[str, Any], rel: str) -> str | None:
     if fmt == "codemeta":
         version = codemeta_version(data.get("@context"))
+        if "@context" not in data:
+            raise UnreadableError(rel, "has no @context, so it isn't CodeMeta")
         if version not in CODEMETA_VERSIONS:
             msg = f"@context {data.get('@context')!r} is not CodeMeta {', '.join(CODEMETA_VERSIONS)}"
             raise UnreadableError(rel, msg)
