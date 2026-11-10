@@ -1,4 +1,4 @@
-"""Citations made from the source's record: BibTeX, CSL-JSON, APA 7, JSON-LD and DataCite XML.
+"""Citations made from the source's record: BibTeX, CSL-JSON, APA 7, JSON-LD, DataCite XML, RIS and EndNote.
 
 A repo lists the files in the ``exports`` setting; the suffix picks the format. ``write``
 keeps them in step and ``check`` reports one that isn't (``export-stale``).
@@ -25,6 +25,8 @@ SUFFIXES = {
     ".bib": "bibtex",
     ".jsonld": "jsonld",
     ".datacite.xml": "datacite",
+    ".ris": "ris",
+    ".enw": "endnote",
 }
 # The file each format goes to when no path is given: the playground's names.
 DEFAULT_NAMES = {
@@ -33,6 +35,8 @@ DEFAULT_NAMES = {
     "bibtex": "citation.bib",
     "jsonld": "schema.jsonld",
     "datacite": "citation.datacite.xml",
+    "ris": "citation.ris",
+    "endnote": "citation.enw",
 }
 
 _TEX = {
@@ -97,7 +101,8 @@ def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
     day, notes = _date(rec.get("datePublished")), []
     if rec.get("datePublished") and day is None and fmt != "jsonld":  # JSON-LD carries the date as written
         notes.append(
-            "BibTeX, CSL-JSON and APA: release date omitted because it is not a YYYY, YYYY-MM or YYYY-MM-DD date."
+            "BibTeX, CSL-JSON, APA, DataCite, RIS and EndNote: release date omitted because it is not a YYYY, YYYY-MM"
+            " or YYYY-MM-DD date."
         )
     return _WRITERS[fmt](rec, day), notes
 
@@ -491,4 +496,49 @@ def _xml(value: str) -> str:
     return " ".join(_XML_BAD.sub("", value).split())
 
 
-_WRITERS = {"bibtex": _bibtex, "csl-json": _csl, "apa": _apa, "jsonld": _jsonld, "datacite": _datacite}
+def _tagged(fmt: str, rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
+    """A RIS or EndNote tagged record of type computer program, each tag where codemeta-drift's rows put it.
+
+    A row's first alternative is the tag written (``AU[] + A1[]`` writes ``AU``), and EndNote's ``_7`` is ``%7``.
+    Each value is one line. RIS ``PY`` and EndNote ``%D`` hold the year. RIS ends with ``ER  -``, with no
+    trailing space, which readers accept and a whitespace hook would otherwise strip.
+    """
+    rows = load_mapping()
+    line, kind, end = _TAGGED_SHAPES[fmt]
+    authors = [
+        p.name if p.organization or not p.family else ", ".join(filter(None, (p.family, p.given))) for p in _people(rec)
+    ]
+    values: dict[str, Any] = {
+        "name": [rec["name"]],
+        "version": [rec.get("version")],
+        "author": authors,
+        "identifier": [rec.get("identifier")],
+        "codeRepository": [rec.get("codeRepository")],
+        "description": [rec.get("description")],
+        "keywords": list(rec.get("keywords") or ()),
+        "datePublished": [day[0] if day else None],
+        "publisher": [rec.get("publisher")],
+    }
+
+    def tag(term: str) -> str:
+        return str(rows[fmt, term]).split(" | ")[0].split(" + ")[0].removesuffix("[]").removeprefix("_")
+
+    lines = [line.format(tag=tag("resourceType"), value=kind)]
+    lines += [line.format(tag=tag(t), value=" ".join(str(v).split())) for t, vs in values.items() for v in vs if v]
+    return "\n".join([*lines, *end]) + "\n"
+
+
+# format: (line shape, the record type, the closing lines)
+_TAGGED_SHAPES = {
+    "ris": ("{tag}  - {value}", "COMP", ("ER  -",)),
+    "endnote": ("%{tag} {value}", "Computer Program", ()),
+}
+_WRITERS = {
+    "bibtex": _bibtex,
+    "csl-json": _csl,
+    "apa": _apa,
+    "jsonld": _jsonld,
+    "datacite": _datacite,
+    "ris": lambda rec, day: _tagged("ris", rec, day),
+    "endnote": lambda rec, day: _tagged("endnote", rec, day),
+}

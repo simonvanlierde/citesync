@@ -6,7 +6,7 @@ message: If you use this software, please cite it as below.
 title: "citesync"
 version: "0.5.0"
 date-released: "2026-11-10"
-abstract: "citesync generates and synchronizes software citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. It also checks and updates Typst and Quarto plugin manifests. Imports include Python, Rust, npm, R and Julia package metadata; the CLI and playground also export BibTeX, CSL-JSON, APA, JSON-LD and DataCite XML citations, and the CLI prints CITATION.cff, CodeMeta and Zenodo files made from the source. It flags codemeta.json keys that are not CodeMeta terms."
+abstract: "citesync generates and synchronizes software citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. It also checks and updates Typst and Quarto plugin manifests. Imports include Python, Rust, npm, R and Julia package metadata; the CLI and playground also export BibTeX, CSL-JSON, APA, JSON-LD, DataCite XML, RIS and EndNote citations, and the CLI prints CITATION.cff, CodeMeta and Zenodo files made from the source. It flags codemeta.json keys that are not CodeMeta terms."
 authors:
   - given-names: "Simon"
     family-names: "van Lierde"
