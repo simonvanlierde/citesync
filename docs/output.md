@@ -8,8 +8,8 @@
 
 ```json
 {
-  "version": 1,
-  "tool": { "name": "citesync", "version": "0.2.0" },
+  "schema_version": 1,
+  "tool": { "name": "citesync", "version": "0.5.0" },
   "summary": { "files": 3, "errors": 1, "warnings": 0, "info": 0 },
   "findings": [
     {
@@ -23,13 +23,26 @@
       "line": 3,
       "column": 3
     }
-  ]
+  ],
+  "errors": []
 }
 ```
 
+`errors` is empty when the run finished. When citesync couldn't run (exit 3) or was interrupted (exit 130), the report has only `schema_version`, `tool` and `errors`, and stderr stays empty. Each error is an object with `message`, the line text output prints after `citesync:`, and `help`, what to do about it, or `null` when there is no known next step:
+
+```json
+{
+  "schema_version": 1,
+  "tool": { "name": "citesync", "version": "0.5.0" },
+  "errors": [{ "message": "CITATION.cff: the source file is missing from /home/ada/radium; name another with --source, or the repo with --root", "help": null }]
+}
+```
+
+A usage error (exit 2) is found before the run starts, so it prints the usage on stderr even with `--json`.
+
 Findings are sorted by file, rule and field. `line` and `column` count from 1. For a finding on a field they point at the field's key, or at the table or object above it when the key isn't there under the name the mapping gives. For `unreadable` they point where the parser stopped, when it says. They are null where there is nothing to point at, such as a finding on no file, `file-missing`, `manifest-skipped` and `export-stale`. A list's key stands for the whole list, so an author finding points at `authors`, not at one author. A column counts characters, not bytes. `file` is null for a field no file holds. `term`, the CodeMeta term, is null for `unreadable`, `file-missing`, `manifest-skipped` and `export-stale`. In the message, a value longer than 80 characters is cut short with `...`. JSON always lists every finding: `-q` and `-v` change only the text, GitHub and SARIF output.
 
-[tests/output.schema.json](../tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields, so ignore what you don't know. Only a major release removes or retypes a field, and it bumps `version`.
+[tests/output.schema.json](../tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields, so ignore what you don't know. Only a major release removes or retypes a field, and it bumps `schema_version`.
 
 ## GitHub
 

@@ -106,7 +106,7 @@ def test_init_refuses_an_existing_citation_file(tmp_path: Path, run: "Run") -> N
     shutil.copytree(SYNTHETIC, root)
     before = (root / "CITATION.cff").read_bytes()
     code, out, err = run("init", "--root", str(root))
-    assert (code, out) == (2, "")
+    assert (code, out) == (3, "")
     assert "CITATION.cff already exists" in err
     assert (root / "CITATION.cff").read_bytes() == before
 
@@ -147,7 +147,7 @@ def test_init_refuses_without_a_title_or_authors(
     if pyproject:
         (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
     code, _, err = run("init", "--root", str(tmp_path))
-    assert code == 2
+    assert code == 3
     assert message in err
     assert not (tmp_path / "CITATION.cff").exists()
 
@@ -211,7 +211,7 @@ def test_init_refuses_a_dangling_citation_file_link(tmp_path: Path, run: "Run") 
     (tmp_path / "CITATION.cff").symlink_to(tmp_path / "elsewhere.cff")
     code, _, err = run("init", "--root", str(tmp_path))
     assert (code, err) == (
-        2,
+        3,
         "citesync: CITATION.cff already exists; `citesync write` makes it agree with another file\n",
     )
     assert not (tmp_path / "elsewhere.cff").exists()
@@ -221,7 +221,7 @@ def test_init_refuses_when_a_file_cannot_be_read(tmp_path: Path, run: "Run") -> 
     (tmp_path / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
     (tmp_path / "codemeta.json").write_text("{", encoding="utf-8")
     code, _, err = run("init", "--root", str(tmp_path))
-    assert code == 2
+    assert code == 3
     assert err.startswith("citesync: codemeta.json:1:2: ")
     assert not (tmp_path / "CITATION.cff").exists()
 
@@ -231,7 +231,7 @@ def test_init_names_every_file_it_read_for_a_missing_title(tmp_path: Path, run: 
     (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
     (tmp_path / "package.json").write_text('{"author": "Tu Youyou"}\n', encoding="utf-8")
     code, _, err = run("init", "--root", str(tmp_path))
-    assert (code, err) == (2, "citesync: no title in pyproject.toml, package.json, and CITATION.cff needs one\n")
+    assert (code, err) == (3, "citesync: no title in pyproject.toml, package.json, and CITATION.cff needs one\n")
 
 
 CARGO = """\

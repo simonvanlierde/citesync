@@ -294,7 +294,7 @@ def test_no_title_is_a_finding_not_a_crash(tmp_path: Path, run: "Run") -> None:
     assert run("write", "--root", str(tmp_path))[0] == 1
     assert not (tmp_path / "citation.bib").exists()
     code, _, err = run("export", "--root", str(tmp_path), "--format", "bibtex")
-    assert (code, err) == (2, "citesync: no file gives a title, which a citation needs\n")
+    assert (code, err) == (3, "citesync: no file gives a title, which a citation needs\n")
 
 
 def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_path: Path, run: "Run") -> None:
@@ -388,7 +388,7 @@ def test_export_findings_keep_the_other_findings(tmp_path: Path, run: "Run") -> 
 def test_export_command_needs_a_readable_source(tmp_path: Path, run: "Run") -> None:
     (tmp_path / "CITATION.cff").write_text("cff-version: [\n", encoding="utf-8")
     code, out, err = run("export", "--root", str(tmp_path), "--format", "apa")
-    assert (code, out) == (2, "")
+    assert (code, out) == (3, "")
     assert err.startswith("citesync: CITATION.cff")
 
 
@@ -497,7 +497,7 @@ def test_export_says_what_a_citation_file_needs(tmp_path: Path, run: "Run", fmt:
         f'{{"@context": "https://w3id.org/codemeta/3.0", {terms}}}', encoding="utf-8"
     )
     (tmp_path / "citesync.toml").write_text('source = "codemeta.json"\n', encoding="utf-8")
-    assert run("export", "--root", str(tmp_path), "--format", fmt) == (2, "", f"citesync: {needs}\n")
+    assert run("export", "--root", str(tmp_path), "--format", fmt) == (3, "", f"citesync: {needs}\n")
 
 
 _FORMAT = {
@@ -533,5 +533,5 @@ def test_a_named_source_that_is_missing_is_an_error(tmp_path: Path, run: "Run", 
     if command[0] == "init":  # init makes a CITATION.cff only where there is none
         (root / "CITATION.cff").unlink()
     code, out, err = run(*command, "--root", str(root), "--source", "codemeta.json")
-    assert (code, out) == (2, "")
+    assert (code, out) == (3, "")
     assert err.startswith("citesync: codemeta.json: the source file is missing")
