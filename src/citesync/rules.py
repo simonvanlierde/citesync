@@ -192,7 +192,8 @@ RULES = {
     "export-stale": Rule(
         "error",
         "A file listed under `exports` is missing or differs from what the source gives.",
-        "Run `citesync write`; for an export that can't be made, set the missing field in the source.",
+        "Run `citesync write`; for an export that can't be made, set the missing field in the source. A link or folder"
+        " at that path, which write won't replace, has to move first.",
         "Each `exports` entry is a citation made from the source: BibTeX (`.bib`), CSL-JSON (`.csl.json`), APA 7"
         " (`.apa.txt`), schema.org JSON-LD (`.jsonld`) or DataCite XML (`.datacite.xml`). The file must equal what"
         " `citesync export` prints for its format, with CRLF line ends read as LF. A term the source doesn't hold"

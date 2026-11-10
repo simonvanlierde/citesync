@@ -1,6 +1,6 @@
 # How `citesync init` works
 
-`citesync init` writes a CITATION.cff for a repo that has none. It reads the files the repo already has: codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json, typst.toml, _extension.yml), at the root or where the `manifests` setting lists them. `citesync init --diff` prints the new file as a diff and writes nothing, with its notes on stderr. It exits 0 whenever it can run, though `write --diff` exits 1 when it shows a change.
+`citesync init` writes a CITATION.cff for a repo that has none. It reads the files the repo already has: codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json, typst.toml, _extension.yml), at the root or where the `manifests` setting lists them. It skips what [check](check.md) skips: a file the `files` setting leaves out, and a manifest no one installs, such as a private package.json, unless that leaves no file to read. `citesync init --diff` prints the new file as a diff and writes nothing, with its notes on stderr. It exits 0 whenever it can run, though `write --diff` exits 1 when it shows a change.
 
 ## Where each field comes from
 

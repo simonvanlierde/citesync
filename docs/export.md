@@ -34,6 +34,6 @@ These three can't go under `exports`: list them under `files`, and `write` updat
 
 ## Where the values come from
 
-The values come from the source. A field the source doesn't hold, such as the DOI when pyproject.toml is the source, comes from the first other file that holds it, in the order [check](check.md) reads them. The BibTeX `url` and CSL `URL` are the repository URL. A release date that isn't a full `YYYY-MM-DD` date is left out of BibTeX, CSL-JSON and APA, and the command says so on stderr. JSON-LD keeps the date as written.
+The values come from the source. A field the source doesn't hold, such as the DOI when pyproject.toml is the source, comes from the first other file that holds it, in the order [check](check.md) reads them. The BibTeX `url` and CSL `URL` are the repository URL. A release date that isn't `YYYY`, `YYYY-MM` or `YYYY-MM-DD` is left out of BibTeX, CSL-JSON and APA, and the command says so on stderr. JSON-LD keeps the date as written.
 
 Use the files at build time: a static site imports `schema.jsonld` or `citation.apa.txt` without running Python, and the [playground](../playground/README.md) offers the same files, DataCite XML only when the record has a DOI, an author, a publisher and a release year.
