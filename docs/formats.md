@@ -15,6 +15,8 @@ Reading, updating and creating a file are separate operations:
 | DESCRIPTION | Yes, static R package metadata | Never | No |
 | Project.toml / JuliaProject.toml | Yes, Julia metadata | Never | No |
 | PKG-INFO / METADATA | Yes, Python Core Metadata | Never | No |
+| ro-crate-metadata.json | Yes, an RO-Crate 1.3 root dataset | Never | No, [sourceledger](https://github.com/simonvanlierde/sourceledger) `release` makes it |
+| croissant.json | Yes, a Croissant 1.1 dataset | Never | No, sourceledger `release` makes it |
 | Exports: `.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris`, `.enw` | Compared whole with what the source gives | Made again whole | `citesync write`, when listed in `exports` ([exports](export.md)) |
 
 Any supported file can be the source. For example, `citesync init` can read a package manifest
@@ -23,6 +25,12 @@ to create CITATION.cff. It does not require an existing codemeta.json.
 The [init guide](init.md) explains how fields are combined and names are split.
 The [write guide](write.md) describes file creation, omitted fields and preservation of existing data.
 The [configuration reference](config.md) lists the manifest fields that can be updated.
+
+## Dataset files
+
+sourceledger's `release` copies the name, description, licence, version, DOI, release date and authors from codemeta.json into `ro-crate-metadata.json` and `croissant.json`. `check` compares them with the source like a citation file, on every field they hold, so a release made from a stale codemeta.json shows up. It finds them at the repo root; a release folder goes under `manifests`, such as `manifests = ["pyproject.toml", "release/ro-crate-metadata.json"]`. `write` never changes them: fix the source, run `citesync write`, then `sourceledger release` again.
+
+An RO-Crate is read from its root data entity, the `@graph` entry with `@id` `./`. Each reference there, such as an author written as `{"@id": "https://orcid.org/..."}`, is read through the entity with that `@id`. A crate without that entry, such as a detached crate whose root is a URL, is [`unreadable`](rules.md#unreadable). Both files are read through codemeta-drift's `ro-crate` and `croissant` rows ([decision 0002](decisions/0002-vendored-mapping.md)).
 
 ## Plugin manifests
 

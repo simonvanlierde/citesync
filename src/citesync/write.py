@@ -42,6 +42,7 @@ from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
 from citesync.formats import (
     CITATION_FILES,
+    DATASET_FILES,
     IMPORTS,
     MANIFESTS,
     ONE_AUTHOR,
@@ -100,7 +101,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     source, texts, skipped, done = docs[0], {}, {}, set()
     key = keyword_key(config)
     for doc in docs:  # the source too, for its @context
-        if PurePosixPath(doc.path).name in IMPORTS:
+        if PurePosixPath(doc.path).name in IMPORTS | DATASET_FILES:
             continue
         terms = [
             t
@@ -307,6 +308,8 @@ def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]
         return "set the missing field in the source"
     if (reason := skipped.get((str(finding.file), str(finding.term)))) is not None:
         return f"edit it by hand: {reason}"
+    if finding.file and PurePosixPath(finding.file).name in DATASET_FILES:
+        return "it is made from codemeta.json: run `sourceledger release` again after `citesync write`"
     if (
         finding.file
         and finding.term

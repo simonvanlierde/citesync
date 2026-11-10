@@ -12,7 +12,7 @@ import json
 import re
 import tomllib
 import unicodedata
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -52,7 +52,11 @@ IMPORTS = {
     "Project.toml": "julia",
     "JuliaProject.toml": "julia",
 }
-FORMAT_OF = CITATION_FILES | MANIFESTS | IMPORTS
+DATASET_FILES = {"ro-crate-metadata.json": "ro-crate", "croissant.json": "croissant"}
+"""Compared like a manifest and never written; see :data:`citesync.mapping.DATASETS`."""
+FORMAT_OF = CITATION_FILES | MANIFESTS | IMPORTS | DATASET_FILES
+_JSONLD = frozenset({"codemeta", *DATASET_FILES.values()})
+"""The schema.org formats: a person's @id is its ORCID, a lone name is an Organization's, keywords may be a string."""
 CODEMETA_VERSIONS = ("2.0", "3.0", "3.1", "4.0")
 CFF_VERSIONS = ("1.2.0",)
 
@@ -173,7 +177,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
     no_zenodo = not (root / rel).with_name(".zenodo.json").is_file()
     gaps = zenodo_gaps(data) if fmt == CITATION_FILES["CITATION.cff"] and no_zenodo else ()
     try:
-        data = _adapt(fmt, data, root, rel)
+        data = _adapt(fmt, data, root, rel, mapping)
         if fmt == "codemeta":
             roles = dangling_roles(data)
         for term in TERMS + EXPORT_TERMS:
@@ -421,7 +425,7 @@ def _is_release(fmt: str, data: dict[str, Any]) -> bool:
     return True
 
 
-def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, Any]:
+def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str, mapping: Mapping) -> dict[str, Any]:
     if fmt == "cargo":
         return _adapt_cargo(data, root, rel)
     if fmt == "pep621" and isinstance(project := data.get("project"), dict):
@@ -429,12 +433,51 @@ def _adapt(fmt: str, data: dict[str, Any], root: Path, rel: str) -> dict[str, An
         return {**data, "project": {k: v for k, v in project.items() if k not in dynamic}}
     if fmt == "npm":
         return _adapt_npm(data)
+    if fmt in DATASET_FILES.values():
+        lists = _list_keys(fmt, mapping)
+        return _adapt_ro_crate(data, lists, rel) if fmt == "ro-crate" else _as_lists(data, lists)
     if fmt == "codemeta":
-        data = dict(data)
-        for key in PEOPLE:
-            if isinstance(people := data.get(key), dict):  # JSON-LD allows one node for a list of one
-                data[key] = [people]
+        return {k: [v] if k in PEOPLE and isinstance(v, dict) else v for k, v in data.items()}
     return data
+
+
+def _list_keys(fmt: str, mapping: Mapping) -> frozenset[str]:
+    """The keys ``fmt``'s rows read as lists (``author[]``), at the top of the root entity's paths."""
+    paths = (path for (f, _), path in mapping.items() if f == fmt and path)
+    steps = (
+        re.split(r"\.(?![^\[\]]*\])", alt.removeprefix("@graph[@id=./].")) for p in paths for alt in p.split(" | ")
+    )
+    return frozenset(s[0].removesuffix("[]") for s in steps if s[0].endswith("[]"))
+
+
+def _as_lists(node: dict[str, Any], keys: Iterable[str]) -> dict[str, Any]:
+    """``node`` with each of ``keys`` that holds one value as a list of it: JSON-LD writes a list of one bare."""
+    return {k: [v] if k in keys and not isinstance(v, list) else v for k, v in node.items()}
+
+
+def _adapt_ro_crate(data: dict[str, Any], lists: frozenset[str], rel: str) -> dict[str, Any]:
+    """The crate with its root entity (``@id`` ``./``) alone in ``@graph``, each reference in it replaced by its entity.
+
+    A reference is an object whose only key is ``@id``; it is replaced one level deep, and one with no entity
+    stays as it is. So ``author[].givenName`` reads the Person entity an author refers to.
+
+    Raises:
+        UnreadableError: when no entity has the ``@id`` ``./``, as in a detached crate.
+    """
+    graph = [e for e in data.get("@graph") or () if isinstance(e, dict)]
+    entities = {e["@id"]: e for e in graph if isinstance(e.get("@id"), str)}
+    root = entities.get("./")
+    if root is None:
+        raise UnreadableError(rel, "no root data entity (an @graph entry with @id ./), so citesync can't read it")
+
+    def entity(value: object) -> object:
+        if isinstance(value, list):
+            return [entity(v) for v in value]
+        if isinstance(value, dict) and value.keys() == {"@id"} and isinstance(value["@id"], str):
+            return entities.get(value["@id"], value)
+        return value
+
+    return {"@graph": [_as_lists({k: entity(v) for k, v in root.items()}, lists)]}
 
 
 def locate(fmt: str, term: str, data: Any, path: str) -> tuple[Any, str] | None:  # noqa: ANN401
@@ -551,7 +594,7 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
             raw
             if isinstance(raw, list)
             else _KEYWORD_COMMAS.split(raw)
-            if fmt == "codemeta" and isinstance(raw, str)
+            if fmt in _JSONLD and isinstance(raw, str)
             else [raw]
         )
         words = tuple(codecs.clean(w) for w in items if isinstance(w, str) and w.strip())
@@ -584,14 +627,14 @@ def person(  # noqa: C901 - one branch per format's person shape
         element = {k: v for k, v in element.items() if not (isinstance(v, str) and not v.strip())}
     org = isinstance(element, dict) and (
         _ld(element, "type") == "Organization"
-        if fmt == "codemeta"
+        if fmt in _JSONLD
         else fmt in {"cff-1.2.0", "julia"} and "given-names" not in element and "name" in element
     )
     if fmt == "julia" and isinstance(element, str):  # Pkg writes "Name <email>"; a table is a CFF person or entity
         element = {"name": re.sub(r"\s*<[^<>]+>\s*$", "", element).strip()}
     if fmt in {"cff-1.2.0", "julia"} and isinstance(element, dict):
         element = cff_person(element)
-    elif fmt == "codemeta":
+    elif fmt in _JSONLD:
         element = codemeta_person(element)
     elif fmt == "npm" and isinstance(element, str):  # "Name <email>"
         element = {"name": element}
@@ -603,13 +646,13 @@ def person(  # noqa: C901 - one branch per format's person shape
             return None
         rel = relative(path, parent, alternative)
         values = [element] if rel == "" else resolve(element, rel)
-        values = [_ld(element, "id")] if fmt == "codemeta" and rel == "@id" and isinstance(element, dict) else values
+        values = [_ld(element, "id")] if fmt in _JSONLD and rel == "@id" and isinstance(element, dict) else values
         return values[0] if values else None
 
     def text(value: object) -> str | None:
         return (codecs.clean(value) or None) if isinstance(value, str) else None
 
-    orcid = (codemeta_orcid if fmt == "codemeta" else codecs.orcid_decode)(sub(orcid_term))
+    orcid = (codemeta_orcid if fmt in _JSONLD else codecs.orcid_decode)(sub(orcid_term))
     given, family = None, None
     if mapping[fmt, given_term] == mapping[fmt, family_term]:
         raw = sub(given_term)

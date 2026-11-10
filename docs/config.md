@@ -14,7 +14,7 @@ It ignores the others and doesn't merge them. `citesync config` prints the confi
 source = "CITATION.cff"                  # any supported source filename
 codemeta-version = "3.0"                 # default: unset, so any CodeMeta version passes
 files = ["codemeta.json", ".zenodo.json"]  # default: the citation files present
-manifests = ["src/core/package.json"]      # replaces the default root manifests
+manifests = ["src/core/package.json"]      # replaces the default root manifests and dataset files
 write-manifests = ["keywords", "license"]  # or "all"; the manifest fields write may change
 exports = ["CITATION.bib", "schema.jsonld"]  # citations write keeps in step; the suffix picks the format
 zenodo-contributor-type = "Other"          # default unset: new Zenodo contributors need a hand edit

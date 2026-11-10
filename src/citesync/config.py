@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from citesync.errors import CheckError, UnreadableError, did_you_mean
-from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS, load
+from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, DATASET_FILES, FORMAT_OF, MANIFESTS, load
 from citesync.mapping import TERMS, resolve
 from citesync.rules import MISMATCH, RULES
 
@@ -239,7 +239,7 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "source": lambda value, origin: _path(value, FORMAT_OF, origin, "source"),
     "codemeta-version": _codemeta_version,
     "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
-    "manifests": lambda value, origin: _paths(value, MANIFESTS, origin, "manifests"),
+    "manifests": lambda value, origin: _paths(value, MANIFESTS | DATASET_FILES, origin, "manifests"),
     "write-manifests": _write_manifests,
     "exports": _exports,
     "zenodo-contributor-type": _zenodo_contributor_type,

@@ -9,6 +9,7 @@ from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import (
     CITATION_FILES,
+    DATASET_FILES,
     MANIFESTS,
     ONE_AUTHOR,
     Doc,
@@ -18,7 +19,7 @@ from citesync.formats import (
     same_name,
     slots,
 )
-from citesync.mapping import FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
+from citesync.mapping import DATASETS, FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import MISMATCH, RULES, url
 
 
@@ -89,7 +90,7 @@ def discover(root: Path, config: Config) -> list[str]:
     citation = config.files if config.files is not None else tuple(CITATION_FILES)
     paths = [config.source, *(p for p in citation if (root / p).is_file())]
     if config.manifests is None:
-        paths += [p for p in MANIFESTS if (root / p).is_file()]
+        paths += [p for p in (*MANIFESTS, *DATASET_FILES) if (root / p).is_file()]
     else:
         for path in config.manifests:
             if not (root / path).is_file():
@@ -133,7 +134,9 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
             Finding(d.path, None, "manifest-skipped", _NOT_RELEASED[d.format]) for d in docs if d not in kept
         ]
         docs = kept
-    return docs[:1] + sorted(docs[1:], key=lambda d: ((*FORMATS, *IMPORTED).index(d.format), d.path)), unreadable
+    return docs[:1] + sorted(
+        docs[1:], key=lambda d: ((*FORMATS, *IMPORTED, *DATASETS).index(d.format), d.path)
+    ), unreadable
 
 
 _NOT_RELEASED = {
@@ -249,7 +252,15 @@ ZENODO_GAPS = {
 
 def has_slot(doc: Doc, term: str) -> bool:
     """Whether ``doc`` can be the reference for ``term``: a manifest's name and description never are."""
-    return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
+    return term in doc.slots and (_whole(doc) or term not in {"name", "description"})
+
+
+def _whole(doc: Doc) -> bool:
+    """Whether ``doc`` holds the whole citation: a citation file, or a dataset file copied from codemeta.json.
+
+    Such files agree on every field, keywords and release date too; a manifest only on what it shares.
+    """
+    return doc.is_citation or doc.format in DATASETS
 
 
 def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
@@ -289,7 +300,7 @@ def compare(term: str, ref: Doc, doc: Doc, *, orcid_only: bool = False, kw_key: 
     compare by ``kw_key`` (:func:`keyword_key`).
     """
     a, b = ref.record[term], doc.record[term]
-    both_citation = ref.is_citation and doc.is_citation
+    both_citation = _whole(ref) and _whole(doc)
     if term in _KEY:
         equal = a == b or _KEY[term](a) == _KEY[term](b)  # equal text needs no parsing (packaging costs 2.5 ms)
     elif term in PEOPLE:
@@ -364,9 +375,9 @@ def _keywords_differ(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding |
 
 def _keywords_subset(ref: Doc, doc: Doc, key: Callable[[str], str]) -> Finding | None:
     """A manifest's keywords must all be in the citation file's, whichever is the source."""
-    if not ref.is_citation and not doc.is_citation:
+    if not _whole(ref) and not _whole(doc):
         return None  # no rule between two manifests
-    manifest, citation = (ref, doc) if doc.is_citation else (doc, ref)
+    manifest, citation = (ref, doc) if _whole(doc) else (doc, ref)
     known = set(map(key, citation.record["keywords"]))
     extra = [k for k in manifest.record["keywords"] if key(k) not in known]
     if not extra:
