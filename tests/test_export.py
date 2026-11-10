@@ -329,6 +329,7 @@ def test_an_export_outside_the_root_or_a_directory_is_never_read_or_written(tmp_
     code, out, err = run("write", "--root", str(root))
     assert code == 1
     assert "unexpected error" not in err
+    assert "under a file (edit it by hand)" in out  # an export that can't be made gets "set the missing field"
     assert (root / "citation.bib").is_file()
     assert (elsewhere / "citation.apa.txt").read_text(encoding="utf-8") == "hi\n"
 
