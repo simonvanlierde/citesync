@@ -884,15 +884,20 @@ def test_endnote_is_a_computer_program_record() -> None:
     )
 
 
-@pytest.mark.parametrize(("fmt", "line"), [("ris", "{tag}  - "), ("endnote", "%{tag} ")])
-def test_tagged_exports_carry_the_field_each_row_names(fmt: str, line: str) -> None:
-    from citesync.mapping import load_mapping  # noqa: PLC0415
-
-    rows = load_mapping()
-    out = render(fmt, TAGGED)[0].splitlines()
-    for term in ("name", "version", "author", "identifier", "codeRepository", "description", "keywords"):
-        tag = str(rows[fmt, term]).split(" | ")[0].split(" + ")[0].removesuffix("[]").removeprefix("_")
-        assert any(row.startswith(line.format(tag=tag)) for row in out), (fmt, term, tag)
+def test_tagged_exports_write_odd_authors_and_values_on_one_line() -> None:
+    rec = {
+        "name": "x",
+        "version": "  ",
+        "author": (Person("Madonna"), Person("Marie", given="Marie"), LAB),
+        "description": "One.\n\nTwo.",
+        "datePublished": "2026-13",
+    }
+    out, notes = render("ris", rec)
+    assert out == (
+        "TY  - COMP\nTI  - x\nAU  - Madonna\nAU  - Marie\nAU  - Example Optics Institute\nAB  - One. Two.\nER  -\n"
+    )
+    assert notes
+    assert render("endnote", rec)[0].splitlines()[2:4] == ["%A Madonna", "%A Marie"]
 
 
 def test_tagged_exports_leave_out_what_the_record_lacks() -> None:

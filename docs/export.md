@@ -1,6 +1,6 @@
 # Citation exports
 
-`citesync export --format apa|bibtex|csl-json|jsonld|datacite` prints a citation made from the source file. To keep committed copies up to date, list them under `exports` in the [config](config.md):
+`citesync export --format apa|bibtex|csl-json|jsonld|datacite|ris|endnote` prints a citation made from the source file. To keep committed copies up to date, list them under `exports` in the [config](config.md):
 
 ```toml
 exports = ["CITATION.bib", "citation.csl.json", "citation.apa.txt", "schema.jsonld", "citation.datacite.xml", "citation.ris", "citation.enw"]
@@ -17,7 +17,7 @@ The suffix picks the format:
 | `.apa.txt` | APA 7 software reference, one line | Initials from given names (`J.-B.` for Jean-Baptiste). Up to 20 authors, then the first 19, an ellipsis and the last. `(n.d.)` with no release date. Links the DOI, else the repository. |
 | `.jsonld` | schema.org `SoftwareSourceCode` | The plain `https://schema.org` context, which search engines read, so a website can embed it in a `<script type="application/ld+json">` tag. CodeMeta's context isn't read by them. |
 | `.datacite.xml` | DataCite Metadata Schema 4.7 | Each element sits where codemeta-drift's datacite rows put it. DataCite requires a DOI, an author, a publisher and a release year, so `citesync export` refuses it with exit 3, and `check` reports `export-stale`, when the source lacks one or holds one citesync can't use. The publisher is `publisher` in codemeta.json: a name, an Organization with a name, or a list of Organizations (the first is used). A SWHID is left out: the schema requires a relation type for a related identifier, and the rows name none. See below for the values citesync chooses. |
-| `.ris` | RIS, type `COMP` (computer program) | For Zotero, EndNote, Mendeley and other reference managers. Each tag sits where codemeta-drift's ris rows put it: `TI`, `AU` per author as `Family, Given`, `ET` for the version, `DO`, `UR`, `AB`, `KW` per keyword, `PY` with the year, and `PB`. Each value is one line. The record ends with `ER  -`, without the trailing space, so a whitespace hook leaves it alone. |
+| `.ris` | RIS, type `COMP` (computer program) | For Zotero, EndNote, Mendeley and other reference managers. Each tag sits where codemeta-drift's ris rows put it: `TI`, `AU` per author as `Family, Given`, `ET` for the version, `DO`, `UR`, `AB`, `KW` per keyword, `PY` with the year only, and `PB`. Each value is one line, so a description with paragraphs is joined into one. An organisation name with a comma (`Acme, Inc.`) is read back as family name `Acme`, given name `Inc.`: RIS and EndNote have no way to mark a name as an organisation. The record ends with `ER  -`, without the trailing space, so a whitespace hook leaves it alone. |
 | `.enw` | EndNote tagged, type `Computer Program` | The same fields under EndNote's tags from its rows: `%T`, `%A`, `%7` for the version, `%R` for the DOI, `%U`, `%X`, `%K`, `%D` with the year, and `%I`. |
 
 In the DataCite XML, citesync chooses three values that no mapping row holds:

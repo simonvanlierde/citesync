@@ -5,6 +5,7 @@ keeps them in step and ``check`` reports one that isn't (``export-stale``).
 """
 
 import datetime as dt
+import functools
 import json
 import re
 import unicodedata
@@ -496,7 +497,7 @@ def _xml(value: str) -> str:
     return " ".join(_XML_BAD.sub("", value).split())
 
 
-def _tagged(fmt: str, rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
+def _tagged(rec: dict[str, Any], day: tuple[int, ...] | None, fmt: str) -> str:
     """A RIS or EndNote tagged record of type computer program, each tag where codemeta-drift's rows put it.
 
     A row's first alternative is the tag written (``AU[] + A1[]`` writes ``AU``), and EndNote's ``_7`` is ``%7``.
@@ -505,26 +506,20 @@ def _tagged(fmt: str, rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
     """
     rows = load_mapping()
     line, kind, end = _TAGGED_SHAPES[fmt]
-    authors = [
-        p.name if p.organization or not p.family else ", ".join(filter(None, (p.family, p.given))) for p in _people(rec)
+    pairs = [("resourceType", kind), ("name", rec["name"]), ("version", rec.get("version"))]
+    pairs += [
+        ("author", p.name if p.organization or not p.family else f"{p.family}, {p.given}".removesuffix(", "))
+        for p in _people(rec)
     ]
-    values: dict[str, Any] = {
-        "name": [rec["name"]],
-        "version": [rec.get("version")],
-        "author": authors,
-        "identifier": [rec.get("identifier")],
-        "codeRepository": [rec.get("codeRepository")],
-        "description": [rec.get("description")],
-        "keywords": list(rec.get("keywords") or ()),
-        "datePublished": [day[0] if day else None],
-        "publisher": [rec.get("publisher")],
-    }
-
-    def tag(term: str) -> str:
-        return str(rows[fmt, term]).split(" | ")[0].split(" + ")[0].removesuffix("[]").removeprefix("_")
-
-    lines = [line.format(tag=tag("resourceType"), value=kind)]
-    lines += [line.format(tag=tag(t), value=" ".join(str(v).split())) for t, vs in values.items() for v in vs if v]
+    pairs += [(t, rec.get(t)) for t in ("identifier", "codeRepository", "description")]
+    pairs += [("keywords", k) for k in rec.get("keywords") or ()]
+    pairs += [("datePublished", day[0] if day else None), ("publisher", rec.get("publisher"))]
+    lines = []
+    for term, value in pairs:
+        text = " ".join(str(value or "").split())
+        if text:
+            tag = str(rows[fmt, term]).split(" | ")[0].split(" + ")[0].removesuffix("[]").removeprefix("_")
+            lines.append(line.format(tag=tag, value=text))
     return "\n".join([*lines, *end]) + "\n"
 
 
@@ -539,6 +534,6 @@ _WRITERS = {
     "apa": _apa,
     "jsonld": _jsonld,
     "datacite": _datacite,
-    "ris": lambda rec, day: _tagged("ris", rec, day),
-    "endnote": lambda rec, day: _tagged("endnote", rec, day),
+    "ris": functools.partial(_tagged, fmt="ris"),
+    "endnote": functools.partial(_tagged, fmt="endnote"),
 }
