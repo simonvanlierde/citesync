@@ -39,7 +39,7 @@ repos:
   # .json files are read as JSON5, so comments and trailing commas in tsconfig
   # and VS Code settings pass; syntax errors and duplicate keys fail.
   - repo: https://github.com/simonvanlierde/jsonvet
-    rev: 022d320d5b971eccb28cfa6ce205152cbb382e53 # frozen: v3.2.0
+    rev: 83df66110a108e0fa4b7d2b2adcef6831f618e05 # frozen: v3.3.1
     hooks:
       - id: jsonvet
 
@@ -64,7 +64,7 @@ repos:
   # and impostor commits. Set GH_TOKEN to enable the audits that need the API;
   # without it only the offline subset runs.
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: c92afdf2c6ca336aaa8f39e2bd8d48f62dbd8e1f # frozen: v1.31.1
+    rev: 06a39750ec31860bb44f2acf67182c40016cd1e7 # frozen: v1.32.0
     hooks:
       - id: zizmor
 
@@ -72,7 +72,7 @@ repos:
   # and shellcheck over every `run:` when shellcheck is on PATH. jactionlint is a
   # maintained fork of actionlint that adds release, cache and concurrency checks.
   - repo: https://github.com/jdx/jactionlint
-    rev: a65ab044e916760429068fe5794b8306abdfcbb9 # frozen: v2.3.0
+    rev: baa8d685e2b27ff5821558c9eeabb2051c1da61b # frozen: v2.4.0
     hooks:
       - id: jactionlint
 
@@ -89,7 +89,7 @@ repos:
       - id: nbstripout
         exclude: ^data/
   - repo: https://github.com/rvben/rumdl-pre-commit
-    rev: 03a7d1a4936b5889602852175bca2d39acb3281e # frozen: v0.3.0
+    rev: b0cff962ee693b9e612c097d22e71e0cba127447 # frozen: v0.3.2
     hooks:
       - id: rumdl
         args: [--fix]
@@ -97,7 +97,7 @@ repos:
   # Misspelt words in code, comments and docs. It fixes the ones it is sure of and
   # fails, so you review the fix. List a word it must leave alone in _typos.toml.
   - repo: https://github.com/crate-ci/typos
-    rev: 7f9d0819ca1c008ade73f4b41fa9d258d48f605b # frozen: v1.51.1
+    rev: 4c8b7f51ca60df14e3c5ca82770dfbbe6c3dae85 # frozen: v1.52.0
     hooks:
       - id: typos
         # Copier writes the template's commit id here, and a hex id can spell a word
