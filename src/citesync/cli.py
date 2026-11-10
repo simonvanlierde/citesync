@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from citesync.check import Finding, check
-from citesync.config import Config, did_you_mean, find_root, git_top, load_config, render
-from citesync.errors import CheckError
+from citesync.config import Config, find_root, git_top, load_config, render
+from citesync.errors import CheckError, did_you_mean
 from citesync.rules import DOCS_URL, RULES, explain, url
 
 JSON_SCHEMA_VERSION = 1

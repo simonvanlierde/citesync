@@ -152,6 +152,7 @@ def test_root_must_be_a_directory(tmp_path: Path, capsys: pytest.CaptureFixture[
 
 def test_the_walk_falls_back_to_the_git_top(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, run: "Run") -> None:
     (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
     (tmp_path / "src").mkdir()
     monkeypatch.chdir(tmp_path / "src")
     assert run("config")[1].startswith(f"# root: {tmp_path}\n")

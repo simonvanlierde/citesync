@@ -21,7 +21,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
-from citesync.errors import CheckError, UnreadableError
+from citesync.errors import CheckError, UnreadableError, did_you_mean
 from citesync.mapping import (
     EXPORT_TERMS,
     PEOPLE,
@@ -291,8 +291,6 @@ def _walk(
 @functools.cache  # a key repeated in each of many list items is looked up once
 def _stray(key: str, version: str, terms: frozenset[str], *, foreign: bool) -> tuple[str, str] | None:
     """(rule id, message) for a key ``terms`` lacks, or None for one under CodeMeta's own prefixes."""
-    from citesync.config import did_you_mean  # noqa: PLC0415 - config imports this module
-
     prefix, colon, _ = key.partition(":")
     # shortcut: any key under these prefixes passes, codemeta:typo too; check them against schema.org if one turns up
     if colon and prefix in {"schema", "codemeta"}:

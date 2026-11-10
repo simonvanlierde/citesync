@@ -1,12 +1,12 @@
 """Find and validate the config: the first location found wins, flags override it."""
 
 import json
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from citesync.errors import CheckError, UnreadableError
+from citesync.errors import CheckError, UnreadableError, did_you_mean
 from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, FORMAT_OF, MANIFESTS, load
 from citesync.mapping import TERMS, resolve
 from citesync.rules import MISMATCH, RULES
@@ -71,7 +71,7 @@ def find_root(start: Path) -> Path:
         names = (*CITATION_FILES, "citesync.toml", ".citesync.toml")
         if any((directory / name).is_file() for name in names) or find_config(directory)[1] != "defaults":
             return directory
-        if (directory / ".git").exists():
+        if _is_repo(directory):
             return directory
     return start
 
@@ -79,7 +79,13 @@ def find_root(start: Path) -> Path:
 def git_top(start: Path) -> Path | None:
     """The nearest directory from ``start`` up that holds ``.git``: the top of its repo, or None outside one."""
     start = start.resolve()
-    return next((directory for directory in (start, *start.parents) if (directory / ".git").exists()), None)
+    return next((directory for directory in (start, *start.parents) if _is_repo(directory)), None)
+
+
+def _is_repo(directory: Path) -> bool:
+    """Whether ``directory`` holds a ``.git`` git would accept: a folder with ``HEAD``, or a submodule's file."""
+    git = directory / ".git"
+    return (git / "HEAD").is_file() or git.is_file()
 
 
 def load_config(root: Path, source: str | None = None) -> Config:
@@ -178,14 +184,6 @@ def _paths(value: object, names: dict[str, str], origin: str, key: str) -> tuple
 MANIFEST_TERMS = ("version", "author", "contributor", "license", "codeRepository", "keywords")
 # Rule ids name a few terms more plainly; write-manifests takes only the term.
 _RULE_NAMES = {rule.removesuffix("-mismatch"): term for term, rule in MISMATCH.items()}
-
-
-def did_you_mean(word: str, choices: Iterable[str]) -> str:
-    """``; did you mean 'x'?`` for the closest of ``choices``, or nothing when none is close."""
-    import difflib  # noqa: PLC0415 - only on an error
-
-    close = difflib.get_close_matches(word, list(choices), n=1)
-    return f"; did you mean {close[0]!r}?" if close else ""
 
 
 def _write_manifests(value: object, origin: str) -> tuple[str, ...]:
