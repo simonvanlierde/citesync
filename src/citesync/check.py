@@ -226,6 +226,8 @@ def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set
             found.add(Finding(doc.path, key, "role-dangling", detail))
         for term, message in doc.import_notes:
             found.add(Finding(doc.path, term, "metadata-omitted", message))
+        for key, rule, message in doc.stray_terms:
+            found.add(Finding(doc.path, key, rule, message))
         for key, rule in doc.zenodo_gaps:
             found.add(Finding(doc.path, key, rule, ZENODO_GAPS[rule]))
     for term in TERMS:

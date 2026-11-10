@@ -53,6 +53,21 @@ type Mapping = dict[tuple[str, str], str | None]
 """(format, term) to path, or None when the format has no place for the term."""
 
 
+_TERM_LISTS = {"3.0": "mapping-local.json", "3.1": "mapping-local.json", "4.0": "mapping-4.0.json"}
+"""The vendored export whose ``context_terms`` a codemeta.json of each version is checked against.
+
+3.0 and 3.1 define the same terms; codemeta-drift exports no 2.0 mapping, so a 2.0 file goes unchecked.
+"""
+
+
+@cache
+def context_terms(version: str) -> frozenset[str] | None:
+    """The property terms of the CodeMeta ``version`` context, or None when citesync has no list for it."""
+    if (name := _TERM_LISTS.get(version)) is None:
+        return None
+    return frozenset(json.loads(Path(__file__).with_name(name).read_text(encoding="utf-8"))["context_terms"])
+
+
 @cache
 def load_mapping() -> Mapping:
     """Read the vendored mapping and check what citesync needs from it.

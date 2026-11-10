@@ -22,6 +22,8 @@ Run from a subdirectory, citesync walks up to the nearest directory with a citat
 
 A file citesync can't read or parse is an [`unreadable`](rules.md#unreadable) finding. The other files are still checked against each other.
 
+Every key in codemeta.json must be a term of the CodeMeta version its `@context` names, by the term list citesync vendors from codemeta-drift. A misspelt or unknown key is an [`unknown-term`](rules.md#unknown-term) error, such as `licence` for `license`, or `softwareSuggestions` in a 4.0 file. A key another context the file declares may define, or any prefixed key, is a [`foreign-term`](rules.md#foreign-term) warning; a `schema:` or `codemeta:` key passes unchecked. citesync doesn't look inside a schema.org object such as a `PropertyValue`, and doesn't check a 2.0 file. A key repeated in several list items, such as `nick` on two authors, is one finding, at the first.
+
 ## How values compare
 
 citesync treats these spellings as equal:

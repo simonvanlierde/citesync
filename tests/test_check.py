@@ -1260,3 +1260,116 @@ def test_npm_contributor_strings_are_names(tmp_path: Path, run: "Run") -> None:
     assert [(f["rule"], f["message"]) for f in _split(report)[0]] == [
         ("contributor-mismatch", "'C D', codemeta.json has 'A B'")
     ]
+
+
+CM3, CM4 = "https://w3id.org/codemeta/3.0", "https://w3id.org/codemeta/4.0"
+PERSON = {"@type": "Person", "givenName": "Ada", "familyName": "Lovelace"}
+
+
+def _term_findings(tmp_path: Path, run: "Run", data: dict) -> list[tuple[str, str, str]]:
+    codemeta = json.dumps({"name": "x", **data})
+    report = _check_json(tmp_path, run, {"CITATION.cff": CFF, "codemeta.json": codemeta})
+    jsonschema.validate(report, OUTPUT_SCHEMA)
+    return [
+        (f["rule"], f["term"], f["message"])
+        for f in report["findings"]
+        if f["rule"] in {"unknown-term", "foreign-term"}
+    ]
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (
+            {"@context": CM3, "author": [{"@type": "Person", "givenname": "Ada"}], "licence": "MIT"},
+            [
+                ("unknown-term", "author.givenname", "not a CodeMeta 3.0 term; did you mean 'givenName'?"),
+                ("unknown-term", "licence", "not a CodeMeta 3.0 term; did you mean 'license'?"),
+            ],
+        ),
+        ({"@context": CM3, "softwareSuggestions": "x", "author": [PERSON]}, []),
+        (
+            {"@context": CM3, "featureList": "x"},
+            [("unknown-term", "featureList", "not a CodeMeta 3.0 term; CodeMeta 4.0 has it")],
+        ),
+        (
+            {"@context": CM4, "softwareSuggestions": "x", "featureList": "y"},
+            [("unknown-term", "softwareSuggestions", "not a CodeMeta 4.0 term; CodeMeta 3.1 has it")],
+        ),
+        ({"@context": "https://doi.org/10.5063/schema/codemeta-2.0", "contIntegration": "x", "nope": 1}, []),
+        (
+            {
+                "@context": CM3,
+                "@type": "SoftwareSourceCode",
+                "id": "https://example.org/x",
+                "type": "SoftwareSourceCode",
+                "contributor": [{"@type": "Role", "schema:author": "https://orcid.org/0000-0002-1825-0097"}],
+            },
+            [],
+        ),
+        (
+            {"@context": CM3, "author": [{"@type": ["Person", {"x": 1}], "givenname": "Ada"}]},
+            [("unknown-term", "author.givenname", "not a CodeMeta 3.0 term; did you mean 'givenName'?")],
+        ),
+        (
+            {"@context": CM3, "@graph": [{"@type": "SoftwareSourceCode", "licence": "MIT"}]},
+            [("unknown-term", "licence", "not a CodeMeta 3.0 term; did you mean 'license'?")],
+        ),
+        (
+            {"@context": CM3, "author": [{**PERSON, "nick": "a"}, {**PERSON, "nick": "b"}]},
+            [("unknown-term", "author.nick", "not a CodeMeta 3.0 term")],
+        ),
+    ],
+    ids=[
+        "typos",
+        "known",
+        "added-in-4.0",
+        "dropped-in-4.0",
+        "2.0-unchecked",
+        "keywords-and-prefixes",
+        "type-list-with-a-non-string",
+        "graph",
+        "repeated-key-once",
+    ],
+)
+def test_unknown_codemeta_terms(data: dict, expected: list, tmp_path: Path, run: "Run") -> None:
+    assert _term_findings(tmp_path, run, data) == expected
+
+
+@pytest.mark.parametrize(
+    ("context", "key"),
+    [
+        ([CM3, {"ex": "https://example.org/terms/"}], "ex:grant"),
+        ([CM3, {"grant": "https://example.org/terms/grant"}], "grant"),
+        ([CM3, "https://schema.org"], "alternateName"),
+        (CM3, "https://example.org/terms/grant"),
+        ([CM3, {"@vocab": "https://example.org/terms/"}], "grant"),
+    ],
+    ids=["declared-prefix", "inline-term", "other-remote-context", "iri", "inline-vocab"],
+)
+def test_a_term_from_another_context_is_a_warning(context: str | list, key: str, tmp_path: Path, run: "Run") -> None:
+    [(rule, term, message)] = _term_findings(tmp_path, run, {"@context": context, key: "x"})
+    assert (rule, term, message) == ("foreign-term", key, "not a CodeMeta 3.0 term; from another context")
+
+
+def test_a_nested_context_makes_its_keys_foreign(tmp_path: Path, run: "Run") -> None:
+    author = {**PERSON, "@context": {"nick": "https://example.org/nick"}, "nick": "a"}
+    assert _term_findings(tmp_path, run, {"@context": CM3, "author": [author]}) == [
+        ("foreign-term", "author.nick", "not a CodeMeta 3.0 term; from another context")
+    ]
+
+
+def test_an_unknown_term_fails_the_check(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "codemeta.json").write_text(_codemeta(licence="MIT"), encoding="utf-8")
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert "codemeta.json:1:60: error[unknown-term] licence: not a CodeMeta 3.0 term; did you mean 'license'?" in out
+
+
+def test_keys_of_a_type_codemeta_does_not_define_are_not_checked(tmp_path: Path, run: "Run") -> None:
+    swhid = {"@type": "PropertyValue", "propertyID": "SWHID", "value": "swh:1:dir:" + "0" * 40}
+    data = {"@context": CM3, "identifier": [swhid], "author": [{"type": "Person", "givenname": "Ada"}]}
+    assert _term_findings(tmp_path, run, data) == [
+        ("unknown-term", "author.givenname", "not a CodeMeta 3.0 term; did you mean 'givenName'?")
+    ]

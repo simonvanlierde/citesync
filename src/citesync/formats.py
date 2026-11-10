@@ -7,10 +7,12 @@ The import adapters (:mod:`citesync.core_metadata`, :mod:`citesync.research_meta
 parse their syntax into the format's own shape, which the format's rows then read.
 """
 
+import functools
 import json
 import re
 import tomllib
 import unicodedata
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -20,7 +22,17 @@ from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
 from citesync.errors import CheckError, UnreadableError
-from citesync.mapping import EXPORT_TERMS, PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
+from citesync.mapping import (
+    EXPORT_TERMS,
+    PEOPLE,
+    PERSON_TERMS,
+    TERMS,
+    Mapping,
+    context_terms,
+    person_terms,
+    relative,
+    resolve,
+)
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {
@@ -97,6 +109,7 @@ class Doc:
         readable: False for a file citesync couldn't read, whose record is empty.
         dangling_roles: For codemeta.json, (list, ORCID) for each Role whose person isn't listed.
         import_notes: (term, message) for distribution values omitted during import.
+        stray_terms: For codemeta.json, (key path, rule id, message) for each key its CodeMeta context doesn't define.
         unusable: The export-only terms the file holds a value for that citesync can't decode.
         zenodo_gaps: For a CITATION.cff with no .zenodo.json beside it, (key, rule id) for each
             key Zenodo refuses or drops when it archives a release.
@@ -112,6 +125,7 @@ class Doc:
     dangling_roles: tuple[tuple[str, str], ...] = ()
     zenodo_gaps: tuple[tuple[str, str], ...] = ()
     import_notes: tuple[tuple[str, str], ...] = ()
+    stray_terms: tuple[tuple[str, str, str], ...] = ()
     unusable: tuple[str, ...] = ()
 
     @property
@@ -154,6 +168,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
     data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
+    stray = stray_terms(data, version) if fmt == "codemeta" and version else ()
     record, roles, unusable = {}, (), []
     no_zenodo = not (root / rel).with_name(".zenodo.json").is_file()
     gaps = zenodo_gaps(data) if fmt == CITATION_FILES["CITATION.cff"] and no_zenodo else ()
@@ -182,6 +197,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
         version,
         release,
         dangling_roles=roles,
+        stray_terms=stray,
         zenodo_gaps=gaps,
         import_notes=tuple(data.get("_import_notes", ())) if PurePosixPath(rel).name in IMPORTS else (),
         unusable=tuple(unusable),
@@ -203,6 +219,89 @@ def zenodo_gaps(cff: dict[str, Any]) -> tuple[tuple[str, str], ...]:
 
 def _zenodo_doi(identifier: object) -> bool:
     return isinstance(identifier, dict) and "10.5281/zenodo." in str(identifier.get("value", "")).casefold()
+
+
+# shortcut: the types the 3.x and 4.0 contexts define, by hand, 4.0's let through in 3.x files too; read them from
+# codemeta-drift once it exports them
+_CODEMETA_TYPES = frozenset(
+    {
+        "SoftwareSourceCode",
+        "SoftwareApplication",
+        "Person",
+        "Organization",
+        "Role",
+        "Review",
+        "ContactPoint",
+        "DefinedTerm",
+        "WebAPI",
+        "WebApplication",
+    }
+)
+
+
+def stray_terms(data: dict[str, Any], version: str) -> tuple[tuple[str, str, str], ...]:
+    """(key path, rule id, message) for each key in a codemeta.json that its CodeMeta ``version`` doesn't define.
+
+    A key is ``foreign-term`` when it may come from another context the file declares: a prefixed key or an
+    IRI, a term of an inline context object, any key when the file also names a remote context that isn't
+    CodeMeta or an ``@vocab``, and any key under an object with its own ``@context``. Otherwise it is
+    ``unknown-term``. A path joins nested keys with dots, without list indexes, and is reported once.
+    Neither is looked inside, and nor is ``@context`` or an object whose ``@type`` CodeMeta doesn't define,
+    such as a schema.org ``PropertyValue``: its keys are that type's, which no CodeMeta list holds.
+    """
+    terms = context_terms(version)
+    if terms is None:
+        return ()
+    context = data.get("@context")
+    items = context if isinstance(context, list) else [context]
+    inline = frozenset(key for item in items if isinstance(item, dict) for key in item)
+    remote = "@vocab" in inline or any(isinstance(item, str) and codemeta_version(item) is None for item in items)
+    found: dict[str, tuple[str, str, str]] = {}
+    for path, stray in _walk(data, "", version, terms, inline, foreign=remote):
+        found.setdefault(path, (path, *stray))
+    return tuple(found.values())
+
+
+def _walk(
+    node: object, path: str, version: str, terms: frozenset[str], inline: frozenset[str], *, foreign: bool
+) -> Iterator[tuple[str, tuple[str, str]]]:
+    """(key path, (rule id, message)) for each stray key in ``node``, whose keys sit under ``path``."""
+    if isinstance(node, list):
+        for el in node:
+            yield from _walk(el, path, version, terms, inline, foreign=foreign)
+        return
+    if not isinstance(node, dict):
+        return
+    types = node.get("@type", node.get("type"))
+    named = {t for t in (types if isinstance(types, list) else [types]) if isinstance(t, str)}
+    if path and named and not named <= _CODEMETA_TYPES:
+        return
+    foreign = foreign or (bool(path) and "@context" in node)
+    for key, value in node.items():
+        if key in {"@context", "@type", "@id", "type", "id"}:  # the CodeMeta contexts alias @type and @id
+            continue
+        if key.startswith("@"):
+            yield from _walk(value, path, version, terms, inline, foreign=foreign)
+        elif key in terms:
+            yield from _walk(value, f"{path}{key}.", version, terms, inline, foreign=foreign)
+        elif stray := _stray(key, version, terms, foreign=foreign or key in inline):
+            yield f"{path}{key}", stray
+
+
+@functools.cache  # a key repeated in each of many list items is looked up once
+def _stray(key: str, version: str, terms: frozenset[str], *, foreign: bool) -> tuple[str, str] | None:
+    """(rule id, message) for a key ``terms`` lacks, or None for one under CodeMeta's own prefixes."""
+    from citesync.config import did_you_mean  # noqa: PLC0415 - config imports this module
+
+    prefix, colon, _ = key.partition(":")
+    # shortcut: any key under these prefixes passes, codemeta:typo too; check them against schema.org if one turns up
+    if colon and prefix in {"schema", "codemeta"}:
+        return None
+    message = f"not a CodeMeta {version} term"
+    if colon or foreign:
+        return "foreign-term", f"{message}; from another context"
+    other = next((v for v in ("3.1", "4.0") if key in (context_terms(v) or ())), None)
+    return "unknown-term", message + (f"; CodeMeta {other} has it" if other else did_you_mean(key, terms))
 
 
 def dangling_roles(data: dict[str, Any]) -> tuple[tuple[str, str], ...]:
