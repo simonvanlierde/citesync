@@ -20,7 +20,7 @@ from ruamel.yaml.error import MarkedYAMLError, YAMLError
 
 from citesync import codecs
 from citesync.errors import CheckError, UnreadableError
-from citesync.mapping import PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
+from citesync.mapping import EXPORT_TERMS, PEOPLE, PERSON_TERMS, TERMS, Mapping, person_terms, relative, resolve
 
 CITATION_FILES = {"CITATION.cff": "cff-1.2.0", "codemeta.json": "codemeta", ".zenodo.json": "zenodo"}
 MANIFESTS = {
@@ -97,6 +97,7 @@ class Doc:
         readable: False for a file citesync couldn't read, whose record is empty.
         dangling_roles: For codemeta.json, (list, ORCID) for each Role whose person isn't listed.
         import_notes: (term, message) for distribution values omitted during import.
+        unusable: The export-only terms the file holds a value for that citesync can't decode.
         zenodo_gaps: For a CITATION.cff with no .zenodo.json beside it, (key, rule id) for each
             key Zenodo refuses or drops when it archives a release.
     """
@@ -111,6 +112,7 @@ class Doc:
     dangling_roles: tuple[tuple[str, str], ...] = ()
     zenodo_gaps: tuple[tuple[str, str], ...] = ()
     import_notes: tuple[tuple[str, str], ...] = ()
+    unusable: tuple[str, ...] = ()
 
     @property
     def is_citation(self) -> bool:
@@ -152,20 +154,22 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
     data = load(root / rel, rel)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
-    record, roles = {}, ()
+    record, roles, unusable = {}, (), []
     no_zenodo = not (root / rel).with_name(".zenodo.json").is_file()
     gaps = zenodo_gaps(data) if fmt == CITATION_FILES["CITATION.cff"] and no_zenodo else ()
     try:
         data = _adapt(fmt, data, root, rel)
         if fmt == "codemeta":
             roles = dangling_roles(data)
-        for term in TERMS:
+        for term in TERMS + EXPORT_TERMS:
             path = mapping[fmt, term]
             if path is None:
                 continue
             value = _read_term(fmt, term, data, path, mapping)
             if value is not None:
                 record[term] = value
+            elif term in EXPORT_TERMS and locate(fmt, term, data, path):
+                unusable.append(term)
     except (AttributeError, TypeError) as err:  # a key holding a shape its format doesn't allow
         raise UnreadableError(rel, f"unexpected shape ({err})") from err
     if keep_empty_contributors and fmt == "zenodo" and data.get("contributors") == []:
@@ -180,6 +184,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
         dangling_roles=roles,
         zenodo_gaps=gaps,
         import_notes=tuple(data.get("_import_notes", ())) if PurePosixPath(rel).name in IMPORTS else (),
+        unusable=tuple(unusable),
     )
 
 
@@ -435,10 +440,6 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         alternative, found = next(
             ((i, found) for i, alt in enumerate(path.split(" | ")) if (found := resolve(data, alt))), (0, [])
         )
-        if fmt == "pkg-info":
-            # NOTE: the rows read Author and Author-email as one value each, but each holds a list of people.
-            # Drop this once codemeta-drift's rows read them as Author[] + Author-email[].
-            found = [el for value in found for el in value]
         if fmt in ONE_AUTHOR and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
             msg = f"{term} holds a list, but this file takes one {term}"
             raise TypeError(msg)
@@ -470,6 +471,7 @@ _DECODE = {
     "swhid": codecs.swhid_decode,
     "codeRepository": codecs.repo_decode,
     "datePublished": codecs.date_decode,
+    "publisher": codecs.publisher_decode,
 }
 
 

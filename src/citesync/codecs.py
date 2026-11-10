@@ -277,6 +277,18 @@ def date_decode(raw: object) -> str | None:
     return text[:10] if text and _ISO_DATE.match(text) else text
 
 
+def publisher_decode(raw: object) -> str | None:
+    """A publisher's name: the text the row reads (``publisher.name`` or ``publisher``).
+
+    The row takes an Organization's ``name`` itself. Its second alternative reads a list whole, and that
+    gives the first name when every item is an Organization with one, else nothing.
+    """
+    if isinstance(raw, list):
+        names = [version_decode(item.get("name")) if isinstance(item, dict) else None for item in raw]
+        return names[0] if names and all(names) else None
+    return version_decode(raw)
+
+
 def version_key(version: str) -> "Version | str":
     """The parsed PEP 440 version, or for one that isn't (``unreleased``) the string itself.
 

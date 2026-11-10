@@ -1,10 +1,83 @@
 {
-  "schema_version": "1.6",
+  "schema_version": "1.7",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.6.0"
+    "version": "0.7.1"
   },
+  "context_terms": [
+    "address",
+    "affiliation",
+    "applicationCategory",
+    "applicationSubCategory",
+    "author",
+    "buildInstructions",
+    "citation",
+    "codeRepository",
+    "continuousIntegration",
+    "contributor",
+    "copyrightHolder",
+    "copyrightYear",
+    "dateCreated",
+    "dateModified",
+    "datePublished",
+    "description",
+    "developmentStatus",
+    "downloadUrl",
+    "editor",
+    "email",
+    "embargoEndDate",
+    "encoding",
+    "endDate",
+    "familyName",
+    "fileFormat",
+    "fileSize",
+    "funder",
+    "funding",
+    "givenName",
+    "hasPart",
+    "hasSourceCode",
+    "identifier",
+    "installUrl",
+    "isAccessibleForFree",
+    "isPartOf",
+    "isSourceCodeOf",
+    "issueTracker",
+    "keywords",
+    "license",
+    "maintainer",
+    "memoryRequirements",
+    "name",
+    "operatingSystem",
+    "permissions",
+    "position",
+    "processorRequirements",
+    "producer",
+    "programmingLanguage",
+    "provider",
+    "publisher",
+    "readme",
+    "referencePublication",
+    "relatedLink",
+    "releaseNotes",
+    "review",
+    "reviewAspect",
+    "reviewBody",
+    "roleName",
+    "runtimePlatform",
+    "sameAs",
+    "softwareHelp",
+    "softwareRequirements",
+    "softwareSuggestions",
+    "softwareVersion",
+    "sponsor",
+    "startDate",
+    "storageRequirements",
+    "supportingData",
+    "targetProduct",
+    "url",
+    "version"
+  ],
   "rows": [
     {
       "format": "cff-1.2.0",
@@ -127,6 +200,21 @@
       "crosswalk_cell": "date-released"
     },
     {
+      "format": "cff-1.2.0",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; CFF has publisher only inside references[] and preferred-citation, which describe other works",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "cff-1.2.0",
+      "term": "resourceType",
+      "path": "type",
+      "source": "curated:CodeMeta has no term for the resource type; CFF states its resource type in the top-level type key",
+      "comment": "software or dataset; the default is software.",
+      "crosswalk_cell": null
+    },
+    {
       "format": "codemeta",
       "term": "name",
       "path": "name",
@@ -243,6 +331,22 @@
       "term": "datePublished",
       "path": "datePublished",
       "source": "curated:codemeta's own term",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "codemeta",
+      "term": "publisher",
+      "path": "publisher.name | publisher",
+      "source": "curated:CodeMeta's publisher is an Organization or Person, so a bare publisher is an object and its name is the publisher's name; a string, which is also legal, is read as the name",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "codemeta",
+      "term": "resourceType",
+      "path": "@type",
+      "source": "curated:CodeMeta has no term for the resource type; a CodeMeta document states its resource type in @type",
+      "comment": "SoftwareSourceCode for source code, SoftwareApplication for an application.",
       "crosswalk_cell": null
     },
     {
@@ -367,6 +471,21 @@
       "crosswalk_cell": "publication_date"
     },
     {
+      "format": "zenodo",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; imprint_publisher exists but only for books, reports and chapters, and Zenodo names itself as the publisher in its DataCite record",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "zenodo",
+      "term": "resourceType",
+      "path": "upload_type",
+      "source": "curated:CodeMeta has no term for the resource type; a Zenodo deposit states its resource type in upload_type",
+      "comment": "software for code; upload_type is required.",
+      "crosswalk_cell": null
+    },
+    {
       "format": "pep621",
       "term": "name",
       "path": "project.name",
@@ -484,6 +603,20 @@
       "term": "datePublished",
       "path": null,
       "source": "curated:no PEP 621 crosswalk upstream; PEP 621 has no release date",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "pep621",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:no crosswalk; pep621 has no publisher field",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "pep621",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; pep621 has no field for it",
       "crosswalk_cell": null
     },
     {
@@ -606,6 +739,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "cargo",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; cargo has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "cargo",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; cargo has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "npm",
       "term": "name",
       "path": "name",
@@ -725,6 +872,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "npm",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; npm has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "npm",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; npm has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "pkg-info",
       "term": "name",
       "path": "Name",
@@ -741,22 +902,22 @@
     {
       "format": "pkg-info",
       "term": "author",
-      "path": "Author + Author-email",
-      "source": "curated:the cell says Author; packaging tools write an author who has an email to Author-email as 'Name <email>', and only a name-only author to Author",
+      "path": "Author[] + Author-email[]",
+      "source": "curated:the cell says Author; the pyproject.toml spec puts an author without an email in Author and one with an email in Author-email as 'Name <email>', and says a name must not contain commas and multiple values should be separated by commas, so both are lists",
       "crosswalk_cell": "Author"
     },
     {
       "format": "pkg-info",
       "term": "author.givenName",
-      "path": "Author + Author-email",
-      "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
+      "path": "Author[] + Author-email[]",
+      "source": "curated:no cell; each Author piece and each Author-email display name is one full name, which core metadata does not split further",
       "crosswalk_cell": ""
     },
     {
       "format": "pkg-info",
       "term": "author.familyName",
-      "path": "Author + Author-email",
-      "source": "curated:no cell; core metadata keeps one name string per author, in Author or in Author-email",
+      "path": "Author[] + Author-email[]",
+      "source": "curated:no cell; each Author piece and each Author-email display name is one full name, which core metadata does not split further",
       "crosswalk_cell": ""
     },
     {
@@ -843,6 +1004,20 @@
       "path": null,
       "source": "curated:no cell; core metadata has no release date",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; pkg-info has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pkg-info",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; pkg-info has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "r-description",
@@ -973,6 +1148,20 @@
       "crosswalk_cell": "Date"
     },
     {
+      "format": "r-description",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; r-description has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "r-description",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; r-description has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "julia",
       "term": "name",
       "path": "name",
@@ -1094,6 +1283,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "julia",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; julia has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "julia",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; julia has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "bibtex",
       "term": "name",
       "path": "title",
@@ -1211,6 +1414,20 @@
       "path": "date | year",
       "source": "curated:the cell lists date / (year) / (month); biblatex writes the release date in date, and classic BibTeX gives only year and month",
       "crosswalk_cell": "date / (year) / (month)"
+    },
+    {
+      "format": "bibtex",
+      "term": "publisher",
+      "path": "publisher",
+      "source": "crosswalk:crosswalks/BibTeX.csv@3.1",
+      "crosswalk_cell": "publisher"
+    },
+    {
+      "format": "bibtex",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; BibTeX states it in the entry type (@software), which a path cannot reach",
+      "crosswalk_cell": null
     },
     {
       "format": "datacite",
@@ -1347,6 +1564,22 @@
       "crosswalk_cell": "publicationYear"
     },
     {
+      "format": "datacite",
+      "term": "publisher",
+      "path": "publisher.name | publisher",
+      "source": "curated:the cell says publisher, the XML element; the REST API returns the name as a string by default, and an object with a name key (since schema 4.5) only when the request has publisher=true",
+      "comment": "Read a string as the name and an object's name key as the name. An object may also carry publisherIdentifier (a ROR, say), publisherIdentifierScheme, schemeUri and lang. Schema 4.7 is current; publisher is mandatory. A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
+      "crosswalk_cell": "publisher"
+    },
+    {
+      "format": "datacite",
+      "term": "resourceType",
+      "path": "types.resourceTypeGeneral",
+      "source": "curated:DataCite requires types.resourceTypeGeneral; CodeMeta has no term for it",
+      "comment": "The value for software is Software (a controlled list).",
+      "crosswalk_cell": null
+    },
+    {
       "format": "setup-py",
       "term": "name",
       "path": "name",
@@ -1471,6 +1704,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "setup-py",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; setup-py has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "setup-py",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; setup-py has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "ruby-gem",
       "term": "name",
       "path": "name",
@@ -1592,6 +1839,20 @@
       "path": null,
       "source": "curated:no cell; the date attribute is not a release date: the spec says not to set it, and it is SOURCE_DATE_EPOCH or a fixed 1980-01-02 for reproducible builds",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "ruby-gem",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; ruby-gem has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "ruby-gem",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; ruby-gem has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "maven",
@@ -1722,6 +1983,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "maven",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; Maven's <organization> names who produces the project, which is closer to CodeMeta's producer than to its publisher",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "maven",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; maven has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "cpan-meta-2",
       "term": "name",
       "path": "name",
@@ -1850,6 +2125,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "cpan-meta-2",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; cpan-meta-2 has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "cpan-meta-2",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; cpan-meta-2 has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "nuget",
       "term": "name",
       "path": "id",
@@ -1976,6 +2265,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "nuget",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; nuget has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "nuget",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; nuget has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "pubspec",
       "term": "name",
       "path": "name",
@@ -2098,6 +2401,20 @@
       "path": null,
       "source": "curated:no cell; a pubspec has no release date (pub.dev records it when a version is uploaded)",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "pubspec",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; pubspec has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "pubspec",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; pubspec has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "cabal",
@@ -2226,6 +2543,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "cabal",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; cabal has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "cabal",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; cabal has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "typst",
       "term": "name",
       "path": "package.name",
@@ -2345,6 +2676,20 @@
       "term": "datePublished",
       "path": null,
       "source": "curated:no typst.toml crosswalk upstream; the manifest has no release date",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "typst",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:no crosswalk; typst has no publisher field",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "typst",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; typst has no field for it",
       "crosswalk_cell": null
     },
     {
@@ -2471,10 +2816,24 @@
       "crosswalk_cell": null
     },
     {
+      "format": "quarto",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:no crosswalk; quarto has no publisher field",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "quarto",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; quarto has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "github",
       "term": "name",
-      "path": "full_name",
-      "source": "crosswalk:crosswalks/GitHub.csv@3.1",
+      "path": "name",
+      "source": "curated:the cell says full_name, which is owner/repo; the repository object's name is the project name",
       "crosswalk_cell": "full_name"
     },
     {
@@ -2592,6 +2951,20 @@
       "path": null,
       "source": "curated:the cell is empty; created_at, updated_at and pushed_at are dateCreated and dateModified, and a repository has no publication date",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "github",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; github has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "github",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; github has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "figshare",
@@ -2716,6 +3089,21 @@
       "path": "published_date",
       "source": "curated:the cell says date_retrieved, which is not a field; the publication date is published_date",
       "crosswalk_cell": "date_retrieved"
+    },
+    {
+      "format": "figshare",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; figshare has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "figshare",
+      "term": "resourceType",
+      "path": "defined_type_name",
+      "source": "curated:CodeMeta has no term for the resource type; a Figshare article states its resource type in defined_type_name (defined_type is the numeric form)",
+      "comment": "software for code.",
+      "crosswalk_cell": null
     },
     {
       "format": "bio-tools",
@@ -2846,6 +3234,20 @@
       "crosswalk_cell": ""
     },
     {
+      "format": "bio-tools",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; bio-tools has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "bio-tools",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; toolType only subdivides software, so a consumer defaults to Software",
+      "crosswalk_cell": null
+    },
+    {
       "format": "leiningen",
       "term": "name",
       "path": "name",
@@ -2967,6 +3369,20 @@
       "path": null,
       "source": "curated:no cell; project.clj has no release date",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "leiningen",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; leiningen has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "leiningen",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; leiningen has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "octave",
@@ -3095,6 +3511,20 @@
       "crosswalk_cell": "Date"
     },
     {
+      "format": "octave",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; octave has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "octave",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; octave has no field for it",
+      "crosswalk_cell": null
+    },
+    {
       "format": "publiccode-0.8",
       "term": "name",
       "path": "name",
@@ -3215,6 +3645,20 @@
       "path": "releaseDate",
       "source": "crosswalk:crosswalks/publiccode.csv@3.1",
       "crosswalk_cell": "releaseDate"
+    },
+    {
+      "format": "publiccode-0.8",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; publiccode-0.8 has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "publiccode-0.8",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; softwareType only subdivides software, so a consumer defaults to Software",
+      "crosswalk_cell": null
     },
     {
       "format": "swmath",
@@ -3338,6 +3782,20 @@
       "path": null,
       "source": "curated:no cell; the API's Software object has no such field",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "swmath",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; swmath has no publisher field",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "swmath",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; swmath has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "spdx-2.3",
@@ -3467,6 +3925,20 @@
       "crosswalk_cell": "ReleaseDate"
     },
     {
+      "format": "spdx-2.3",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the cell is empty; PackageSupplier is CodeMeta's provider (SPDX_2_3.csv), and the author rows already read it",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "spdx-2.3",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; primaryPackagePurpose only subdivides software, so a consumer defaults to Software",
+      "crosswalk_cell": null
+    },
+    {
       "format": "codemeta-2",
       "term": "name",
       "path": "name",
@@ -3588,6 +4060,22 @@
       "path": "datePublished",
       "source": "crosswalk:crosswalks/codemeta-V2.csv@3.1",
       "crosswalk_cell": "datePublished"
+    },
+    {
+      "format": "codemeta-2",
+      "term": "publisher",
+      "path": "publisher.name | publisher",
+      "source": "curated:CodeMeta's publisher is an Organization or Person, so a bare publisher is an object and its name is the publisher's name; a string, which is also legal, is read as the name",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
+      "crosswalk_cell": "publisher"
+    },
+    {
+      "format": "codemeta-2",
+      "term": "resourceType",
+      "path": "@type",
+      "source": "curated:CodeMeta has no term for the resource type; a CodeMeta document states its resource type in @type",
+      "comment": "SoftwareSourceCode for source code, SoftwareApplication for an application.",
+      "crosswalk_cell": null
     },
     {
       "format": "dcat-3",
@@ -3719,6 +4207,22 @@
       "crosswalk_cell": "dcterms:issued"
     },
     {
+      "format": "dcat-3",
+      "term": "publisher",
+      "path": "dcterms:publisher.foaf:name | dcterms:publisher",
+      "source": "curated:the cell says dcterms:publisher, whose value is an agent (usually a foaf:Agent), so its name is foaf:name; an IRI value has no name sub-field",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
+      "crosswalk_cell": "dcterms:publisher"
+    },
+    {
+      "format": "dcat-3",
+      "term": "resourceType",
+      "path": "dcterms:type",
+      "source": "curated:CodeMeta has no term for the resource type; DCAT states a dataset's kind with dcterms:type; the node's own @type is dcat:Dataset",
+      "comment": "The value is an IRI object, usually from the DCMI Type vocabulary (dctype:Software, dctype:Dataset); a record may give several types.",
+      "crosswalk_cell": null
+    },
+    {
       "format": "doap",
       "term": "name",
       "path": "doap:name",
@@ -3846,6 +4350,21 @@
       "source": "curated:the cell is empty; a release's date is doap:created on its doap:Version node, so the path is release[].created",
       "comment": "Same release as version: the consumer pairs release[].revision with release[].created of the same element.",
       "crosswalk_cell": ""
+    },
+    {
+      "format": "doap",
+      "term": "publisher",
+      "path": "doap:vendor.foaf:name | doap:vendor",
+      "source": "curated:the cell says vendor, DOAP's doap:vendor, whose value is an organisation node; its name is foaf:name, and the path names both keys with their prefix",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
+      "crosswalk_cell": "vendor"
+    },
+    {
+      "format": "doap",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:CodeMeta has no term for the resource type; doap has no field for it",
+      "crosswalk_cell": null
     },
     {
       "format": "wikidata",
@@ -3980,6 +4499,302 @@
       "source": "curated:the cell says P577, which is not a key of the entity JSON; the date is the time field of a time value",
       "comment": "The value looks like +2020-05-01T00:00:00Z; precision (11 = day, 9 = year) says how much of it is real.",
       "crosswalk_cell": "P577"
+    },
+    {
+      "format": "wikidata",
+      "term": "publisher",
+      "path": "claims.P123[].mainsnak.datavalue.value.id",
+      "source": "curated:the cell says P123, which is not a key of the entity JSON; publisher holds items, so the value is the id of the item under the statement's main snak",
+      "comment": "Wikidata has no free-text publisher. P123 holds items, and the label of each Q id is the publisher's name.",
+      "crosswalk_cell": "P123"
+    },
+    {
+      "format": "wikidata",
+      "term": "resourceType",
+      "path": "claims.P31[].mainsnak.datavalue.value.id",
+      "source": "curated:CodeMeta has no term for the resource type; a Wikidata item states its kind with instance of (P31), whose value is an item id",
+      "comment": "P31 (instance of) usually names a subclass of software (Q7397), so a consumer follows subclass of (P279) up to Q7397.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "name",
+      "path": "TI",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; TI is the title, once per record",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "version",
+      "path": "ET",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; RIS has no version tag, and ET (edition) is where a computer program's version goes",
+      "comment": "ET is an edition field, so this is a convention. Zotero's RIS translator has the same precedent: it maps ET to versionNumber for computerProgram.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "author",
+      "path": "AU[] + A1[]",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; AU is the author, repeated once per person",
+      "comment": "A1 is the older spec's primary author tag, and Zotero's RIS translator reads it as author too. The path gives the AU names, then the A1 names; Zotero keeps their order in the record.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "author.givenName",
+      "path": "AU[] + A1[]",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; each AU is 'Last, First' with an optional suffix",
+      "comment": "A1 is the older spec's primary author tag, and Zotero's RIS translator reads it as author too. The path gives the AU names, then the A1 names; Zotero keeps their order in the record. The consumer splits at the first comma.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "author.familyName",
+      "path": "AU[] + A1[]",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; each AU is 'Last, First' with an optional suffix",
+      "comment": "A1 is the older spec's primary author tag, and Zotero's RIS translator reads it as author too. The path gives the AU names, then the A1 names; Zotero keeps their order in the record. The consumer splits at the first comma.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "author.@id",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; a name tag holds a name only, no ORCID",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; A2 to A4 are secondary authors, editors or translators of the work, not contributors",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; no contributor tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; no contributor tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; no contributor tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "license",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; no licence tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "identifier",
+      "path": "DO",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; DO is the DOI",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; no SWHID tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "codeRepository",
+      "path": "UR[]",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; UR is a URL and may repeat",
+      "comment": "The spec also lets one UR hold several URLs separated by semicolons. The consumer takes the repository URL among them.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "description",
+      "path": "AB",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; AB is the abstract",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "keywords",
+      "path": "KW[]",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; KW is one keyword or phrase per tag, repeated",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "datePublished",
+      "path": "PY | Y1",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; PY is the publication year in four digits",
+      "comment": "PY is a year, so the consumer cuts an ISO date to its first four digits. Y1 is the older spec's primary date (YYYY/MM/DD/other), which Zotero reads as DA; the consumer cuts it to the year too. DA (YYYY/MM/DD/other) holds a full date, but its meaning varies (accessed, updated, released).",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "publisher",
+      "path": "PB",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; PB is the publisher, and Zotero's translator reads it into a computer program's company field",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "ris",
+      "term": "resourceType",
+      "path": "TY",
+      "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; TY is the reference type, and COMP is a computer program",
+      "comment": "Software is COMP. The consumer writes the type tag first in the record.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "name",
+      "path": "T",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %T is the title",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "version",
+      "path": "_7",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %7 is the edition",
+      "comment": "EndNote and Zotero's ReferBibIX.js both read %7 as edition. A program's version in %7 is this project's convention; EndNote has no version tag.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "author",
+      "path": "A[]",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %A is the author, repeated once per person",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "author.givenName",
+      "path": "A[]",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; each %A is one name, written 'Family, Given' or 'Given Family'",
+      "comment": "The consumer splits the name; a comma means 'Family, Given'.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "author.familyName",
+      "path": "A[]",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; each %A is one name, written 'Family, Given' or 'Given Family'",
+      "comment": "The consumer splits the name; a comma means 'Family, Given'.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "author.@id",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; a name tag holds a name only, no ORCID",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %E is an editor, and no tag marks a contributor",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; no contributor tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; no contributor tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; no contributor tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "license",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; no licence tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "identifier",
+      "path": "R",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %R is the DOI",
+      "comment": "EndNote's own field: %R is the DOI in EndNote's tag table (older EndNote versions called it Electronic Resource Number). Zotero's ReferBibIX.js reads %R as type instead, so a file Zotero wrote may hold no DOI there. https://github.com/zotero/translators/blob/master/ReferBibIX.js",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; no SWHID tag",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "codeRepository",
+      "path": "U",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %U is the URL",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "description",
+      "path": "X",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %X is the abstract",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "keywords",
+      "path": "K[]",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %K is the keywords",
+      "comment": "A %K tag may hold continuation lines, one keyword per line, as Zotero writes it. The consumer splits the value at line breaks and also reads repeated %K tags.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "datePublished",
+      "path": "D",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %D is the year",
+      "comment": "Zotero writes the item's full date string to %D (ReferBibIX.js, addTag(\"D\", item.date)), so it may hold more than a year. The consumer cuts an ISO date to the year only when it needs one.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "publisher",
+      "path": "I",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm, with %0 Computer Program; %I is the publisher",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "endnote",
+      "term": "resourceType",
+      "path": "_0",
+      "source": "curated:no EndNote crosswalk upstream; tags from EndNote's tagged import format, https://docs.endnote.com/docs/endnote/2025/v1/windows/en/content/08import/creating_a_taggedenimprtfl.htm; %0 is the reference type, and Computer Program is software",
+      "comment": "Software is 'Computer Program'. The key is _0 because a path key cannot start with a digit, as with _7 (edition).",
+      "crosswalk_cell": null
     }
   ]
 }

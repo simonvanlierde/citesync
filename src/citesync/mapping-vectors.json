@@ -543,10 +543,14 @@
   },
   {
    "name": "+ reads every part, part by part",
-   "path": "Author + Author-email",
+   "path": "Author[] + Author-email[]",
    "document": {
-    "Author": "Tu Youyou",
-    "Author-email": "Antonie van Leeuwenhoek <antonie@example.org>"
+    "Author": [
+     "Tu Youyou"
+    ],
+    "Author-email": [
+     "Antonie van Leeuwenhoek <antonie@example.org>"
+    ]
    },
    "expected": [
     "Tu Youyou",
@@ -554,10 +558,140 @@
    ]
   },
   {
-   "name": "+ with one part missing reads the other",
-   "path": "Author + Author-email",
+   "name": "Author and Author-email are lists: the parser splits the spec's C. Schultz example into four names, a known loss",
+   "path": "Author[] + Author-email[]",
    "document": {
-    "Author-email": "Marie Skłodowska-Curie <marie@example.org>"
+    "Author": [
+     "C. Schultz",
+     "Universal Features Syndicate",
+     "Los Angeles",
+     "CA"
+    ],
+    "Author-email": [
+     "B <b@example.org>"
+    ]
+   },
+   "expected": [
+    "C. Schultz",
+    "Universal Features Syndicate",
+    "Los Angeles",
+    "CA",
+    "B <b@example.org>"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: C. Schultz, Universal Features Syndicate, Los Angeles, CA\nAuthor-email: B <b@example.org>\n"
+   }
+  },
+  {
+   "name": "Author 'Ada Lovelace, Grace Hopper' is split by the parser at commas into two names",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "Ada Lovelace",
+     "Grace Hopper"
+    ]
+   },
+   "expected": [
+    "Ada Lovelace",
+    "Grace Hopper"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: Ada Lovelace, Grace Hopper\n"
+   }
+  },
+  {
+   "name": "Author 'Datadog, Inc.' stays one name: the parser keeps a company suffix with the piece before it",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "Datadog, Inc."
+    ]
+   },
+   "expected": [
+    "Datadog, Inc."
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: Datadog, Inc.\n"
+   }
+  },
+  {
+   "name": "Author 'A, B, et al.' is two names: the parser drops an et al. piece",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "A",
+     "B"
+    ]
+   },
+   "expected": [
+    "A",
+    "B"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: A, B, et al.\n"
+   }
+  },
+  {
+   "name": "Author '\"Smith, Jane\"' stays one name: the parser does not split inside double quotes",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "Smith, Jane"
+    ]
+   },
+   "expected": [
+    "Smith, Jane"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: \"Smith, Jane\"\n"
+   }
+  },
+  {
+   "name": "Author-email is split by the parser at commas outside quotes and angle brackets",
+   "path": "Author-email[]",
+   "document": {
+    "Author-email": [
+     "\"Smith, Jane\" <jane@example.org>",
+     "Ada Lovelace <ada@example.org>"
+    ]
+   },
+   "expected": [
+    "\"Smith, Jane\" <jane@example.org>",
+    "Ada Lovelace <ada@example.org>"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author-email: \"Smith, Jane\" <jane@example.org>, Ada Lovelace <ada@example.org>\n"
+   }
+  },
+  {
+   "name": "EndNote %K with continuation lines is split into one keyword per line by the parser",
+   "path": "K[]",
+   "document": {
+    "K": [
+     "analysis",
+     "notes",
+     "software"
+    ]
+   },
+   "expected": [
+    "analysis",
+    "notes",
+    "software"
+   ]
+  },
+  {
+   "name": "+ with one part missing reads the other",
+   "path": "Author[] + Author-email[]",
+   "document": {
+    "Author-email": [
+     "Marie Skłodowska-Curie <marie@example.org>"
+    ]
    },
    "expected": [
     "Marie Skłodowska-Curie <marie@example.org>"
@@ -565,12 +699,71 @@
   },
   {
    "name": "+ binds tighter than |: an empty alternative falls through",
-   "path": "Author + Author-email | Maintainer",
+   "path": "Author[] + Author-email[] | Maintainer",
    "document": {
     "Maintainer": "Tu Youyou"
    },
    "expected": [
     "Tu Youyou"
+   ]
+  },
+  {
+   "name": "RIS tags are keys, and AU and KW are lists",
+   "path": "AU[]",
+   "document": {
+    "TY": "COMP",
+    "TI": "Carberry",
+    "AU": [
+     "Lovelace, Ada",
+     "Babbage, Charles"
+    ],
+    "ET": "1.2.0",
+    "KW": [
+     "analysis",
+     "notes"
+    ]
+   },
+   "expected": [
+    "Lovelace, Ada",
+    "Babbage, Charles"
+   ]
+  },
+  {
+   "name": "RIS keywords repeat",
+   "path": "KW[]",
+   "document": {
+    "KW": [
+     "analysis",
+     "notes"
+    ]
+   },
+   "expected": [
+    "analysis",
+    "notes"
+   ]
+  },
+  {
+   "name": "RIS AU is a list even with one author",
+   "path": "AU[]",
+   "document": {
+    "TY": "COMP",
+    "AU": [
+     "Lovelace, Ada"
+    ]
+   },
+   "expected": [
+    "Lovelace, Ada"
+   ]
+  },
+  {
+   "name": "EndNote tag %7 is the key _7",
+   "path": "_7",
+   "document": {
+    "T": "Carberry",
+    "_7": "1.2.0"
+   },
+   "expected": [
+    "1.2.0"
    ]
   },
   {
@@ -605,6 +798,34 @@
    },
    "expected": [
     "https://example.org/carberry.git"
+   ]
+  },
+  {
+   "name": "RIS authors: AU names, then the older A1 names",
+   "path": "AU[] + A1[]",
+   "document": {
+    "TY": "COMP",
+    "A1": [
+     "Lovelace, Ada"
+    ],
+    "AU": [
+     "Hopper, Grace"
+    ]
+   },
+   "expected": [
+    "Hopper, Grace",
+    "Lovelace, Ada"
+   ]
+  },
+  {
+   "name": "RIS date: the older Y1 when there is no PY",
+   "path": "PY | Y1",
+   "document": {
+    "TY": "COMP",
+    "Y1": "1843/10/01/"
+   },
+   "expected": [
+    "1843/10/01/"
    ]
   }
  ]

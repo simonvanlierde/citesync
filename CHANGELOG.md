@@ -10,17 +10,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - The playground makes incomplete R DESCRIPTION, Julia Project.toml, Typst typst.toml and Quarto _extension.yml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
+- `citesync export --format datacite` prints DataCite Metadata Schema 4.7 XML (`citation.datacite.xml`, resource type `Software`). List a `.datacite.xml` file under `exports` to have `write` keep it in step and `check` report it as `export-stale`. It needs a DOI, an author, a publisher and a release year, and says which source field to set when one is missing. The playground offers it when the record has all four ([citation exports](docs/export.md)).
 
 ### Changed
 
 - **Breaking:** exit codes and JSON reports follow one convention across the tools: 0 done, 1 an error finding, 2 a usage error, 3 citesync couldn't run (a bad config, a missing source file), 130 interrupted with Ctrl-C. A run that couldn't run exited 2 before, the same code as a mistyped option. The `--json` report names its version `schema_version`, not `version`, and has an `errors` list of `{message, help}` objects; a run that couldn't finish prints a report with only its errors instead of a line on stderr ([exit codes](docs/check.md#findings-and-exit-codes), [JSON](docs/output.md#json)).
 - `typst.toml` and `_extension.yml` are read through their own rows in the field mapping, not Cargo's and npm's. `init` and `export` now take a Quarto extension's `title` as its name; `check` still doesn't compare it. `typst.toml` keywords are now compared with their separators (`big data` is not `big-data`), as other manifests' are; set `keywords-ignore-separators = true` to keep the old leniency ([plugin manifests](docs/formats.md#plugin-manifests)).
-- The field mapping uses [codemeta-drift 0.6.0](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.6.0), which adds rows for DataCite, typst.toml and Quarto extensions among others, and mapping paths can now combine parts with `+` and filter on a member of a list.
+- The field mapping uses [codemeta-drift 0.7.1](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.7.1), which adds rows for DataCite, typst.toml, Quarto extensions, RIS and EndNote among others, reads PKG-INFO's `Author` as a list, and mapping paths can now combine parts with `+` and filter on a member of a list.
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
 
 ### Fixed
 
+- The `schema.jsonld` export writes `license` only as a URL: the SPDX page for a single licence id, or the URL the source gives. A `LicenseRef-` id, an expression such as `MIT OR Apache-2.0` and other text are left out instead of written as a made-up or non-URL value.
 - A PKG-INFO or METADATA `Author` such as `Datadog, Inc.` is one author, not two: a company suffix stays with the name before it, and an `et al.` entry is dropped ([formats](docs/formats.md#python-distribution-metadata)).
 - `init` reads the manifests the `manifests` setting lists, so a Quarto extension under `_extensions/<name>/` can give the new CITATION.cff ([init](docs/init.md)).
 - A codemeta.json with no `@context` is reported as having none, not as `@context None is not CodeMeta`.
