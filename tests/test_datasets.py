@@ -218,3 +218,11 @@ def test_init_ignores_an_unreadable_dataset_file(tmp_path: Path, run: "Run") -> 
     (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
     (tmp_path / "croissant.json").write_text("{not json", encoding="utf-8")
     assert run("init", "--diff", "--root", str(tmp_path))[0] == 0
+
+
+def test_an_ro_crate_licence_with_a_local_id_is_not_compared(tmp_path: Path, run: "Run") -> None:
+    """The rows read a licence entity's ``@id`` before its url, and a local ``#license`` is no licence."""
+    crate = _crate(license={"@id": "#license"})
+    crate["@graph"].append({"@id": "#license", "@type": "CreativeWork", "url": "https://spdx.org/licenses/MIT"})
+    code, out, _ = run("check", "--root", str(_repo(tmp_path, "ro-crate-metadata.json", crate)))
+    assert code == 0, out

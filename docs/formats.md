@@ -32,7 +32,7 @@ sourceledger's `release` copies the name, description, licence, version, DOI, re
 
 An RO-Crate is read from its root data entity, the `@graph` entry with `@id` `./`. Each reference there, such as an author written as `{"@id": "https://orcid.org/..."}`, is read through the entity with that `@id`. A crate without that entry, such as a detached crate whose root is a URL, is [`unreadable`](rules.md#unreadable). A DOI may be a string, an `@id`, or a PropertyValue's `url` or `doi:` `value`; citesync takes the first value spelled as a DOI.
 
-Not compared, because citesync can't read them as values: a person reference with no entity in `@graph`, keywords given as `DefinedTerm` references, and Croissant keys with the `sc:` prefix, such as `sc:name`. sourceledger writes none of these. Both files are read through codemeta-drift's `ro-crate` and `croissant` rows ([decision 0002](decisions/0002-vendored-mapping.md)).
+Not compared, because citesync can't read them as values: a person reference with no entity in `@graph`, a licence entity whose `@id` is a local one such as `#license` (the rows read its `@id`, not its `url`), keywords given as `DefinedTerm` references, and Croissant keys with the `sc:` prefix, such as `sc:name`. sourceledger writes none of these. Both files are read through codemeta-drift's `ro-crate` and `croissant` rows ([decision 0002](decisions/0002-vendored-mapping.md)).
 
 ## Plugin manifests
 

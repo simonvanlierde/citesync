@@ -64,8 +64,8 @@ def license_decode(raw: object) -> str | None:
         return " OR ".join(ids) or None
     if isinstance(raw, dict):
         raw = raw.get("text")  # a {file = ...} table names a file, not a licence
-    if not isinstance(raw, str) or not raw.strip():
-        return None
+    if not isinstance(raw, str) or not raw.strip() or raw.strip().startswith("#"):
+        return None  # a JSON-LD local id, such as an RO-Crate's #license, names an entity, not a licence
     raw = raw.strip()
     match = _SPDX_URL.match(raw)
     return match["id"] if match else raw
