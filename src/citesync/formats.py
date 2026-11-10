@@ -7,6 +7,7 @@ The import adapters (:mod:`citesync.core_metadata`, :mod:`citesync.research_meta
 parse their syntax into the format's own shape, which the format's rows then read.
 """
 
+import functools
 import json
 import re
 import tomllib
@@ -205,10 +206,8 @@ def _zenodo_doi(identifier: object) -> bool:
     return isinstance(identifier, dict) and "10.5281/zenodo." in str(identifier.get("value", "")).casefold()
 
 
-_JSONLD_ALIASES = frozenset({"type", "id"})  # the CodeMeta contexts alias @type and @id
-# shortcut: any key under these prefixes passes, codemeta:typo too; check them against schema.org if one turns up
-_CODEMETA_PREFIXES = frozenset({"schema", "codemeta"})
-# shortcut: the types the 3.x and 4.0 contexts define, by hand; read them from codemeta-drift once it exports them
+# shortcut: the types the 3.x and 4.0 contexts define, by hand, 4.0's let through in 3.x files too; read them from
+# codemeta-drift once it exports them
 _CODEMETA_TYPES = frozenset(
     {
         "SoftwareSourceCode",
@@ -229,8 +228,9 @@ def stray_terms(data: dict[str, Any], version: str) -> tuple[tuple[str, str, str
     """(key path, rule id, message) for each key in a codemeta.json that its CodeMeta ``version`` doesn't define.
 
     A key is ``foreign-term`` when it may come from another context the file declares: a prefixed key or an
-    IRI, a term of an inline context object, or any key when the file also names a remote context that isn't
-    CodeMeta. Otherwise it is ``unknown-term``. A path joins nested keys with dots, without list indexes.
+    IRI, a term of an inline context object, any key when the file also names a remote context that isn't
+    CodeMeta or an ``@vocab``, and any key under an object with its own ``@context``. Otherwise it is
+    ``unknown-term``. A path joins nested keys with dots, without list indexes, and is reported once.
     Neither is looked inside, and nor is ``@context`` or an object whose ``@type`` CodeMeta doesn't define,
     such as a schema.org ``PropertyValue``: its keys are that type's, which no CodeMeta list holds.
     """
@@ -239,45 +239,53 @@ def stray_terms(data: dict[str, Any], version: str) -> tuple[tuple[str, str, str
         return ()
     context = data.get("@context")
     items = context if isinstance(context, list) else [context]
-    inline = {key for item in items if isinstance(item, dict) for key in item}
-    remote = any(isinstance(item, str) and codemeta_version(item) is None for item in items)
-    return tuple(_walk(data, "", version, terms, inline, remote=remote))
+    inline = frozenset(key for item in items if isinstance(item, dict) for key in item)
+    remote = "@vocab" in inline or any(isinstance(item, str) and codemeta_version(item) is None for item in items)
+    found: dict[str, tuple[str, str, str]] = {}
+    for path, stray in _walk(data, "", version, terms, inline, foreign=remote):
+        found.setdefault(path, (path, *stray))
+    return tuple(found.values())
 
 
 def _walk(
-    node: object, path: str, version: str, terms: frozenset[str], inline: set[str], *, remote: bool
-) -> Iterator[tuple[str, str, str]]:
-    """:func:`stray_terms` for ``node``, whose keys sit under ``path``."""
+    node: object, path: str, version: str, terms: frozenset[str], inline: frozenset[str], *, foreign: bool
+) -> Iterator[tuple[str, tuple[str, str]]]:
+    """(key path, (rule id, message)) for each stray key in ``node``, whose keys sit under ``path``."""
     if isinstance(node, list):
         for el in node:
-            yield from _walk(el, path, version, terms, inline, remote=remote)
+            yield from _walk(el, path, version, terms, inline, foreign=foreign)
         return
     if not isinstance(node, dict):
         return
     types = node.get("@type", node.get("type"))
-    if path and types and not set(types if isinstance(types, list) else [types]) <= _CODEMETA_TYPES:
+    named = {t for t in (types if isinstance(types, list) else [types]) if isinstance(t, str)}
+    if path and named and not named <= _CODEMETA_TYPES:
         return
+    foreign = foreign or (bool(path) and "@context" in node)
     for key, value in node.items():
+        if key in {"@context", "@type", "@id", "type", "id"}:  # the CodeMeta contexts alias @type and @id
+            continue
         if key.startswith("@"):
-            if key != "@context":
-                yield from _walk(value, path, version, terms, inline, remote=remote)
-        elif key in terms or key in _JSONLD_ALIASES:
-            yield from _walk(value, f"{path}{key}.", version, terms, inline, remote=remote)
-        elif stray := _stray(key, version, terms, foreign=key in inline or remote):
-            yield (f"{path}{key}", *stray)
+            yield from _walk(value, path, version, terms, inline, foreign=foreign)
+        elif key in terms:
+            yield from _walk(value, f"{path}{key}.", version, terms, inline, foreign=foreign)
+        elif stray := _stray(key, version, terms, foreign=foreign or key in inline):
+            yield f"{path}{key}", stray
 
 
+@functools.cache  # a key repeated in each of many list items is looked up once
 def _stray(key: str, version: str, terms: frozenset[str], *, foreign: bool) -> tuple[str, str] | None:
     """(rule id, message) for a key ``terms`` lacks, or None for one under CodeMeta's own prefixes."""
     from citesync.config import did_you_mean  # noqa: PLC0415 - config imports this module
 
     prefix, colon, _ = key.partition(":")
-    if colon and prefix in _CODEMETA_PREFIXES:
+    # shortcut: any key under these prefixes passes, codemeta:typo too; check them against schema.org if one turns up
+    if colon and prefix in {"schema", "codemeta"}:
         return None
     message = f"not a CodeMeta {version} term"
     if colon or foreign:
         return "foreign-term", f"{message}; from another context"
-    other = next((v for v in ("3.1", "4.0") if key in (context_terms(v) or terms) - terms), None)
+    other = next((v for v in ("3.1", "4.0") if key in (context_terms(v) or ())), None)
     return "unknown-term", message + (f"; CodeMeta {other} has it" if other else did_you_mean(key, terms))
 
 

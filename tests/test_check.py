@@ -1306,8 +1306,30 @@ def _term_findings(tmp_path: Path, run: "Run", data: dict) -> list[tuple[str, st
             },
             [],
         ),
+        (
+            {"@context": CM3, "author": [{"@type": ["Person", {"x": 1}], "givenname": "Ada"}]},
+            [("unknown-term", "author.givenname", "not a CodeMeta 3.0 term; did you mean 'givenName'?")],
+        ),
+        (
+            {"@context": CM3, "@graph": [{"@type": "SoftwareSourceCode", "licence": "MIT"}]},
+            [("unknown-term", "licence", "not a CodeMeta 3.0 term; did you mean 'license'?")],
+        ),
+        (
+            {"@context": CM3, "author": [{**PERSON, "nick": "a"}, {**PERSON, "nick": "b"}]},
+            [("unknown-term", "author.nick", "not a CodeMeta 3.0 term")],
+        ),
     ],
-    ids=["typos", "known", "added-in-4.0", "dropped-in-4.0", "2.0-unchecked", "keywords-and-prefixes"],
+    ids=[
+        "typos",
+        "known",
+        "added-in-4.0",
+        "dropped-in-4.0",
+        "2.0-unchecked",
+        "keywords-and-prefixes",
+        "type-list-with-a-non-string",
+        "graph",
+        "repeated-key-once",
+    ],
 )
 def test_unknown_codemeta_terms(data: dict, expected: list, tmp_path: Path, run: "Run") -> None:
     assert _term_findings(tmp_path, run, data) == expected
@@ -1320,12 +1342,20 @@ def test_unknown_codemeta_terms(data: dict, expected: list, tmp_path: Path, run:
         ([CM3, {"grant": "https://example.org/terms/grant"}], "grant"),
         ([CM3, "https://schema.org"], "alternateName"),
         (CM3, "https://example.org/terms/grant"),
+        ([CM3, {"@vocab": "https://example.org/terms/"}], "grant"),
     ],
-    ids=["declared-prefix", "inline-term", "other-remote-context", "iri"],
+    ids=["declared-prefix", "inline-term", "other-remote-context", "iri", "inline-vocab"],
 )
 def test_a_term_from_another_context_is_a_warning(context: str | list, key: str, tmp_path: Path, run: "Run") -> None:
     [(rule, term, message)] = _term_findings(tmp_path, run, {"@context": context, key: "x"})
     assert (rule, term, message) == ("foreign-term", key, "not a CodeMeta 3.0 term; from another context")
+
+
+def test_a_nested_context_makes_its_keys_foreign(tmp_path: Path, run: "Run") -> None:
+    author = {**PERSON, "@context": {"nick": "https://example.org/nick"}, "nick": "a"}
+    assert _term_findings(tmp_path, run, {"@context": CM3, "author": [author]}) == [
+        ("foreign-term", "author.nick", "not a CodeMeta 3.0 term; from another context")
+    ]
 
 
 def test_an_unknown_term_fails_the_check(tmp_path: Path, run: "Run") -> None:
