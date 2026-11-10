@@ -3,7 +3,7 @@
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.7.1"
+    "version": "0.7.2"
   },
   "context_terms": [
     "address",
@@ -224,8 +224,9 @@
     {
       "format": "codemeta",
       "term": "version",
-      "path": "version",
-      "source": "curated:codemeta's own term",
+      "path": "version | softwareVersion",
+      "source": "curated:CodeMeta's own term is version, but schema:softwareVersion is a CodeMeta term too; a file that holds only softwareVersion still has a version",
+      "comment": "Write version.",
       "crosswalk_cell": null
     },
     {

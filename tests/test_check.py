@@ -1160,6 +1160,7 @@ def _git(root: Path, *args: str) -> None:
         ("", ["v0.2.0"], 0, None),
         ("0.2.0", ["v0.1.0", "0.2.0"], 0, None),
         ("0.1.0", ["latest"], 0, None),
+        ("0.1.0", ["nightly", "v0.2.0"], 0, "0.1.0, the newest tag is v0.2.0"),  # a non-version tag sorts first
         ("0.1.0", [], 0, None),
     ],
 )
