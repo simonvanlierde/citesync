@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-10
+
+To upgrade from 0.4.0:
+
+- citesync needs Python 3.13 or newer, the git hooks included.
+- A run that couldn't finish exits 3, not 2: a script that tests for 2 tests for 3. In `--json` output, `version` is now `schema_version`, and every report has `errors` ([output](docs/output.md)).
+- `check` can fail on a codemeta.json that passed before: an unknown key is now an `unknown-term` error, and `typst.toml` keywords compare with their separators. `ignore = ["unknown-term"]` and `keywords-ignore-separators = true` keep the old behaviour ([configuration](docs/config.md)).
+
 ### Added
 
 - `check` reports a codemeta.json key that isn't a term of its CodeMeta version as an [`unknown-term`](docs/rules.md#unknown-term) error, with the closest term or the version that has it, and one another declared context may define as a [`foreign-term`](docs/rules.md#foreign-term) warning. The term lists come from codemeta-drift's export, for CodeMeta 3.0, 3.1 and 4.0 ([checks](docs/check.md)). A codemeta.json that passed before can now fail; `ignore = ["unknown-term"]` in the config turns the check off.
@@ -16,7 +24,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - **Breaking:** exit codes and JSON reports follow one convention across the tools: 0 done, 1 an error finding, 2 a usage error, 3 citesync couldn't run (a bad config, a missing source file), 130 interrupted with Ctrl-C. A run that couldn't run exited 2 before, the same code as a mistyped option. The `--json` report names its version `schema_version`, not `version`, and has an `errors` list of `{message, help}` objects; a run that couldn't finish prints a report with only its errors instead of a line on stderr ([exit codes](docs/check.md#findings-and-exit-codes), [JSON](docs/output.md#json)).
-- `typst.toml` and `_extension.yml` are read through their own rows in the field mapping, not Cargo's and npm's. `init` and `export` now take a Quarto extension's `title` as its name; `check` still doesn't compare it. `typst.toml` keywords are now compared with their separators (`big data` is not `big-data`), as other manifests' are; set `keywords-ignore-separators = true` to keep the old leniency ([plugin manifests](docs/formats.md#plugin-manifests)).
+- **Breaking:** `typst.toml` and `_extension.yml` are read through their own rows in the field mapping, not Cargo's and npm's. `init` and `export` now take a Quarto extension's `title` as its name; `check` still doesn't compare it. `typst.toml` keywords are now compared with their separators (`big data` is not `big-data`), as other manifests' are; set `keywords-ignore-separators = true` to keep the old leniency ([plugin manifests](docs/formats.md#plugin-manifests)).
 - The field mapping uses [codemeta-drift 0.7.1](https://github.com/simonvanlierde/codemeta-drift/releases/tag/v0.7.1), which adds rows for DataCite, typst.toml, Quarto extensions, RIS and EndNote among others, reads PKG-INFO's `Author` as a list, and mapping paths can now combine parts with `+` and filter on a member of a list.
 - PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml files are read through codemeta-drift's own rows for those formats, not reshaped into PEP 621 or CodeMeta first. What each one gives is unchanged, and `check` findings on them now carry a line number ([formats](docs/formats.md#python-distribution-metadata)).
 - The playground's input and output file lists are grouped under labelled headers, sorted by name and searchable, and **Names look right** closes the name split until the author names change ([playground](playground/README.md)).
@@ -166,7 +174,8 @@ To upgrade from 0.1.0:
 - `citesync write`: rewrites the citation files that disagree with the source, and the manifest fields listed in `write-manifests`, keeping comments, key order, formatting and CRLF line ends, and writing through symlinks. Fields a file leaves out stay out. A value a file can't hold without losing something is left for you, with the reason: a compound licence in .zenodo.json, an `AND` licence in CITATION.cff or codemeta.json, a version semver can't spell in Cargo.toml or package.json, a version that isn't PEP 440 in pyproject.toml, or a renamed author whose old entry holds an email or affiliation. It reports the findings left as `check` does, each saying what to do, and never writes an ignored finding or an unreadable file. Exit 0 when the files agree afterwards, 1 when an error finding remains, 2 when it couldn't run and wrote nothing.
 - `citesync write --diff` prints the edits write would make as a unified diff and writes nothing. Exit 0 when there is nothing to change, 1 when there is or when a file can't be read (listed on stderr), as `ruff format --diff` does.
 
-[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/simonvanlierde/citesync/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/simonvanlierde/citesync/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/simonvanlierde/citesync/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/simonvanlierde/citesync/compare/v0.1.0...v0.2.0

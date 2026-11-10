@@ -63,13 +63,13 @@ For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.
 ```yaml
 repos:
   - repo: https://github.com/simonvanlierde/citesync
-    rev: v0.4.0
+    rev: v0.5.0
     hooks:
       - id: citesync
       - id: citesync-write
 ```
 
-The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
+The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`. Both hooks need Python 3.13 or newer.
 
 ## Development
 
