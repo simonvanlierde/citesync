@@ -510,6 +510,8 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
     "citation.bib — BibTeX",
     "CITATION.cff — GitHub citation",
     "citation.csl.json — CSL-JSON",
+    "citation.enw — EndNote reference",
+    "citation.ris — RIS reference",
     "codemeta.json — Software metadata",
     "schema.jsonld — Website structured data",
     ".zenodo.json — Zenodo deposit",
