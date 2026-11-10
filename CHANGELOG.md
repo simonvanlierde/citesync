@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `check` reports a codemeta.json key that isn't a term of its CodeMeta version as [`unknown-term`](docs/rules.md#unknown-term), with the closest term or the version that has it, and one another declared context may define as a [`foreign-term`](docs/rules.md#foreign-term) warning. The term lists come from codemeta-drift's export, for CodeMeta 3.0, 3.1 and 4.0 ([checks](docs/check.md)).
 - The playground makes incomplete R DESCRIPTION, Julia Project.toml, Typst typst.toml and Quarto _extension.yml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
 
 ### Changed

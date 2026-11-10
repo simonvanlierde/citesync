@@ -2,5 +2,6 @@
 tag v0.7.0 (unreleased; codemeta-drift #80)
 commit 1e9b9c243af6cf2dc56a69175b8fe086278f255f
 sha256 5fe3062cb7a8c11f0159663048d2fc1eb88c67a8504195fd2f2c686eb4ba33b7 mapping-local.json examples/mapping-3.1.json
+sha256 ac74b527289e9262dd8ddd4d5fc679defaa41863f117a51ff2d02a06cc001030 mapping-4.0.json examples/mapping-4.0.json
 sha256 f5f5a9eba1ed4df11200f78cc0f4bcdda757b431f83116e144a8c51afcb3290e mapping.schema.json src/codemeta_drift/mapping.schema.json
 sha256 9d9e88109eb98711fcfb79b73204bed1d02ecc66939583e92e4c0a322546faa2 mapping-vectors.json src/codemeta_drift/mapping-vectors.json

@@ -126,6 +126,22 @@ A `Role` entry in codemeta.json's `author` or `contributor` list names its perso
 
 To fix: Add the person back, point the Role at their ORCID, or remove the Role.
 
+## unknown-term
+
+A key in codemeta.json isn't a term of its CodeMeta version. Severity: error.
+
+Every key in codemeta.json, at any depth, must be a property term of the CodeMeta version its `@context` names, a JSON-LD keyword such as `@type`, the alias `type` or `id`, or a key under CodeMeta's own `schema:` or `codemeta:` prefix. The term lists come from the vendored codemeta-drift export: 3.0 and 3.1 share one list, 4.0 has its own, so `softwareSuggestions` is unknown there. A 2.0 file isn't checked. The message names the CodeMeta version that has the term, or else suggests the closest one. `write` never changes the key.
+
+To fix: Fix the spelling, or declare the context the term comes from in `@context`.
+
+## foreign-term
+
+A key in codemeta.json may come from a context other than CodeMeta. Severity: warning.
+
+A key that isn't a CodeMeta term warns instead of failing when another context the file declares may define it: a prefixed key such as `ex:grant` or a full IRI, a term an inline `@context` object defines, or any key when `@context` also names a remote context that isn't CodeMeta. citesync reads no context from the network, so it can't tell whether that context defines the key.
+
+To fix: Check the key is meant to come from that context, or use the CodeMeta term.
+
 ## version-behind-tag
 
 The source's version is older than the repo's newest git tag. Severity: warning.

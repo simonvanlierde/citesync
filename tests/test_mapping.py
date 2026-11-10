@@ -23,7 +23,7 @@ def _json(name: str) -> dict:
 def test_vendored_files_match_mapping_source() -> None:
     lines = PACKAGE.joinpath("MAPPING_SOURCE").read_text(encoding="utf-8").splitlines()
     pinned = {line.split()[2]: line.split()[1] for line in lines if line.startswith("sha256 ")}
-    assert set(pinned) == {"mapping-local.json", "mapping.schema.json", "mapping-vectors.json"}
+    assert set(pinned) == {"mapping-local.json", "mapping-4.0.json", "mapping.schema.json", "mapping-vectors.json"}
     for name, digest in pinned.items():
         assert hashlib.sha256(PACKAGE.joinpath(name).read_bytes()).hexdigest() == digest, (
             f"{name} differs from MAPPING_SOURCE: after vendoring a new codemeta-drift tag, set the tag, commit and"
@@ -31,8 +31,9 @@ def test_vendored_files_match_mapping_source() -> None:
         )
 
 
-def test_mapping_validates_against_vendored_schema() -> None:
-    jsonschema.validate(_json("mapping-local.json"), _json("mapping.schema.json"))
+@pytest.mark.parametrize("name", ["mapping-local.json", "mapping-4.0.json"])
+def test_mapping_validates_against_vendored_schema(name: str) -> None:
+    jsonschema.validate(_json(name), _json("mapping.schema.json"))
 
 
 def test_loads() -> None:
