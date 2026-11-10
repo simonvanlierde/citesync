@@ -1,6 +1,7 @@
 """Read distribution headers in their own shape, for the pkg-info rows, without loading package code."""
 
 import csv
+import re
 import unicodedata
 from email.header import decode_header, make_header
 from email.message import Message
@@ -112,10 +113,8 @@ def _authors(message: Message, rel: str) -> dict[str, list[str]]:
             names = next(csv.reader([_header(str(header), rel)], skipinitialspace=True, strict=True))
         except csv.Error as err:
             raise UnreadableError(rel, f"cannot read Author names: {err}") from err
-        for raw_name in names:
-            name = raw_name.strip()
-            if name:
-                authors.setdefault(name.casefold(), name)
+        for name in _names(names):
+            authors.setdefault(name.casefold(), name)
     # NOTE: only the name; an address would reach the name decoder and end up in family-names
     emails = [c["name"] for key, c in contacts.items() if key not in authors]
     return {k: v for k, v in (("Author", list(authors.values())), ("Author-email", emails)) if v}
@@ -134,6 +133,21 @@ def _urls(message: Message, rel: str) -> list[dict[str, str]]:
             raise UnreadableError(rel, f"Project-URL has conflicting values for {label!r}")
         urls[key] = address
     return [{"label": label, "url": url} for label, url in urls.items()]
+
+
+_SUFFIX = re.compile(r"(?:inc|llc|ltd|gmbh|pbc|corp)\.?", re.IGNORECASE)
+_ET_AL = re.compile(r"et al\.?", re.IGNORECASE)
+
+
+def _names(pieces: list[str]) -> list[str]:
+    """``Author`` pieces split at commas as names: a company suffix rejoins the piece before it, and "et al." goes."""
+    names: list[str] = []
+    for piece in (p.strip() for p in pieces):
+        if names and _SUFFIX.fullmatch(piece):
+            names[-1] = f"{names[-1]}, {piece}"
+        elif piece and not _ET_AL.fullmatch(piece):
+            names.append(piece)
+    return names
 
 
 def _header(value: str, rel: str) -> str:

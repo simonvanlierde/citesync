@@ -23,6 +23,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - The `schema.jsonld` export writes `license` only as a URL: the SPDX page for a single licence id, or the URL the source gives. A `LicenseRef-` id, an expression such as `MIT OR Apache-2.0` and other text are left out instead of written as a made-up or non-URL value.
+- A PKG-INFO or METADATA `Author` such as `Datadog, Inc.` is one author, not two: a company suffix stays with the name before it, and an `et al.` entry is dropped ([formats](docs/formats.md#python-distribution-metadata)).
 - `init` reads the manifests the `manifests` setting lists, so a Quarto extension under `_extensions/<name>/` can give the new CITATION.cff ([init](docs/init.md)).
 
 ### Removed
