@@ -76,12 +76,14 @@ def test_write_moves_the_version_and_keeps_the_rest(tmp_path: Path, run: "Run") 
 def test_write_moves_authors_and_licence_when_opted_in(tmp_path: Path, run: "Run") -> None:
     root = _repo(tmp_path, "1.2.3", '["author", "license"]')
     typst = root / TYPST_PATH
-    typst.write_text(TYPST.format(version="1.2.3").replace('"Apache-2.0"', '"MIT"'), encoding="utf-8")
+    typst.write_text(
+        TYPST.format(version="1.2.3").replace('"Apache-2.0"', '"MIT"').replace(', "Alan Turing"', ""), encoding="utf-8"
+    )
     quarto = root / QUARTO_PATH
     quarto.write_text(QUARTO.format(version="1.2.3").replace("Ada Lovelace", "Alan Turing"), encoding="utf-8")
     assert run("check", "--root", str(root))[0] == 1
     assert run("write", "--root", str(root))[0] == 0
-    assert 'license = "Apache-2.0"' in typst.read_text(encoding="utf-8")
+    assert typst.read_text(encoding="utf-8") == TYPST.format(version="1.2.3")
     assert "author: Ada Lovelace\n" in quarto.read_text(encoding="utf-8")
 
 
