@@ -10,7 +10,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - The playground makes incomplete R DESCRIPTION, Julia Project.toml, Typst typst.toml and Quarto _extension.yml templates beside the Python, Rust and JavaScript ones ([playground](playground/README.md)).
-- `citesync export --format datacite` prints DataCite Metadata Schema 4.7 XML (`citation.datacite.xml`, resource type `Software`). List a `.datacite.xml` file under `exports` to have `write` keep it in step and `check` report it as `export-stale`. It needs a DOI, an author, a publisher and a release year, and says which source field to set when one is missing ([citation exports](docs/export.md)).
+- `citesync export --format datacite` prints DataCite Metadata Schema 4.7 XML (`citation.datacite.xml`, resource type `Software`). List a `.datacite.xml` file under `exports` to have `write` keep it in step and `check` report it as `export-stale`. It needs a DOI, an author, a publisher and a release year, and says which source field to set when one is missing. The playground offers it when the record has all four ([citation exports](docs/export.md)).
 
 ### Changed
 
