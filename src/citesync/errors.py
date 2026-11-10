@@ -1,4 +1,4 @@
-"""The errors citesync raises: :class:`CheckError` becomes exit 2, :class:`UnreadableError` a finding.
+"""The errors citesync raises: :class:`CheckError` becomes exit 3, :class:`UnreadableError` a finding.
 
 :class:`CannotWrite` never leaves ``write``: the field is left as it was, and its finding says why.
 """
