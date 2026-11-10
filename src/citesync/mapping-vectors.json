@@ -543,9 +543,11 @@
   },
   {
    "name": "+ reads every part, part by part",
-   "path": "Author + Author-email[]",
+   "path": "Author[] + Author-email[]",
    "document": {
-    "Author": "Tu Youyou",
+    "Author": [
+     "Tu Youyou"
+    ],
     "Author-email": [
      "Antonie van Leeuwenhoek <antonie@example.org>"
     ]
@@ -556,30 +558,98 @@
    ]
   },
   {
-   "name": "Author is one string, Author-email a list of addresses",
-   "path": "Author + Author-email[]",
+   "name": "Author and Author-email are lists: the parser splits the spec's C. Schultz example into four names, a known loss",
+   "path": "Author[] + Author-email[]",
    "document": {
-    "Author": "C. Schultz, Universal Features Syndicate, Los Angeles, CA",
+    "Author": [
+     "C. Schultz",
+     "Universal Features Syndicate",
+     "Los Angeles",
+     "CA"
+    ],
     "Author-email": [
-     "C. Schultz <cschultz@example.org>",
      "B <b@example.org>"
     ]
    },
    "expected": [
-    "C. Schultz, Universal Features Syndicate, Los Angeles, CA",
-    "C. Schultz <cschultz@example.org>",
+    "C. Schultz",
+    "Universal Features Syndicate",
+    "Los Angeles",
+    "CA",
     "B <b@example.org>"
-   ]
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: C. Schultz, Universal Features Syndicate, Los Angeles, CA\nAuthor-email: B <b@example.org>\n"
+   }
   },
   {
-   "name": "Author with a comma stays one value (the parser does not split it)",
-   "path": "Author + Author-email[]",
+   "name": "Author 'Ada Lovelace, Grace Hopper' is split by the parser at commas into two names",
+   "path": "Author[]",
    "document": {
-    "Author": "Smith, Jane"
+    "Author": [
+     "Ada Lovelace",
+     "Grace Hopper"
+    ]
+   },
+   "expected": [
+    "Ada Lovelace",
+    "Grace Hopper"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: Ada Lovelace, Grace Hopper\n"
+   }
+  },
+  {
+   "name": "Author 'Datadog, Inc.' stays one name: the parser keeps a company suffix with the piece before it",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "Datadog, Inc."
+    ]
+   },
+   "expected": [
+    "Datadog, Inc."
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: Datadog, Inc.\n"
+   }
+  },
+  {
+   "name": "Author 'A, B, et al.' is two names: the parser drops an et al. piece",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "A",
+     "B"
+    ]
+   },
+   "expected": [
+    "A",
+    "B"
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: A, B, et al.\n"
+   }
+  },
+  {
+   "name": "Author '\"Smith, Jane\"' stays one name: the parser does not split inside double quotes",
+   "path": "Author[]",
+   "document": {
+    "Author": [
+     "Smith, Jane"
+    ]
    },
    "expected": [
     "Smith, Jane"
-   ]
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author: \"Smith, Jane\"\n"
+   }
   },
   {
    "name": "Author-email is split by the parser at commas outside quotes and angle brackets",
@@ -593,7 +663,11 @@
    "expected": [
     "\"Smith, Jane\" <jane@example.org>",
     "Ada Lovelace <ada@example.org>"
-   ]
+   ],
+   "raw_input": {
+    "format": "pkg-info",
+    "text": "Author-email: \"Smith, Jane\" <jane@example.org>, Ada Lovelace <ada@example.org>\n"
+   }
   },
   {
    "name": "EndNote %K with continuation lines is split into one keyword per line by the parser",
@@ -613,7 +687,7 @@
   },
   {
    "name": "+ with one part missing reads the other",
-   "path": "Author + Author-email[]",
+   "path": "Author[] + Author-email[]",
    "document": {
     "Author-email": [
      "Marie Skłodowska-Curie <marie@example.org>"
@@ -625,7 +699,7 @@
   },
   {
    "name": "+ binds tighter than |: an empty alternative falls through",
-   "path": "Author + Author-email[] | Maintainer",
+   "path": "Author[] + Author-email[] | Maintainer",
    "document": {
     "Maintainer": "Tu Youyou"
    },
@@ -666,6 +740,19 @@
    "expected": [
     "analysis",
     "notes"
+   ]
+  },
+  {
+   "name": "RIS AU is a list even with one author",
+   "path": "AU[]",
+   "document": {
+    "TY": "COMP",
+    "AU": [
+     "Lovelace, Ada"
+    ]
+   },
+   "expected": [
+    "Lovelace, Ada"
    ]
   },
   {
@@ -711,6 +798,34 @@
    },
    "expected": [
     "https://example.org/carberry.git"
+   ]
+  },
+  {
+   "name": "RIS authors: AU names, then the older A1 names",
+   "path": "AU[] + A1[]",
+   "document": {
+    "TY": "COMP",
+    "A1": [
+     "Lovelace, Ada"
+    ],
+    "AU": [
+     "Hopper, Grace"
+    ]
+   },
+   "expected": [
+    "Hopper, Grace",
+    "Lovelace, Ada"
+   ]
+  },
+  {
+   "name": "RIS date: the older Y1 when there is no PY",
+   "path": "PY | Y1",
+   "document": {
+    "TY": "COMP",
+    "Y1": "1843/10/01/"
+   },
+   "expected": [
+    "1843/10/01/"
    ]
   }
  ]

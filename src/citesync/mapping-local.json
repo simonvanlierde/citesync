@@ -3,8 +3,81 @@
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
-    "version": "0.6.0"
+    "version": "0.7.1"
   },
+  "context_terms": [
+    "address",
+    "affiliation",
+    "applicationCategory",
+    "applicationSubCategory",
+    "author",
+    "buildInstructions",
+    "citation",
+    "codeRepository",
+    "continuousIntegration",
+    "contributor",
+    "copyrightHolder",
+    "copyrightYear",
+    "dateCreated",
+    "dateModified",
+    "datePublished",
+    "description",
+    "developmentStatus",
+    "downloadUrl",
+    "editor",
+    "email",
+    "embargoEndDate",
+    "encoding",
+    "endDate",
+    "familyName",
+    "fileFormat",
+    "fileSize",
+    "funder",
+    "funding",
+    "givenName",
+    "hasPart",
+    "hasSourceCode",
+    "identifier",
+    "installUrl",
+    "isAccessibleForFree",
+    "isPartOf",
+    "isSourceCodeOf",
+    "issueTracker",
+    "keywords",
+    "license",
+    "maintainer",
+    "memoryRequirements",
+    "name",
+    "operatingSystem",
+    "permissions",
+    "position",
+    "processorRequirements",
+    "producer",
+    "programmingLanguage",
+    "provider",
+    "publisher",
+    "readme",
+    "referencePublication",
+    "relatedLink",
+    "releaseNotes",
+    "review",
+    "reviewAspect",
+    "reviewBody",
+    "roleName",
+    "runtimePlatform",
+    "sameAs",
+    "softwareHelp",
+    "softwareRequirements",
+    "softwareSuggestions",
+    "softwareVersion",
+    "sponsor",
+    "startDate",
+    "storageRequirements",
+    "supportingData",
+    "targetProduct",
+    "url",
+    "version"
+  ],
   "rows": [
     {
       "format": "cff-1.2.0",
@@ -265,6 +338,7 @@
       "term": "publisher",
       "path": "publisher.name | publisher",
       "source": "curated:CodeMeta's publisher is an Organization or Person, so a bare publisher is an object and its name is the publisher's name; a string, which is also legal, is read as the name",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
       "crosswalk_cell": null
     },
     {
@@ -828,22 +902,22 @@
     {
       "format": "pkg-info",
       "term": "author",
-      "path": "Author + Author-email[]",
-      "source": "curated:the cell says Author; Author is one free-text string (core metadata spec), and an author who has an email goes to Author-email as 'Name <email>', a list of addresses",
+      "path": "Author[] + Author-email[]",
+      "source": "curated:the cell says Author; the pyproject.toml spec puts an author without an email in Author and one with an email in Author-email as 'Name <email>', and says a name must not contain commas and multiple values should be separated by commas, so both are lists",
       "crosswalk_cell": "Author"
     },
     {
       "format": "pkg-info",
       "term": "author.givenName",
-      "path": "Author + Author-email[]",
-      "source": "curated:no cell; Author is free text and Author-email holds 'Name <email>' addresses, so a consumer takes a name from an address and splits Author no further",
+      "path": "Author[] + Author-email[]",
+      "source": "curated:no cell; each Author piece and each Author-email display name is one full name, which core metadata does not split further",
       "crosswalk_cell": ""
     },
     {
       "format": "pkg-info",
       "term": "author.familyName",
-      "path": "Author + Author-email[]",
-      "source": "curated:no cell; Author is free text and Author-email holds 'Name <email>' addresses, so a consumer takes a name from an address and splits Author no further",
+      "path": "Author[] + Author-email[]",
+      "source": "curated:no cell; each Author piece and each Author-email display name is one full name, which core metadata does not split further",
       "crosswalk_cell": ""
     },
     {
@@ -1494,7 +1568,7 @@
       "term": "publisher",
       "path": "publisher.name | publisher",
       "source": "curated:the cell says publisher, the XML element; the REST API returns the name as a string by default, and an object with a name key (since schema 4.5) only when the request has publisher=true",
-      "comment": "Read a string as the name and an object's name key as the name. An object may also carry publisherIdentifier (a ROR, say), publisherIdentifierScheme, schemeUri and lang. Schema 4.7 is current; publisher is mandatory.",
+      "comment": "Read a string as the name and an object's name key as the name. An object may also carry publisherIdentifier (a ROR, say), publisherIdentifierScheme, schemeUri and lang. Schema 4.7 is current; publisher is mandatory. A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
       "crosswalk_cell": "publisher"
     },
     {
@@ -2758,8 +2832,8 @@
     {
       "format": "github",
       "term": "name",
-      "path": "full_name",
-      "source": "crosswalk:crosswalks/GitHub.csv@3.1",
+      "path": "name",
+      "source": "curated:the cell says full_name, which is owner/repo; the repository object's name is the project name",
       "crosswalk_cell": "full_name"
     },
     {
@@ -3992,6 +4066,7 @@
       "term": "publisher",
       "path": "publisher.name | publisher",
       "source": "curated:CodeMeta's publisher is an Organization or Person, so a bare publisher is an object and its name is the publisher's name; a string, which is also legal, is read as the name",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
       "crosswalk_cell": "publisher"
     },
     {
@@ -4136,6 +4211,7 @@
       "term": "publisher",
       "path": "dcterms:publisher.foaf:name | dcterms:publisher",
       "source": "curated:the cell says dcterms:publisher, whose value is an agent (usually a foaf:Agent), so its name is foaf:name; an IRI value has no name sub-field",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
       "crosswalk_cell": "dcterms:publisher"
     },
     {
@@ -4280,6 +4356,7 @@
       "term": "publisher",
       "path": "doap:vendor.foaf:name | doap:vendor",
       "source": "curated:the cell says vendor, DOAP's doap:vendor, whose value is an organisation node; its name is foaf:name, and the path names both keys with their prefix",
+      "comment": "A publisher given only by reference (an object with @id and no name) falls through to that object, which is not a name: the consumer takes its @id or leaves the name empty.",
       "crosswalk_cell": "vendor"
     },
     {
@@ -4457,24 +4534,25 @@
     {
       "format": "ris",
       "term": "author",
-      "path": "AU[]",
+      "path": "AU[] + A1[]",
       "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; AU is the author, repeated once per person",
+      "comment": "A1 is the older spec's primary author tag, and Zotero's RIS translator reads it as author too. The path gives the AU names, then the A1 names; Zotero keeps their order in the record.",
       "crosswalk_cell": null
     },
     {
       "format": "ris",
       "term": "author.givenName",
-      "path": "AU[]",
+      "path": "AU[] + A1[]",
       "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; each AU is 'Last, First' with an optional suffix",
-      "comment": "The consumer splits at the first comma.",
+      "comment": "A1 is the older spec's primary author tag, and Zotero's RIS translator reads it as author too. The path gives the AU names, then the A1 names; Zotero keeps their order in the record. The consumer splits at the first comma.",
       "crosswalk_cell": null
     },
     {
       "format": "ris",
       "term": "author.familyName",
-      "path": "AU[]",
+      "path": "AU[] + A1[]",
       "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; each AU is 'Last, First' with an optional suffix",
-      "comment": "The consumer splits at the first comma.",
+      "comment": "A1 is the older spec's primary author tag, and Zotero's RIS translator reads it as author too. The path gives the AU names, then the A1 names; Zotero keeps their order in the record. The consumer splits at the first comma.",
       "crosswalk_cell": null
     },
     {
@@ -4558,9 +4636,9 @@
     {
       "format": "ris",
       "term": "datePublished",
-      "path": "PY",
+      "path": "PY | Y1",
       "source": "curated:no RIS crosswalk upstream; tags from Zotero's RIS translator, https://github.com/zotero/translators/blob/master/RIS.js, with TY COMP; PY is the publication year in four digits",
-      "comment": "PY is a year, so the consumer cuts an ISO date to its first four digits. DA (YYYY/MM/DD/other) holds a full date, but its meaning varies (accessed, updated, released).",
+      "comment": "PY is a year, so the consumer cuts an ISO date to its first four digits. Y1 is the older spec's primary date (YYYY/MM/DD/other), which Zotero reads as DA; the consumer cuts it to the year too. DA (YYYY/MM/DD/other) holds a full date, but its meaning varies (accessed, updated, released).",
       "crosswalk_cell": null
     },
     {

@@ -438,10 +438,6 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         alternative, found = next(
             ((i, found) for i, alt in enumerate(path.split(" | ")) if (found := resolve(data, alt))), (0, [])
         )
-        if fmt == "pkg-info":
-            # NOTE: the row reads Author as one string, but core_metadata splits it at commas, as
-            # setuptools and hatchling join name-only authors with ", ". Author-email[] is already flat.
-            found = [el for value in found for el in (value if isinstance(value, list) else [value])]
         if fmt in ONE_AUTHOR and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
             msg = f"{term} holds a list, but this file takes one {term}"
             raise TypeError(msg)

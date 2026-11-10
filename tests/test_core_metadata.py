@@ -283,7 +283,7 @@ def test_metadata_reads_through_the_pkg_info_rows(tmp_path: Path) -> None:
     assert at("version") == ["1.4.0"]
     assert at("license") == ["Apache-2.0"]
     assert at("codeRepository") == ["https://example.org/lensgrind"]
-    assert at("author") == [["Marie Skłodowska-Curie"], "Antonie van Leeuwenhoek", "Tu Youyou"]
+    assert at("author") == ["Marie Skłodowska-Curie", "Antonie van Leeuwenhoek", "Tu Youyou"]
     doc = read_doc(tmp_path, "METADATA", mapping)
     assert doc.format == "pkg-info"
     assert [p.name for p in doc.record["author"]] == ["Marie Skłodowska-Curie", "Antonie van Leeuwenhoek", "Tu Youyou"]
