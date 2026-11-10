@@ -200,3 +200,21 @@ def test_an_ro_crate_finding_points_at_its_field(tmp_path: Path, run: "Run") -> 
     line = next(n for n, text in enumerate(lines, 1) if '"version"' in text)
     _, out, _ = run("check", "--root", str(root))
     assert f"release/ro-crate-metadata.json:{line}:" in out
+
+
+def test_init_takes_nothing_from_a_dataset_file(tmp_path: Path, run: "Run") -> None:
+    """A dataset file is made from codemeta.json, so it never fills in what codemeta.json lacks."""
+    codemeta = {"@context": "https://w3id.org/codemeta/3.0", "name": "lensgrind", "author": [CURIE]}
+    (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
+    (tmp_path / "ro-crate-metadata.json").write_text(json.dumps(_crate()), encoding="utf-8")
+    code, out, _ = run("init", "--diff", "--root", str(tmp_path))
+    assert code == 0
+    assert "\n+version:" not in out
+    assert "\n+license:" not in out
+
+
+def test_init_ignores_an_unreadable_dataset_file(tmp_path: Path, run: "Run") -> None:
+    codemeta = {"@context": "https://w3id.org/codemeta/3.0", "name": "lensgrind", "author": [CURIE]}
+    (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
+    (tmp_path / "croissant.json").write_text("{not json", encoding="utf-8")
+    assert run("init", "--diff", "--root", str(tmp_path))[0] == 0

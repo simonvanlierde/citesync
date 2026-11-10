@@ -60,7 +60,7 @@ from citesync.formats import (
     zenodo_gaps,
 )
 from citesync.jsonsplice import splice
-from citesync.mapping import PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
+from citesync.mapping import DATASETS, PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
 
 # The @context of a codemeta.json write creates when codemeta-version is unset: the version
 # the project template renders and Software Heritage reads.
@@ -271,6 +271,8 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> tuple[Doc, list[str
         msg = f"no codemeta.json, .zenodo.json or package manifest in {root} to make a CITATION.cff from"
         raise CheckError(msg)
     docs, read = read_docs(root, replace(config, source=first), mapping)
+    copies = {d.path for d in docs[1:] if d.format in DATASETS}  # made from codemeta.json, so they give nothing
+    docs, read = [d for d in docs if d.path not in copies], [f for f in read if f.file not in copies]
     if bad := next((f for f in read if f.rule == "unreadable"), None):
         msg = f"{bad.where}: {bad.message}"
         raise CheckError(msg)
