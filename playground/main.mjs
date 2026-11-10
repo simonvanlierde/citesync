@@ -52,6 +52,8 @@ const outputLabels = {
   "citation.apa.txt": "citation.apa.txt — APA reference",
   "schema.jsonld": "schema.jsonld — Website structured data",
   "citation.datacite.xml": "citation.datacite.xml — DataCite metadata",
+  "citation.ris": "citation.ris — RIS reference",
+  "citation.enw": "citation.enw — EndNote reference",
 };
 const templateLabels = {
   "pyproject.toml": "Python",

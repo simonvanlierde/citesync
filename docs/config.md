@@ -27,7 +27,7 @@ ignore = ["description-mismatch"]          # rule ids whose findings to drop
 
 Quote `codemeta-version`: `3.0` without quotes is a TOML number. With `codemeta-version` unset, `check` accepts CodeMeta 2.0, 3.0, 3.1 and 4.0, and `write` leaves `@context` alone. Once it's set, any other `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes.
 
-`exports` lists citation files made from the source: `.bib`, `.csl.json`, `.apa.txt`, `.jsonld` or `.datacite.xml`, relative to the repo root. [Citation exports](export.md) has the formats.
+`exports` lists citation files made from the source: `.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris` or `.enw`, relative to the repo root. [Citation exports](export.md) has the formats.
 
 An `ignore` entry that matched no finding prints a warning to stderr, unless you pass `-q`. An unknown rule id is a config error, which suggests the closest rule id. You can't ignore `unreadable`.
 

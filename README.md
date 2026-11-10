@@ -25,7 +25,7 @@ citesync check --source pyproject.toml
 citesync write --diff               # print what write would change, and change nothing
 citesync write                      # rewrite the other files to agree with the source
 citesync init                       # write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
-citesync export --format apa        # print a citation: apa, bibtex, csl-json, jsonld, datacite, cff, codemeta or zenodo
+citesync export --format apa        # print a citation: apa, bibtex, csl-json, jsonld, datacite, ris, endnote, cff, codemeta or zenodo
 citesync explain version-mismatch   # what a rule checks and how to fix it
 citesync config                     # the config in use, and the file it came from
 ```
@@ -45,7 +45,7 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 - [How write works](https://github.com/simonvanlierde/citesync/blob/main/docs/write.md): what it changes and what it leaves alone.
 - [Supported files](https://github.com/simonvanlierde/citesync/blob/main/docs/formats.md): which files citesync reads, updates and creates, including read-only Python distribution, R and Julia metadata.
 - [How init works](https://github.com/simonvanlierde/citesync/blob/main/docs/init.md): where a new CITATION.cff takes each field from.
-- [Citation exports](https://github.com/simonvanlierde/citesync/blob/main/docs/export.md): BibTeX, CSL-JSON, APA, schema.org JSON-LD and DataCite XML files kept in step with the source.
+- [Citation exports](https://github.com/simonvanlierde/citesync/blob/main/docs/export.md): BibTeX, CSL-JSON, APA, schema.org JSON-LD, DataCite XML, RIS and EndNote files kept in step with the source.
 - [Rules](https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md): each rule id, what it checks and how to fix it.
 - [Configuration](https://github.com/simonvanlierde/citesync/blob/main/docs/config.md): where config goes, and every key.
 - [Use citation exports with Pandoc](https://github.com/simonvanlierde/citesync/blob/main/docs/pandoc.md): cite software from the CSL-JSON or BibTeX files `citesync export` or the playground makes.
@@ -69,7 +69,7 @@ repos:
       - id: citesync-write
 ```
 
-The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`. Both hooks need Python 3.13 or newer.
+The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris`, `.enw`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`. Both hooks need Python 3.13 or newer.
 
 ## Development
 

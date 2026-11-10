@@ -268,7 +268,7 @@ test("search metadata and project information are present without JavaScript", a
   );
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    /CITATION.cff, CodeMeta, BibTeX, CSL-JSON, APA, JSON-LD and DataCite XML/,
+    /CITATION.cff, CodeMeta, BibTeX, CSL-JSON, APA, JSON-LD, DataCite XML, RIS and EndNote/,
   );
   await expect(page.getByRole("heading", { name: "citesync", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Use citesync in your repository" })).toBeVisible();
@@ -510,6 +510,8 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
     "citation.bib — BibTeX",
     "CITATION.cff — GitHub citation",
     "citation.csl.json — CSL-JSON",
+    "citation.enw — EndNote reference",
+    "citation.ris — RIS reference",
     "codemeta.json — Software metadata",
     "schema.jsonld — Website structured data",
     ".zenodo.json — Zenodo deposit",

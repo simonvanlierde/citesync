@@ -26,7 +26,7 @@ JSON_SCHEMA_VERSION = 1
 EXIT_COULD_NOT_RUN = 3
 EXIT_INTERRUPTED = 130
 # the keys of citesync.export._WRITERS, spelled out so the parser needs no import of that module
-_EXPORT_FORMATS = ("bibtex", "csl-json", "apa", "jsonld", "datacite")
+_EXPORT_FORMATS = ("bibtex", "csl-json", "apa", "jsonld", "datacite", "ris", "endnote")
 _CITATION_FILES = ("cff", "codemeta", "zenodo")  # made by write's builders, so never under exports
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
@@ -172,7 +172,7 @@ def _parser() -> argparse.ArgumentParser:
         parents=[root],
         help=export,
         description=f"{export[0].upper()}{export[1:]}.\n"
-        "List bibtex, csl-json, apa, jsonld or datacite files under exports to keep them in step.",
+        "List bibtex, csl-json, apa, jsonld, datacite, ris or endnote files under exports to keep them in step.",
     )
     export_.add_argument(
         "--format", choices=_EXPORT_FORMATS + _CITATION_FILES, required=True, help="the citation format"

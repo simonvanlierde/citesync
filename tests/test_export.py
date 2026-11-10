@@ -113,7 +113,10 @@ def test_apa_without_author_date_or_doi() -> None:
     assert text == "lensgrind [Computer software]. (n.d.). https://example.org/lensgrind\n"
     assert notes == []
     assert render("apa", {"name": "lensgrind", "author": (TU,), "datePublished": "Oct 2026"})[1] == [
-        "BibTeX, CSL-JSON and APA: release date omitted because it is not a YYYY, YYYY-MM or YYYY-MM-DD date."
+        (
+            "BibTeX, CSL-JSON, APA, DataCite, RIS and EndNote: release date omitted because it is not a YYYY, YYYY-MM"
+            " or YYYY-MM-DD date."
+        )
     ]
 
 
@@ -835,3 +838,79 @@ def test_a_stale_export_that_cannot_be_made_says_to_set_the_field(tmp_path: Path
     assert "(set the missing field in the source)" in out
     assert "edit it by hand" not in out
     assert "set the missing field in the source" in run("explain", "export-stale")[1]
+
+
+TAGGED = LENSGRIND | {
+    "author": (CURIE, LEEUWENHOEK, LAB),
+    "description": "Grinds lenses\nby hand.",
+    "publisher": "Example Optics Institute",
+}
+
+
+def test_ris_is_a_computer_program_record() -> None:
+    assert render("ris", TAGGED)[0] == (
+        "TY  - COMP\n"
+        "TI  - lensgrind\n"
+        "ET  - 1.4.0\n"
+        "AU  - Skłodowska-Curie, Marie\n"
+        "AU  - van Leeuwenhoek, Antonie\n"
+        "AU  - Example Optics Institute\n"
+        "DO  - 10.5555/lensgrind\n"
+        "UR  - https://example.org/lensgrind\n"
+        "AB  - Grinds lenses by hand.\n"
+        "KW  - optics\n"
+        "KW  - microscopy\n"
+        "PY  - 2026\n"
+        "PB  - Example Optics Institute\n"
+        "ER  -\n"
+    )
+
+
+def test_endnote_is_a_computer_program_record() -> None:
+    assert render("endnote", TAGGED)[0] == (
+        "%0 Computer Program\n"
+        "%T lensgrind\n"
+        "%7 1.4.0\n"
+        "%A Skłodowska-Curie, Marie\n"
+        "%A van Leeuwenhoek, Antonie\n"
+        "%A Example Optics Institute\n"
+        "%R 10.5555/lensgrind\n"
+        "%U https://example.org/lensgrind\n"
+        "%X Grinds lenses by hand.\n"
+        "%K optics\n"
+        "%K microscopy\n"
+        "%D 2026\n"
+        "%I Example Optics Institute\n"
+    )
+
+
+def test_tagged_exports_write_odd_authors_and_values_on_one_line() -> None:
+    rec = {
+        "name": "x",
+        "version": "  ",
+        "author": (Person("Madonna"), Person("Marie", given="Marie"), LAB),
+        "description": "One.\n\nTwo.",
+        "datePublished": "2026-13",
+    }
+    out, notes = render("ris", rec)
+    assert out == (
+        "TY  - COMP\nTI  - x\nAU  - Madonna\nAU  - Marie\nAU  - Example Optics Institute\nAB  - One. Two.\nER  -\n"
+    )
+    assert notes
+    assert render("endnote", rec)[0].splitlines()[2:4] == ["%A Madonna", "%A Marie"]
+
+
+def test_tagged_exports_leave_out_what_the_record_lacks() -> None:
+    assert render("ris", {"name": "x"})[0] == "TY  - COMP\nTI  - x\nER  -\n"
+    assert render("endnote", {"name": "x"})[0] == "%0 Computer Program\n%T x\n"
+
+
+@pytest.mark.parametrize(("path", "first"), [("citation.ris", "TY  - COMP"), ("citation.enw", "%0 Computer Program")])
+def test_tagged_exports_are_kept_in_step(path: str, first: str, tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path)
+    (root / "citesync.toml").write_text(f'exports = ["{path}"]\n', encoding="utf-8")
+    assert run("check", "--root", str(root))[0] == 1
+    assert run("write", "--root", str(root))[0] == 0
+    assert (root / path).read_text(encoding="utf-8").startswith(first + "\n")
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 0, out
