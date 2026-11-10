@@ -9,6 +9,7 @@ from citesync.config import Config, git_top
 from citesync.errors import CheckError, UnreadableError
 from citesync.formats import (
     CITATION_FILES,
+    DATASET_FILES,
     MANIFESTS,
     ONE_AUTHOR,
     Doc,
@@ -18,7 +19,7 @@ from citesync.formats import (
     same_name,
     slots,
 )
-from citesync.mapping import FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
+from citesync.mapping import DATASETS, FORMATS, IMPORTED, PEOPLE, TERMS, Mapping, load_mapping
 from citesync.rules import MISMATCH, RULES, url
 
 
@@ -89,7 +90,7 @@ def discover(root: Path, config: Config) -> list[str]:
     citation = config.files if config.files is not None else tuple(CITATION_FILES)
     paths = [config.source, *(p for p in citation if (root / p).is_file())]
     if config.manifests is None:
-        paths += [p for p in MANIFESTS if (root / p).is_file()]
+        paths += [p for p in (*MANIFESTS, *DATASET_FILES) if (root / p).is_file()]
     else:
         for path in config.manifests:
             if not (root / path).is_file():
@@ -133,7 +134,9 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
             Finding(d.path, None, "manifest-skipped", _NOT_RELEASED[d.format]) for d in docs if d not in kept
         ]
         docs = kept
-    return docs[:1] + sorted(docs[1:], key=lambda d: ((*FORMATS, *IMPORTED).index(d.format), d.path)), unreadable
+    return docs[:1] + sorted(
+        docs[1:], key=lambda d: ((*FORMATS, *IMPORTED, *DATASETS).index(d.format), d.path)
+    ), unreadable
 
 
 _NOT_RELEASED = {

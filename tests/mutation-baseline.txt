@@ -114,8 +114,8 @@ citesync.write.x__rewrite__mutmut_16  only JSON CodeMeta reads context
 citesync.write.x__rewrite__mutmut_18  only Zenodo reads the default contributor type
 citesync.write.x__rewrite__mutmut_54  only JSON CodeMeta reads context
 citesync.write.x__rewrite__mutmut_56  only Zenodo reads the default contributor type
-citesync.write.x_write__mutmut_126  without a context, no (file, @context) error exists for done to mark fixed
-citesync.write.x_write__mutmut_69  UTF-8 and utf-8 name the same codec
+citesync.write.x_write__mutmut_127  without a context, no (file, @context) error exists for done to mark fixed
+citesync.write.x_write__mutmut_70  UTF-8 and utf-8 name the same codec
 citesync.write.x_citation_file__mutmut_33  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_34  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_46  _encode reads only the stand-in Doc's format
@@ -124,5 +124,5 @@ citesync.write.x__replace__mutmut_2  the loop sets rel before anything in it can
 citesync.write.x__replace__mutmut_3  the loop sets rel before anything in it can raise, so its start value is never read
 citesync.write.x_citation_file__mutmut_23  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.write.x_citation_file__mutmut_36  a new file's Doc is only encoded into, and encoding never reads its path
-citesync.write.x_write__mutmut_154  a new file's Doc is only encoded into, and encoding never reads its path
-citesync.write.x_write__mutmut_165  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_write__mutmut_155  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_write__mutmut_166  a new file's Doc is only encoded into, and encoding never reads its path

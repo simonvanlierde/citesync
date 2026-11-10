@@ -6,7 +6,7 @@
 
 It writes every citation file that isn't the source. It changes a manifest only for the fields listed in `write-manifests` (see [config.md](config.md)).
 
-PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml/JuliaProject.toml are read-only sources, even when `write-manifests` is enabled.
+PKG-INFO, METADATA, R DESCRIPTION and Julia Project.toml/JuliaProject.toml are read-only sources, and `ro-crate-metadata.json` and `croissant.json` are only compared ([dataset files](formats.md#dataset-files)). `write` never changes them, even when `write-manifests` is enabled.
 
 It leaves these alone:
 

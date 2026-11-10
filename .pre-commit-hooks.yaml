@@ -5,7 +5,7 @@
   entry: citesync check
   language: python
   pass_filenames: false
-  files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|typst\.toml|_extension\.ya?ml|PKG-INFO|METADATA|DESCRIPTION|Project\.toml|JuliaProject\.toml|\.?citesync\.toml|[^/]*\.(bib|csl\.json|apa\.txt|jsonld|datacite\.xml|ris|enw))$
+  files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|typst\.toml|_extension\.ya?ml|PKG-INFO|METADATA|DESCRIPTION|Project\.toml|JuliaProject\.toml|ro-crate-metadata\.json|croissant\.json|\.?citesync\.toml|[^/]*\.(bib|csl\.json|apa\.txt|jsonld|datacite\.xml|ris|enw))$
 # Writing changes files, so it runs only when asked: `prek run citesync-write --stage manual --all-files`.
 - id: citesync-write
   name: citesync write
@@ -14,4 +14,4 @@
   language: python
   pass_filenames: false
   stages: [manual]
-  files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|typst\.toml|_extension\.ya?ml|PKG-INFO|METADATA|DESCRIPTION|Project\.toml|JuliaProject\.toml|\.?citesync\.toml|[^/]*\.(bib|csl\.json|apa\.txt|jsonld|datacite\.xml|ris|enw))$
+  files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|Cargo\.toml|package\.json|typst\.toml|_extension\.ya?ml|PKG-INFO|METADATA|DESCRIPTION|Project\.toml|JuliaProject\.toml|ro-crate-metadata\.json|croissant\.json|\.?citesync\.toml|[^/]*\.(bib|csl\.json|apa\.txt|jsonld|datacite\.xml|ris|enw))$

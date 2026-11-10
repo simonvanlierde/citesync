@@ -16,7 +16,7 @@ citesync rules                          # every rule and its severity; --format 
 
 ## Which files it reads
 
-By default it reads every citation file present, and the package manifests at the repo root. It skips a pyproject.toml without `[build-system]`, a private package.json, and any field in pyproject's `dynamic` list. `-v` names each manifest it skipped and why ([`manifest-skipped`](rules.md#manifest-skipped)). It reads a Cargo workspace through `[workspace.package]`. [Configuration](config.md) changes the lists.
+By default it reads every citation file present, and the package manifests and dataset files (`ro-crate-metadata.json`, `croissant.json`) at the repo root. It skips a pyproject.toml without `[build-system]`, a private package.json, and any field in pyproject's `dynamic` list. `-v` names each manifest it skipped and why ([`manifest-skipped`](rules.md#manifest-skipped)). It reads a Cargo workspace through `[workspace.package]`. [Configuration](config.md) changes the lists.
 
 Run from a subdirectory, citesync walks up to the nearest directory with a citation file or a citesync config. It stops at the git root, so a submodule keeps its own files, and uses the git root when it found neither. File paths in findings are relative to that root. `citesync config` prints the root in use. `--root` must be a directory.
 
@@ -42,7 +42,7 @@ Names and keywords compare case-insensitively. Titles and descriptions compare a
 - `keywords-case-sensitive = true` compares keywords by case too.
 - `keywords-ignore-separators = true` treats `big-data`, `big_data` and `big data` as equal. Without it, the finding names such a keyword as a near miss, and write gives it the source's spelling.
 
-Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords. They aren't compared on name or description. npm's and Quarto's one `author` is compared with the first author, and an `author` list there, in package.json or a Quarto `_extension.yml`, makes the file `unreadable`.
+A [dataset file](formats.md#dataset-files) is compared like a citation file, on every field it holds. Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords. They aren't compared on name or description. npm's and Quarto's one `author` is compared with the first author, and an `author` list there, in package.json or a Quarto `_extension.yml`, makes the file `unreadable`.
 
 ## Findings and exit codes
 

@@ -1,5 +1,5 @@
 {
- "schema_version": "1.6",
+ "schema_version": "1.8",
  "cases": [
   {
    "name": "key",
@@ -846,6 +846,512 @@
    },
    "expected": [
     "1843/10/01/"
+   ]
+  },
+  {
+   "name": "[k=v] with a slash in the value: the RO-Crate root entity",
+   "path": "@graph[@id=./].name",
+   "document": {
+    "@context": "https://w3id.org/ro/crate/1.3/context",
+    "@graph": [
+     {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": {
+       "@id": "./"
+      }
+     },
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "Carberry's lab notes",
+      "author": [
+       {
+        "@id": "https://orcid.org/0000-0002-1825-0097"
+       },
+       {
+        "@id": "#author-2"
+       }
+      ]
+     },
+     {
+      "@id": "./data/",
+      "@type": "Dataset",
+      "name": "Raw readings"
+     },
+     {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "@type": "Person",
+      "name": "Josiah Carberry"
+     }
+    ]
+   },
+   "expected": [
+    "Carberry's lab notes"
+   ]
+  },
+  {
+   "name": "RO-Crate: an author reference's @id, read without resolving it",
+   "path": "@graph[@id=./].author[].@id",
+   "document": {
+    "@context": "https://w3id.org/ro/crate/1.3/context",
+    "@graph": [
+     {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": {
+       "@id": "./"
+      }
+     },
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "Carberry's lab notes",
+      "author": [
+       {
+        "@id": "https://orcid.org/0000-0002-1825-0097"
+       },
+       {
+        "@id": "#author-2"
+       }
+      ]
+     },
+     {
+      "@id": "./data/",
+      "@type": "Dataset",
+      "name": "Raw readings"
+     },
+     {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "@type": "Person",
+      "name": "Josiah Carberry"
+     }
+    ]
+   },
+   "expected": [
+    "https://orcid.org/0000-0002-1825-0097",
+    "#author-2"
+   ]
+  },
+  {
+   "name": "RO-Crate: a path on an unresolved tree: a reference has no name",
+   "path": "@graph[@id=./].author[].name",
+   "document": {
+    "@context": "https://w3id.org/ro/crate/1.3/context",
+    "@graph": [
+     {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": {
+       "@id": "./"
+      }
+     },
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "Carberry's lab notes",
+      "author": [
+       {
+        "@id": "https://orcid.org/0000-0002-1825-0097"
+       },
+       {
+        "@id": "#author-2"
+       }
+      ]
+     },
+     {
+      "@id": "./data/",
+      "@type": "Dataset",
+      "name": "Raw readings"
+     },
+     {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "@type": "Person",
+      "name": "Josiah Carberry"
+     }
+    ]
+   },
+   "expected": []
+  },
+  {
+   "name": "RO-Crate identifier: a PropertyValue with a local @id gives its url, value and @id",
+   "path": "@graph[@id=./].identifier[].url + @graph[@id=./].identifier[].value + @graph[@id=./].identifier[].@id + @graph[@id=./].identifier[]",
+   "document": {
+    "@graph": [
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "identifier": [
+       {
+        "@id": "#doi",
+        "@type": "PropertyValue",
+        "propertyID": "https://registry.identifiers.org/registry/doi",
+        "value": "doi:10.5555/carberry.notes",
+        "url": "https://doi.org/10.5555/carberry.notes"
+       }
+      ]
+     }
+    ]
+   },
+   "expected": [
+    "https://doi.org/10.5555/carberry.notes",
+    "doi:10.5555/carberry.notes",
+    "#doi",
+    {
+     "@id": "#doi",
+     "@type": "PropertyValue",
+     "propertyID": "https://registry.identifiers.org/registry/doi",
+     "value": "doi:10.5555/carberry.notes",
+     "url": "https://doi.org/10.5555/carberry.notes"
+    }
+   ]
+  },
+  {
+   "name": "RO-Crate 1.1 identifier: a string URI",
+   "path": "@graph[@id=./].identifier[].url + @graph[@id=./].identifier[].value + @graph[@id=./].identifier[].@id + @graph[@id=./].identifier[]",
+   "document": {
+    "@graph": [
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "identifier": [
+       "https://doi.org/10.5555/carberry.notes"
+      ]
+     }
+    ]
+   },
+   "expected": [
+    "https://doi.org/10.5555/carberry.notes"
+   ]
+  },
+  {
+   "name": "RO-Crate identifier: an object without url keeps its @id beside another's url",
+   "path": "@graph[@id=./].identifier[].url + @graph[@id=./].identifier[].value + @graph[@id=./].identifier[].@id + @graph[@id=./].identifier[]",
+   "document": {
+    "@graph": [
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "identifier": [
+       {
+        "@id": "https://doi.org/10.5555/carberry.notes",
+        "@type": "PropertyValue",
+        "propertyID": "https://registry.identifiers.org/registry/doi"
+       },
+       {
+        "@id": "#swh",
+        "@type": "PropertyValue",
+        "propertyID": "swh",
+        "url": "https://archive.softwareheritage.org/swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+       }
+      ]
+     }
+    ]
+   },
+   "expected": [
+    "https://archive.softwareheritage.org/swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
+    "https://doi.org/10.5555/carberry.notes",
+    "#swh",
+    {
+     "@id": "https://doi.org/10.5555/carberry.notes",
+     "@type": "PropertyValue",
+     "propertyID": "https://registry.identifiers.org/registry/doi"
+    },
+    {
+     "@id": "#swh",
+     "@type": "PropertyValue",
+     "propertyID": "swh",
+     "url": "https://archive.softwareheritage.org/swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+    }
+   ]
+  },
+  {
+   "name": "RO-Crate identifier: a string DOI after an identifier object is still read",
+   "path": "@graph[@id=./].identifier[].url + @graph[@id=./].identifier[].value + @graph[@id=./].identifier[].@id + @graph[@id=./].identifier[]",
+   "document": {
+    "@graph": [
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "identifier": [
+       {
+        "@id": "#isbn",
+        "@type": "PropertyValue",
+        "propertyID": "isbn",
+        "value": "978-0-306-40615-7"
+       },
+       "https://doi.org/10.5555/carberry.notes"
+      ]
+     }
+    ]
+   },
+   "expected": [
+    "978-0-306-40615-7",
+    "#isbn",
+    {
+     "@id": "#isbn",
+     "@type": "PropertyValue",
+     "propertyID": "isbn",
+     "value": "978-0-306-40615-7"
+    },
+    "https://doi.org/10.5555/carberry.notes"
+   ]
+  },
+  {
+   "name": "license on a list of strings and objects: only the objects are read",
+   "path": "license[].@id | license[].url | license[]",
+   "document": {
+    "license": [
+     "https://spdx.org/licenses/MIT",
+     {
+      "@id": "https://spdx.org/licenses/Apache-2.0"
+     }
+    ]
+   },
+   "expected": [
+    "https://spdx.org/licenses/Apache-2.0"
+   ]
+  },
+  {
+   "name": "Croissant license: an inline CreativeWork gives its url",
+   "path": "license[].@id | license[].url | license[]",
+   "document": {
+    "license": [
+     {
+      "@type": "sc:CreativeWork",
+      "name": "CC0: Public Domain",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+     }
+    ]
+   },
+   "expected": [
+    "https://creativecommons.org/publicdomain/zero/1.0/"
+   ]
+  },
+  {
+   "name": "RO-Crate license: an entity's @id comes before its url",
+   "path": "@graph[@id=./].license[].@id | @graph[@id=./].license[].url | @graph[@id=./].license[]",
+   "document": {
+    "@graph": [
+     {
+      "@id": "./",
+      "license": [
+       {
+        "@id": "https://spdx.org/licenses/MIT",
+        "@type": "CreativeWork",
+        "name": "MIT License",
+        "url": "https://opensource.org/license/mit"
+       }
+      ]
+     }
+    ]
+   },
+   "expected": [
+    "https://spdx.org/licenses/MIT"
+   ]
+  },
+  {
+   "name": "license on objects with @id and objects with only url: only the @id ones are read",
+   "path": "license[].@id | license[].url | license[]",
+   "document": {
+    "license": [
+     {
+      "@id": "https://spdx.org/licenses/MIT"
+     },
+     {
+      "@type": "CreativeWork",
+      "url": "https://spdx.org/licenses/Apache-2.0"
+     }
+    ]
+   },
+   "expected": [
+    "https://spdx.org/licenses/MIT"
+   ]
+  },
+  {
+   "name": "RO-Crate parser: references in the root replaced by their entities, bare values as lists",
+   "path": "@graph[@id=./].identifier[].url + @graph[@id=./].identifier[].value + @graph[@id=./].identifier[].@id + @graph[@id=./].identifier[]",
+   "raw_input": {
+    "format": "ro-crate",
+    "text": "{\n  \"@context\": \"https://w3id.org/ro/crate/1.3/context\",\n  \"@graph\": [\n    {\n      \"@id\": \"ro-crate-metadata.json\",\n      \"@type\": \"CreativeWork\",\n      \"about\": {\n        \"@id\": \"./\"\n      }\n    },\n    {\n      \"@id\": \"./\",\n      \"@type\": \"Dataset\",\n      \"name\": \"Carberry's lab notes\",\n      \"description\": \"Readings from the psychoceramics lab.\",\n      \"version\": \"1.2.0\",\n      \"datePublished\": \"2026-11-10\",\n      \"keywords\": \"ceramics, cracks\",\n      \"author\": {\n        \"@id\": \"https://orcid.org/0000-0002-1825-0097\"\n      },\n      \"license\": {\n        \"@id\": \"https://spdx.org/licenses/MIT\"\n      },\n      \"identifier\": {\n        \"@id\": \"https://doi.org/10.5555/carberry.notes\"\n      },\n      \"publisher\": {\n        \"@id\": \"#publisher\"\n      },\n      \"hasPart\": [\n        {\n          \"@id\": \"data/readings.csv\"\n        }\n      ],\n      \"contributor\": {\n        \"@id\": \"#contributor-1\"\n      },\n      \"mentions\": {\n        \"@id\": \"#nobody\"\n      }\n    },\n    {\n      \"@id\": \"https://orcid.org/0000-0002-1825-0097\",\n      \"@type\": \"Person\",\n      \"name\": \"Josiah Carberry\",\n      \"givenName\": \"Josiah\",\n      \"familyName\": \"Carberry\"\n    },\n    {\n      \"@id\": \"https://spdx.org/licenses/MIT\",\n      \"@type\": \"CreativeWork\",\n      \"name\": \"MIT License\"\n    },\n    {\n      \"@id\": \"https://doi.org/10.5555/carberry.notes\",\n      \"@type\": \"PropertyValue\",\n      \"propertyID\": \"https://registry.identifiers.org/registry/doi\",\n      \"value\": \"doi:10.5555/carberry.notes\",\n      \"url\": \"https://doi.org/10.5555/carberry.notes\"\n    },\n    {\n      \"@id\": \"#publisher\",\n      \"@type\": \"Organization\",\n      \"name\": \"Psychoceramics Society\"\n    },\n    {\n      \"@id\": \"data/readings.csv\",\n      \"@type\": \"File\",\n      \"name\": \"readings.csv\"\n    },\n    {\n      \"@id\": \"#contributor-1\",\n      \"@type\": \"Person\",\n      \"name\": \"Ada Lovelace\",\n      \"givenName\": \"Ada\",\n      \"familyName\": \"Lovelace\"\n    }\n  ]\n}\n"
+   },
+   "document": {
+    "@context": "https://w3id.org/ro/crate/1.3/context",
+    "@graph": [
+     {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "about": {
+       "@id": "./"
+      }
+     },
+     {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "Carberry's lab notes",
+      "description": "Readings from the psychoceramics lab.",
+      "version": "1.2.0",
+      "datePublished": "2026-11-10",
+      "keywords": "ceramics, cracks",
+      "author": [
+       {
+        "@id": "https://orcid.org/0000-0002-1825-0097",
+        "@type": "Person",
+        "name": "Josiah Carberry",
+        "givenName": "Josiah",
+        "familyName": "Carberry"
+       }
+      ],
+      "license": [
+       {
+        "@id": "https://spdx.org/licenses/MIT",
+        "@type": "CreativeWork",
+        "name": "MIT License"
+       }
+      ],
+      "identifier": [
+       {
+        "@id": "https://doi.org/10.5555/carberry.notes",
+        "@type": "PropertyValue",
+        "propertyID": "https://registry.identifiers.org/registry/doi",
+        "value": "doi:10.5555/carberry.notes",
+        "url": "https://doi.org/10.5555/carberry.notes"
+       }
+      ],
+      "publisher": [
+       {
+        "@id": "#publisher",
+        "@type": "Organization",
+        "name": "Psychoceramics Society"
+       }
+      ],
+      "hasPart": [
+       {
+        "@id": "data/readings.csv",
+        "@type": "File",
+        "name": "readings.csv"
+       }
+      ],
+      "contributor": [
+       {
+        "@id": "#contributor-1",
+        "@type": "Person",
+        "name": "Ada Lovelace",
+        "givenName": "Ada",
+        "familyName": "Lovelace"
+       }
+      ],
+      "mentions": {
+       "@id": "#nobody"
+      }
+     },
+     {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "@type": "Person",
+      "name": "Josiah Carberry",
+      "givenName": "Josiah",
+      "familyName": "Carberry"
+     },
+     {
+      "@id": "https://spdx.org/licenses/MIT",
+      "@type": "CreativeWork",
+      "name": "MIT License"
+     },
+     {
+      "@id": "https://doi.org/10.5555/carberry.notes",
+      "@type": "PropertyValue",
+      "propertyID": "https://registry.identifiers.org/registry/doi",
+      "value": "doi:10.5555/carberry.notes",
+      "url": "https://doi.org/10.5555/carberry.notes"
+     },
+     {
+      "@id": "#publisher",
+      "@type": "Organization",
+      "name": "Psychoceramics Society"
+     },
+     {
+      "@id": "data/readings.csv",
+      "@type": "File",
+      "name": "readings.csv"
+     },
+     {
+      "@id": "#contributor-1",
+      "@type": "Person",
+      "name": "Ada Lovelace",
+      "givenName": "Ada",
+      "familyName": "Lovelace"
+     }
+    ]
+   },
+   "expected": [
+    "https://doi.org/10.5555/carberry.notes",
+    "doi:10.5555/carberry.notes",
+    "https://doi.org/10.5555/carberry.notes",
+    {
+     "@id": "https://doi.org/10.5555/carberry.notes",
+     "@type": "PropertyValue",
+     "propertyID": "https://registry.identifiers.org/registry/doi",
+     "value": "doi:10.5555/carberry.notes",
+     "url": "https://doi.org/10.5555/carberry.notes"
+    }
+   ]
+  },
+  {
+   "name": "Croissant parser: a bare creator read as a list",
+   "path": "creator[].familyName",
+   "raw_input": {
+    "format": "croissant",
+    "text": "{\n  \"@context\": {\n    \"@vocab\": \"https://schema.org/\",\n    \"sc\": \"https://schema.org/\",\n    \"cr\": \"http://mlcommons.org/croissant/\"\n  },\n  \"@type\": \"sc:Dataset\",\n  \"conformsTo\": \"http://mlcommons.org/croissant/1.1\",\n  \"name\": \"Carberry's lab notes\",\n  \"description\": \"Readings from the psychoceramics lab.\",\n  \"version\": \"1.2.0\",\n  \"datePublished\": \"2026-11-10\",\n  \"url\": \"https://example.org/carberry-notes\",\n  \"keywords\": [\n    \"ceramics\",\n    \"cracks\"\n  ],\n  \"license\": \"https://spdx.org/licenses/MIT\",\n  \"identifier\": \"https://doi.org/10.5555/carberry.notes\",\n  \"creator\": {\n    \"@id\": \"https://orcid.org/0000-0002-1825-0097\",\n    \"@type\": \"Person\",\n    \"name\": \"Josiah Carberry\",\n    \"givenName\": \"Josiah\",\n    \"familyName\": \"Carberry\"\n  },\n  \"publisher\": {\n    \"@type\": \"Organization\",\n    \"name\": \"Psychoceramics Society\"\n  },\n  \"contributor\": {\n    \"@type\": \"Person\",\n    \"name\": \"Ada Lovelace\",\n    \"givenName\": \"Ada\",\n    \"familyName\": \"Lovelace\"\n  }\n}\n"
+   },
+   "document": {
+    "@context": {
+     "@vocab": "https://schema.org/",
+     "sc": "https://schema.org/",
+     "cr": "http://mlcommons.org/croissant/"
+    },
+    "@type": "sc:Dataset",
+    "conformsTo": "http://mlcommons.org/croissant/1.1",
+    "name": "Carberry's lab notes",
+    "description": "Readings from the psychoceramics lab.",
+    "version": "1.2.0",
+    "datePublished": "2026-11-10",
+    "url": "https://example.org/carberry-notes",
+    "keywords": [
+     "ceramics",
+     "cracks"
+    ],
+    "license": [
+     "https://spdx.org/licenses/MIT"
+    ],
+    "identifier": [
+     "https://doi.org/10.5555/carberry.notes"
+    ],
+    "creator": [
+     {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "@type": "Person",
+      "name": "Josiah Carberry",
+      "givenName": "Josiah",
+      "familyName": "Carberry"
+     }
+    ],
+    "publisher": [
+     {
+      "@type": "Organization",
+      "name": "Psychoceramics Society"
+     }
+    ],
+    "contributor": [
+     {
+      "@type": "Person",
+      "name": "Ada Lovelace",
+      "givenName": "Ada",
+      "familyName": "Lovelace"
+     }
+    ]
+   },
+   "expected": [
+    "Carberry"
    ]
   }
  ]

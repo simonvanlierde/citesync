@@ -18,6 +18,8 @@ FORMATS = ("cff-1.2.0", "codemeta", "zenodo", "pep621", "cargo", "npm", "typst",
 """The formats citesync reads and writes."""
 IMPORTED = ("pkg-info", "r-description", "julia")
 """The formats citesync only reads, as a source."""
+DATASETS = ("ro-crate", "croissant")
+"""Dataset descriptions citesync compares with the source and never writes: sourceledger's ``release`` makes them."""
 TERMS = (
     "name",
     "version",
@@ -47,7 +49,7 @@ DATACITE_TERMS = (*(t for t in TERMS if t != "swhid"), *PERSON_TERMS, *EXPORT_TE
 """The datacite rows the DataCite export reads; the SWHID row is left out, since the export can't place it."""
 
 _KEY = r"@?[A-Za-z_][A-Za-z0-9_@-]*(?::[A-Za-z_][A-Za-z0-9_-]*)?"  # a prefixed key such as dcterms:creator
-_STEP = re.compile(rf"^({_KEY})(?:\[\]|\[({_KEY})=([A-Za-z0-9_.-]+)\])?$")
+_STEP = re.compile(rf"^({_KEY})(?:\[\]|\[({_KEY})=([A-Za-z0-9_./-]+)\])?$")  # RO-Crate's root id is ./
 
 type Mapping = dict[tuple[str, str], str | None]
 """(format, term) to path, or None when the format has no place for the term."""
@@ -98,7 +100,7 @@ def check_mapping(data: dict[str, Any], name: str) -> Mapping:  # noqa: C901 - o
         rows[key] = row["path"]
     missing = [
         f"{fmt} {term}"
-        for fmt in FORMATS + IMPORTED
+        for fmt in FORMATS + IMPORTED + DATASETS
         for term in TERMS + PERSON_TERMS + EXPORT_TERMS
         if (fmt, term) not in rows
     ]

@@ -54,10 +54,10 @@ def key_paths(fmt: str, term: str, mapping: Mapping) -> list[tuple[str, ...]]:
     paths = []
     for alternative in path.split(" | "):
         steps = []
-        for step in alternative.split("."):
+        for step in re.split(r"\.(?![^\[\]]*\])", alternative):  # a dot inside [k=v] is part of the value
             steps.append(step.partition("[")[0])
-            if "[" in step:
-                break
+            if step.endswith("[]") or (step.endswith("]") and step.partition("[")[0] != "@graph"):
+                break  # RO-Crate's @graph[@id=./] is walked, as _json_keys walks its root entity
         paths.append(tuple(steps))
     if fmt == "cargo":  # a virtual workspace holds the package fields in [workspace.package]
         paths += [("workspace", *p) for p in paths]
@@ -100,7 +100,16 @@ def _json_keys(text: str) -> Keys:
             if child[3] is None:  # a list's elements
                 return
             keys.setdefault((*parent, key), _line_column(text, child[3]))
+            if parent == () and key == "@graph" and child[2] is not None:  # an RO-Crate: its root entity's keys
+                root = next((e for e in child[2].values() if _id(e) == "./"), None)
+                if root is not None:
+                    walk(root, ("@graph",))
+                continue
             walk(child, (*parent, key))
+
+    def _id(entity: tuple[int, int, Any, Any]) -> object:
+        at = (entity[2] or {}).get("@id")
+        return json.loads(text[at[0] : at[1]]) if at and at[2] is None else None
 
     walk(_node(text, 0), ())
     return keys
