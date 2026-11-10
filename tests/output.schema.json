@@ -1,11 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "citesync check --format json",
-  "description": "Output of `citesync check --format json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `version`, in a major release.",
+  "description": "Output of `citesync check --format json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `schema_version`, in a major release. A run that couldn't finish (exit 3 or 130) has `errors` and no `summary` or `findings`.",
   "type": "object",
-  "required": ["version", "tool", "summary", "findings"],
+  "required": ["schema_version", "tool", "errors"],
+  "if": { "properties": { "errors": { "maxItems": 0 } } },
+  "then": { "required": ["summary", "findings"] },
   "properties": {
-    "version": { "const": 1 },
+    "schema_version": { "const": 1 },
+    "errors": {
+      "description": "Why the run couldn't finish; empty when it did. The text output prints each as a `citesync:` line on stderr.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["message", "help"],
+        "properties": {
+          "message": { "type": "string" },
+          "help": { "type": ["string", "null"], "description": "What to do about it; null when there is no known next step." }
+        }
+      }
+    },
     "tool": {
       "type": "object",
       "required": ["name", "version"],

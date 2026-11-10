@@ -16,11 +16,11 @@ Generate software citation files from package metadata, then keep them in sync a
 
 ## Usage
 
-citesync compares eleven fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another with `--source`. With neither, citesync exits 2. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
+citesync compares eleven fields, from title to release date, with one file: the source. The source is CITATION.cff unless you pick another with `--source`. With neither, citesync exits 3. Use citesync through its command line and the pre-commit hook. Its Python modules are internal and may change in any release.
 
 ```sh
 uv tool install citesync            # or run it once with uvx citesync check
-citesync check                      # exit 0: no error finding; 1: an error finding; 2: citesync couldn't run
+citesync check                      # exit 0: no error finding; 1: an error finding; 2: usage error; 3: couldn't run
 citesync check --source pyproject.toml
 citesync write --diff               # print what write would change, and change nothing
 citesync write                      # rewrite the other files to agree with the source
@@ -69,7 +69,7 @@ repos:
       - id: citesync-write
 ```
 
-The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
+The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`.
 
 ## Development
 
@@ -90,7 +90,7 @@ just fmt         # apply each stack's fixes and formatting
 just hooks       # the git hooks, as the checks workflow runs them
 ```
 
-`just mutation` mutation-tests the modules `only_mutate` lists under `[tool.mutmut]` in `pyproject.toml`. CI doesn't run it. It fails when the tests miss a change that `tests/mutation-baseline.txt` doesn't list. A change that can't alter behaviour goes in that file, with the reason. It also fails when the tests now catch a listed change, so drop that line.
+`just mutation` mutation-tests the modules `only_mutate` lists under `[tool.mutmut]` in `pyproject.toml`. CI runs it weekly, on Mondays ([`mutation.yml`](.github/workflows/mutation.yml)). It fails when the tests miss a change that `tests/mutation-baseline.txt` doesn't list. A change that can't alter behaviour goes in that file, with the reason. It also fails when the tests now catch a listed change, so drop that line.
 
 uv locks only releases at least a week old. If `just check` fails on a newer security fix, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`, and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 

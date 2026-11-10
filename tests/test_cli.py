@@ -2,10 +2,12 @@
 
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import jsonschema
 import pytest
 
 from citesync.cli import main
@@ -131,7 +133,7 @@ def test_counts_leave_out_a_licence_list_write_cannot_fix(tmp_path: Path, run: "
 def test_a_missing_source_names_the_root(tmp_path: Path, run: "Run") -> None:
     root = _repo(tmp_path, {"codemeta.json": CODEMETA})
     assert run("check", "--root", str(root)) == (
-        2,
+        3,
         "",
         (
             f"citesync: CITATION.cff: the source file is missing from {root}; name another with --source,"
@@ -193,7 +195,7 @@ def test_explain_suggests_a_rule(run: "Run") -> None:
 def test_bad_config_messages(config: str, message: str, tmp_path: Path, run: "Run") -> None:
     root = _repo(tmp_path, {"CITATION.cff": CFF, "citesync.toml": config})
     code, out, err = run("check", "--root", str(root))
-    assert (code, out) == (2, "")
+    assert (code, out) == (3, "")
     assert err.startswith(f"citesync: {message}")
 
 
@@ -263,3 +265,81 @@ def test_keyword_findings_name_the_missing_and_extra_words(tmp_path: Path, run: 
     assert [f["message"] for f in report["findings"] if f["rule"] == "keywords-mismatch"] == [
         "missing b; extra c; 'big-d' differs from 'big d' only in separators (compared with CITATION.cff)"
     ]
+
+
+@pytest.mark.parametrize(
+    ("args", "files", "code"),
+    [
+        (["check"], {"CITATION.cff": CFF, "codemeta.json": CODEMETA.replace('"y"', '"x"')}, 0),
+        (["check"], {"CITATION.cff": CFF, "codemeta.json": CODEMETA}, 1),
+        (["check"], {"CITATION.cff": CFF, "citesync.toml": "nope = 1\n"}, 3),
+        (["check", "--source", "missing.cff"], {"CITATION.cff": CFF}, 3),
+    ],
+    ids=["done", "findings", "bad-config", "missing-source"],
+)
+def test_exit_codes(args: list[str], files: dict[str, str], code: int, tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path, files)
+    assert run(*args, "--root", str(root))[0] == code
+
+
+@pytest.mark.parametrize("args", [["check", "--nope"], ["write", "--diff", "--json"], []])
+def test_usage_error_exits_2(args: list[str], capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(args)
+    assert exc.value.code == 2
+    assert capsys.readouterr().out == ""
+
+
+def test_unknown_rule_is_a_usage_error(run: "Run") -> None:
+    assert run("explain", "nope")[0] == 2
+
+
+def test_ctrl_c_exits_130(tmp_path: Path, run: "Run", monkeypatch: pytest.MonkeyPatch) -> None:
+    def interrupt(*_: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("citesync.cli.check", interrupt)
+    root = _repo(tmp_path, {"CITATION.cff": CFF})
+    code, out, err = run("check", "--json", "--root", str(root))
+    assert code == 130
+    assert json.loads(out) == {
+        "schema_version": 1,
+        "tool": json.loads(out)["tool"],
+        "errors": [{"message": "interrupted", "help": None}],
+    }
+    assert err == ""
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no death by signal; the command exits 130")
+def test_command_dies_of_sigint_after_ctrl_c() -> None:
+    """A shell loop stops on Ctrl-C only when the command died of SIGINT, not when it exited 130."""
+    script = "import citesync.cli as c; c.main = lambda: 130; c.entry()"
+    assert subprocess.run([sys.executable, "-c", script], check=False).returncode  # noqa: S603 - our own script == -signal.SIGINT
+
+
+def test_json_report_has_the_envelope(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path, {"CITATION.cff": CFF, "codemeta.json": CODEMETA})
+    report = json.loads(run("check", "--json", "--root", str(root))[1])
+    assert (report["schema_version"], report["errors"], "version" in report) == (1, [], False)
+
+
+def test_json_report_carries_a_failed_run(tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path, {"CITATION.cff": CFF, "citesync.toml": "nope = 1\n"})
+    code, out, err = run("check", "--json", "--root", str(root))
+    report = json.loads(out)
+    assert code == 3
+    assert set(report) == {"schema_version", "tool", "errors"}
+    [error] = report["errors"]
+    assert set(error) == {"message", "help"}
+    assert "nope" in error["message"]
+    assert err == ""
+
+
+def test_failed_run_report_matches_the_schema(tmp_path: Path, run: "Run") -> None:
+    schema = json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8"))
+    root = _repo(tmp_path, {"CITATION.cff": CFF, "citesync.toml": "nope = 1\n"})
+    report = json.loads(run("check", "--json", "--root", str(root))[1])
+    jsonschema.validate(report, schema)
+    del report["errors"][0]["help"]
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(report, schema)

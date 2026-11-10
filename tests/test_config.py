@@ -115,12 +115,12 @@ def test_write_manifests_all_expands(tmp_path: Path) -> None:
         ('ignore = "version-mismatch"\n', "ignore must be a list of rule ids"),
     ],
 )
-def test_bad_config_exits_2(text: str, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_bad_config_exits_3(text: str, message: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     (tmp_path / "citesync.toml").write_text(text, encoding="utf-8")
-    assert main(["check", "--root", str(tmp_path)]) == 2
+    assert main(["check", "--root", str(tmp_path)]) == 3
     assert message in capsys.readouterr().err
-    assert main(["config", "--root", str(tmp_path)]) == 2
+    assert main(["config", "--root", str(tmp_path)]) == 3
 
 
 def test_root_is_found_from_a_subdirectory(
@@ -160,14 +160,14 @@ def test_the_walk_stops_at_the_git_root(
     (inner / ".git").write_text("gitdir: ../../.git/modules/lib\n", encoding="utf-8")
     (inner / "src").mkdir()
     monkeypatch.chdir(inner / "src")
-    assert main(["check"]) == 2
+    assert main(["check"]) == 3
     assert "CITATION.cff" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("value", ['"editor"', '""', "7", "true", "[]", "{}"])
 def test_invalid_zenodo_contributor_type(value: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     (tmp_path / "citesync.toml").write_text(f"zenodo-contributor-type = {value}\n", encoding="utf-8")
-    assert main(["config", "--root", str(tmp_path)]) == 2
+    assert main(["config", "--root", str(tmp_path)]) == 3
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "zenodo-contributor-type must be one of" in captured.err

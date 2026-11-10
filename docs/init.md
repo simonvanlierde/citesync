@@ -12,7 +12,7 @@ A value CITATION.cff can't hold, such as a licence with `AND`, is left out, and 
 
 ## When it refuses
 
-`init` exits 2 and writes nothing when:
+`init` exits 3 and writes nothing when:
 
 - CITATION.cff exists already. To make it agree with another file, use [`citesync write`](write.md) with `--source`.
 - there is no codemeta.json, .zenodo.json or manifest, or one can't be read;
