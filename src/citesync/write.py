@@ -157,7 +157,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
 
 def init(
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
-) -> tuple[str, dict[str, str], list[tuple[str, str, str]]]:
+) -> tuple[str, dict[str, str], list[tuple[str, str, str]], list[str]]:
     """Write a new CITATION.cff from the files the repo has.
 
     Each term comes from the first file that holds it: the configured source, then codemeta.json,
@@ -167,8 +167,8 @@ def init(
     With ``dry_run``, nothing is written.
 
     Returns:
-        Its text, the reason for each term left out, and each one-string author name split on its
-        last space, with the given and family names it became.
+        Its text, the reason for each term left out, each one-string author name split on its
+        last space with the given and family names it became, and a note on each manifest it skipped.
 
     Raises:
         CheckError: when CITATION.cff exists, a file can't be read, or no file gives a title or authors.
@@ -177,7 +177,7 @@ def init(
         msg = "CITATION.cff already exists; `citesync write` makes it agree with another file"
         raise CheckError(msg)
     mapping = mapping or load_mapping()
-    source = _merged(root, config, mapping)
+    source, left_out = _merged(root, config, mapping)
     text, skipped = _new_cff(root, source, config, mapping)
     if not dry_run:
         _replace(root, {"CITATION.cff": text})
@@ -186,7 +186,7 @@ def init(
         given, family = _split_name(p.name)
         if p.family is None and not p.organization and given:
             splits.append((str(p.name), given, family))
-    return text, skipped, splits
+    return text, skipped, splits, left_out
 
 
 def citation_file(fmt: str, root: Path, config: Config, source: Doc, mapping: Mapping) -> tuple[str, dict[str, str]]:
@@ -251,8 +251,11 @@ def _new_cff(root: Path, source: Doc, config: Config, mapping: Mapping) -> tuple
     return out.getvalue(), skipped
 
 
-def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
-    """The first file :func:`init` reads, holding each term from the first file that has it.
+def _merged(root: Path, config: Config, mapping: Mapping) -> tuple[Doc, list[str]]:
+    """The first file :func:`init` reads, holding each term from the first file that has it, and the skip notes.
+
+    A manifest check skips (``manifest-skipped``) gives nothing and gets a note, so CITATION.cff holds no value
+    check won't compare.
 
     Raises:
         CheckError: when there is no file to read, one can't be read, or none gives a title or authors.
@@ -275,7 +278,12 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> Doc:
         if term not in record:
             msg = f"no {cff_key} in {', '.join(d.path for d in docs)}, and CITATION.cff needs one"
             raise CheckError(msg)
-    return replace(docs[0], record=record)
+    left_out = [
+        f"{f.file}: skipped, {f.message}; list it under manifests to read it"
+        for f in read
+        if f.rule == "manifest-skipped"
+    ]
+    return replace(docs[0], record=record), left_out
 
 
 def union(docs: list[Doc], config: Config) -> dict[str, Any]:

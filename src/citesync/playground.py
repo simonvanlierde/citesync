@@ -70,7 +70,7 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
     if filename == "CITATION.cff":
         skipped, splits = {}, []
     else:
-        _, skipped, splits = init(root, Config(source=filename, manifests=()), mapping)
+        _, skipped, splits, _ = init(root, Config(source=filename, manifests=()), mapping)
     review = [{"original": name, "given": given, "family": family} for name, given, family in splits]
     if "names" in payload:
         _correct_names(root, payload["names"], splits, source.record["author"])
