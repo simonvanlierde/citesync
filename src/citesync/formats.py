@@ -433,10 +433,6 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         alternative, found = next(
             ((i, found) for i, alt in enumerate(path.split(" | ")) if (found := resolve(data, alt))), (0, [])
         )
-        if fmt == "pkg-info":
-            # NOTE: the rows read Author and Author-email as one value each, but each holds a list of people.
-            # Drop this once codemeta-drift's rows read them as Author[] + Author-email[].
-            found = [el for value in found for el in value]
         if fmt in ONE_AUTHOR and any(isinstance(el, list) for el in found):  # else it reads as no one, unchecked
             msg = f"{term} holds a list, but this file takes one {term}"
             raise TypeError(msg)

@@ -24,6 +24,12 @@
         "version": { "type": "string", "minLength": 1 }
       }
     },
+    "context_terms": {
+      "description": "Every property term of the codemeta.jsonld context at codemeta_tag, sorted: the keys a codemeta.json written to that context may use, besides keyword aliases such as type and id. Classes such as Person and prefixes such as schema are not listed. Optional; emitted since schema 1.7.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" },
+      "uniqueItems": true
+    },
     "rows": {
       "description": "One row per (format, term). A pair appears at most once; JSON Schema cannot say that, so consumers check it.",
       "type": "array",
@@ -36,12 +42,12 @@
       "required": ["format", "term", "path", "source"],
       "properties": {
         "format": {
-          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, pkg-info, r-description, julia, bibtex, datacite, setup-py, ruby-gem, maven, cpan-meta-2, nuget, pubspec, cabal, typst, quarto, github, figshare, bio-tools, leiningen, octave, publiccode-0.8, swmath, spdx-2.3, codemeta-2, dcat-3, doap, wikidata. A versioned format puts its version in the id.",
+          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, pkg-info, r-description, julia, bibtex, datacite, setup-py, ruby-gem, maven, cpan-meta-2, nuget, pubspec, cabal, typst, quarto, github, figshare, bio-tools, leiningen, octave, publiccode-0.8, swmath, spdx-2.3, codemeta-2, dcat-3, doap, wikidata, ris, endnote, gitlab, code-json-2.0. A versioned format puts its version in the id. gitlab and code-json-2.0 have rows from codemeta_tag 4.0 on.",
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9.]+)*$"
         },
         "term": {
-          "description": "A CodeMeta term (name, version, author, contributor, license, identifier, codeRepository, description, keywords, datePublished), swhid (the Software Heritage identifier, which codemeta.json holds in identifier), or a person sub-term qualified by the term it sits under: author.givenName, author.familyName, author.@id (ORCID), and the same three under contributor.",
+          "description": "A CodeMeta term (name, version, author, contributor, license, identifier, codeRepository, description, keywords, datePublished, publisher, resourceType), swhid (the Software Heritage identifier, which codemeta.json holds in identifier), or a person sub-term qualified by the term it sits under: author.givenName, author.familyName, author.@id (ORCID), and the same three under contributor.",
           "type": "string",
           "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.@?[A-Za-z][A-Za-z0-9]*)?$"
         },
