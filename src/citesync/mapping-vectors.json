@@ -491,6 +491,26 @@
    ]
   },
   {
+   "name": "alternatives: the codemeta version row reads version",
+   "path": "version | softwareVersion",
+   "document": {
+    "version": "1.2.0"
+   },
+   "expected": [
+    "1.2.0"
+   ]
+  },
+  {
+   "name": "alternatives: the codemeta version row falls back to softwareVersion",
+   "path": "version | softwareVersion",
+   "document": {
+    "softwareVersion": "1.2.0"
+   },
+   "expected": [
+    "1.2.0"
+   ]
+  },
+  {
    "name": "alternatives with @ keys",
    "path": "Authors@R | Maintainer",
    "document": {

@@ -1731,3 +1731,17 @@ def test_a_folder_it_cannot_create_is_a_clear_error(tmp_path: Path, run: "Run") 
     finally:
         root.chmod(stat.S_IRWXU)
     assert (code, err) == (3, "citesync: sub/codemeta.json: can't write: Permission denied\n")
+
+
+def test_a_software_version_key_is_checked_and_kept(tmp_path: Path, run: "Run") -> None:
+    cff = "cff-version: 1.2.0\nmessage: m\ntitle: x\nversion: 0.5.0\nauthors:\n  - name: Ada Lovelace\n"
+    (tmp_path / "CITATION.cff").write_text(cff, encoding="utf-8")
+    codemeta = {"@context": "https://w3id.org/codemeta/3.0", "name": "x", "softwareVersion": "0.4.0"}
+    (tmp_path / "codemeta.json").write_text(json.dumps(codemeta), encoding="utf-8")
+    code, out, _ = run("check", "--root", str(tmp_path))
+    assert code == 1
+    assert "error[version-mismatch] version: '0.4.0', CITATION.cff has '0.5.0'" in out
+    assert run("write", "--root", str(tmp_path))[0] == 0
+    written = json.loads((tmp_path / "codemeta.json").read_text(encoding="utf-8"))
+    assert written["softwareVersion"] == "0.5.0"
+    assert "version" not in written
