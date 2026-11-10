@@ -63,7 +63,7 @@
         },
         "term": {
           "type": ["string", "null"],
-          "description": "A CodeMeta term, or @context; null for unreadable, file-missing and manifest-skipped."
+          "description": "A CodeMeta term, or @context; the file's own key path for unknown-term and foreign-term; null for unreadable, file-missing, manifest-skipped and export-stale."
         },
         "message": { "type": "string" },
         "help": { "type": "string", "description": "What to do about it." },
