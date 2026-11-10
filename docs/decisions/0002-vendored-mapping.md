@@ -13,7 +13,7 @@ Each file format keeps a field in a different place (CFF `title` is CodeMeta `na
 
 The mapping says where a field sits. How a value is written (SPDX id or URL, ORCID URL or bare iD, `Family, Given`) stays in citesync as one codec per format and field, each with an inverse for writing.
 
-An unknown major `schema_version`, or no row for a compared field in a format citesync reads, is exit 2.
+An unknown major `schema_version`, or no row for a compared field in a format citesync reads, is exit 2. (Since 0.5.0 that is exit 3: 2 means only a usage error. See [check](../check.md#findings-and-exit-codes).)
 
 Two repos, not one, so the hub can move to the CodeMeta organisation whole if they ask for it.
 

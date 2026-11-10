@@ -3,6 +3,8 @@
 :class:`CannotWrite` never leaves ``write``: the field is left as it was, and its finding says why.
 """
 
+from collections.abc import Iterable
+
 
 class CheckError(Exception):
     """A config error, a missing file or a bad mapping, with the path named."""
@@ -21,3 +23,11 @@ class UnreadableError(CheckError):
 
 class CannotWrite(Exception):  # noqa: N818 - a reason, not a failure: write skips the field
     """A value write can't spell in a file's format without losing something, with the reason."""
+
+
+def did_you_mean(word: str, choices: Iterable[str]) -> str:
+    """``; did you mean 'x'?`` for the closest of ``choices``, or nothing when none is close."""
+    import difflib  # noqa: PLC0415 - only on an error
+
+    close = difflib.get_close_matches(word, list(choices), n=1)
+    return f"; did you mean {close[0]!r}?" if close else ""

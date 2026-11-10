@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from citesync.cli import main
-from citesync.config import load_config
+from citesync.config import git_top, load_config
 
 CFF = 'cff-version: 1.2.0\nmessage: "m"\ntitle: "x"\n'
 
@@ -128,6 +128,7 @@ def test_root_is_found_from_a_subdirectory(
 ) -> None:
     """Without --root, citesync walks up to the citation files, as ruff walks up to its config."""
     (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
     (tmp_path / "codemeta.json").write_text(
         json.dumps({"@context": "https://w3id.org/codemeta/3.0", "name": "y"}), encoding="utf-8"
@@ -177,3 +178,14 @@ def test_zenodo_contributor_type_is_rendered(tmp_path: Path, capsys: pytest.Capt
     (tmp_path / "citesync.toml").write_text('zenodo-contributor-type = "Other"\n', encoding="utf-8")
     assert main(["config", "--root", str(tmp_path)]) == 0
     assert 'zenodo-contributor-type = "Other"' in capsys.readouterr().out
+
+
+def test_an_empty_git_folder_is_not_a_repo(tmp_path: Path) -> None:
+    """A .git folder with no HEAD is not a repo to git, so a stray one above, such as /tmp/.git, isn't the top."""
+    (tmp_path / ".git").mkdir()
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    (repo / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    (repo / "src").mkdir()
+    assert git_top(repo / "src") == repo
+    assert git_top(tmp_path) is None
