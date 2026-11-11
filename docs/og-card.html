@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>citesync social card</title>
+<!-- Source of playground/og.png. Render: see README.md, "Social card". -->
+<style>
+  :root {
+    --paper: #fbfaf7; --ink: #243442; --muted: #53616c; --line: #c4c9cc; --accent: #294f80; --wash: #edf1f4;
+    --serif: Georgia, Charter, "Bitstream Charter", "Sitka Text", Cambria, "Liberation Serif", serif;
+    --mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; background: var(--paper); color: var(--ink); overflow: hidden; }
+  /* Everything that carries meaning sits in the centred 630 px column. */
+  main { position: absolute; left: 285px; top: 0; width: 630px; height: 630px; padding-top: 34px; }
+  h1 { font: 700 108px/1 var(--serif); letter-spacing: -0.02em; color: var(--accent); }
+  .job { margin-top: 6px; font: 400 36px/1.2 var(--serif); color: var(--muted); white-space: nowrap; }
+  pre { margin-top: 22px; padding: 12px 22px; font: 400 36px/42px var(--mono); background: var(--wash); border: 1px solid var(--line); border-radius: 8px; }
+  pre.out { margin-top: 0; background: var(--paper); border: 2px solid var(--accent); }
+  .out b { font-weight: 400; color: var(--accent); }
+  svg { display: block; margin: 4px 0 4px 22px; }
+  .url { position: absolute; left: 0; bottom: 24px; font: 400 32px/1 var(--mono); color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>citesync</h1>
+  <p class="job">Generate and sync citation files</p>
+<pre>name = "synthagree"
+version = "1.2.3"
+license = "Apache-2.0"</pre>
+  <svg width="38" height="32" viewBox="0 0 30 26" fill="none" stroke="#294f80" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3v19M6 14l9 9 9-9"/></svg>
+<pre class="out">title: synthagree
+version: 1.2.3
+license: Apache-2.0</pre>
+  <p class="url">simonvanlierde.com/citesync</p>
+</main>
+</body>
+</html>

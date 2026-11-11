@@ -73,16 +73,15 @@ The `citesync` hook runs when a commit changes a supported metadata file, a cite
 
 ## Social card
 
-[`playground/og.png`](playground/og.png) is the 1200x630 card shown when the link is shared. It is made with the generator in
-[my site repo](https://github.com/simonvanlierde/simonvanlierde.github.io/tree/main/scripts/social-card)
-(needs Docker). The visual is a screenshot of the live page at phone width, cropped. `playground/build.py` copies the card into the built site; the tags are in `playground/index.html`. From a checkout of
-that repo, with this repo next to it:
+[`playground/og.png`](playground/og.png) is the 1200x630 card shown when the link is shared. It is rendered from
+[`docs/og-card.html`](docs/og-card.html), whose example is `tests/fixtures/synthetic-agree/pyproject.toml` run through `citesync init`. Edit the HTML, then from the repo root:
 
 ```sh
-pnpm gen:card --visual ../citesync/playground/og-visual.jpg --name "citesync" \
-  --line "Generate and sync citation files: CLI, hook, browser." \
-  --domain simonvanlierde.com/citesync --out ../citesync/playground/og.png
+pnpm exec playwright screenshot --browser=chromium --viewport-size=1200,630 \
+  file://$PWD/docs/og-card.html playground/og.png
 ```
+
+`playground/build.py` copies the card into the built site; the tags are in `playground/index.html`.
 
 ## Development
 
