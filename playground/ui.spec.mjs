@@ -266,6 +266,17 @@ test("search metadata and project information are present without JavaScript", a
     "content",
     "https://simonvanlierde.com/citesync/",
   );
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    "content",
+    "https://simonvanlierde.com/citesync/og.png",
+  );
+  await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute("content", "1200");
+  await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute("content", "630");
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute(
+    "content",
+    /simonvanlierde.com\/citesync/,
+  );
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
     /CITATION.cff, CodeMeta, BibTeX, CSL-JSON, APA, JSON-LD, DataCite XML, RIS and EndNote/,

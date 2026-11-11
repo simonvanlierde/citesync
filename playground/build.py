@@ -82,7 +82,8 @@ def _site(manifest: dict[str, object]) -> None:
     html = (OUTPUT / "index.html").read_text()
     html = html.replace('"main.mjs"', f'"{folder}/main.mjs"').replace('"style.css"', f'"{folder}/style.css"')
     (site / "index.html").write_text(html)
-    shutil.copyfile(OUTPUT / "favicon.svg", site / "favicon.svg")
+    for name in ("favicon.svg", "og.png"):
+        shutil.copyfile(OUTPUT / name, site / name)
 
 
 if __name__ == "__main__":

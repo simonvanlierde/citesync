@@ -71,6 +71,19 @@ repos:
 
 The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris`, `.enw`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://github.com/simonvanlierde/citesync/blob/main/docs/check.md#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`. Both hooks need Python 3.13 or newer.
 
+## Social card
+
+[`playground/og.png`](playground/og.png) is the 1200x630 card shown when the link is shared. It is made with the generator in
+[my site repo](https://github.com/simonvanlierde/simonvanlierde.github.io/tree/main/scripts/social-card)
+(needs Docker). The visual is a screenshot of the live page at phone width, cropped. `playground/build.py` copies the card into the built site; the tags are in `playground/index.html`. From a checkout of
+that repo, with this repo next to it:
+
+```sh
+pnpm gen:card --visual ../citesync/playground/og-visual.jpg --name "citesync" \
+  --line "Generate and sync citation files: CLI, hook, browser." \
+  --domain simonvanlierde.com/citesync --out ../citesync/playground/og.png
+```
+
 ## Development
 
 You need [uv](https://docs.astral.sh/uv/), [just](https://just.systems), Node.js 26 and [pnpm](https://pnpm.io/).
