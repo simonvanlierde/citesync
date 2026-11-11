@@ -81,6 +81,9 @@ def _site(manifest: dict[str, object]) -> None:
     shutil.copytree(WHEELS, target / "wheels")
     html = (OUTPUT / "index.html").read_text()
     html = html.replace('"main.mjs"', f'"{folder}/main.mjs"').replace('"style.css"', f'"{folder}/style.css"')
+    # Platforms cache a link preview by image URL, so the card URL carries the PNG's hash.
+    card = hashlib.sha256((OUTPUT / "og.png").read_bytes()).hexdigest()[:8]
+    html = html.replace('/og.png"', f'/og.png?v={card}"')
     (site / "index.html").write_text(html)
     for name in ("favicon.svg", "og.png"):
         shutil.copyfile(OUTPUT / name, site / name)
