@@ -268,7 +268,7 @@ test("search metadata and project information are present without JavaScript", a
   );
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
     "content",
-    "https://simonvanlierde.com/citesync/og.png",
+    /^https:\/\/simonvanlierde\.com\/citesync\/og\.png(\?v=[0-9a-f]{8})?$/,
   );
   await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute("content", "1200");
   await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute("content", "630");
