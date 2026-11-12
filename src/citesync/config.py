@@ -7,8 +7,18 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from citesync.errors import CheckError, UnreadableError, did_you_mean
-from citesync.formats import CITATION_FILES, CODEMETA_VERSIONS, DATASET_FILES, FORMAT_OF, MANIFESTS, load
-from citesync.mapping import TERMS, resolve
+from citesync.formats import (
+    CITATION_FILES,
+    CODEMETA_VERSIONS,
+    DATASET_FILES,
+    FORMAT_OF,
+    MANIFESTS,
+    format_of,
+    inside,
+    load,
+    slots,
+)
+from citesync.mapping import TERMS, load_mapping, resolve
 from citesync.rules import MISMATCH, RULES
 
 
@@ -25,6 +35,7 @@ class Config:
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
     exports: tuple[str, ...] = ()
+    required_fields: tuple[tuple[str, tuple[str, ...]], ...] = ()
     zenodo_contributor_type: str | None = None
     keywords_case_sensitive: bool = False
     keywords_ignore_separators: bool = False
@@ -103,6 +114,10 @@ def load_config(root: Path, source: str | None = None) -> Config:
         msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(_PARSE)}"
         raise CheckError(msg)
     config = Config(origin=origin, **{key.replace("-", "_"): _PARSE[key](value, origin) for key, value in raw.items()})
+    for path, _ in config.required_fields:
+        if not inside(root, path):
+            msg = f"{origin}: required-fields path {path!r} resolves outside the repo root"
+            raise CheckError(msg)
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
     return config
@@ -219,6 +234,32 @@ def _exports(value: object, origin: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(_relative(item, origin, "exports") for item in value))
 
 
+def _required_fields(value: object, origin: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Validate named record terms against the pinned format's slots."""
+    if not isinstance(value, dict):
+        msg = f"{origin}: required-fields must be a table of paths to lists of CodeMeta terms"
+        raise CheckError(msg)
+    required = {}
+    mapping = load_mapping()
+    for path, terms in value.items():
+        rel = _path(path, FORMAT_OF, origin, "required-fields")
+        if "\\" in path or ":" in path or not path.isprintable():
+            msg = f"{origin}: required-fields path {path!r} must be a printable relative POSIX path"
+            raise CheckError(msg)
+        if not isinstance(terms, list) or not terms or not all(isinstance(term, str) for term in terms):
+            msg = f"{origin}: required-fields {path!r} must be a non-empty list of CodeMeta terms"
+            raise CheckError(msg)
+        for term in terms:
+            if term not in TERMS:
+                msg = f"{origin}: required-fields: {term!r} is not a supported term; choose from {', '.join(TERMS)}"
+                raise CheckError(msg)
+            if term not in slots(format_of(rel), mapping):
+                msg = f"{origin}: required-fields: {path!r} cannot represent {term!r} in the pinned mapping"
+                raise CheckError(msg)
+        required[rel] = tuple(dict.fromkeys((*required.get(rel, ()), *terms)))
+    return tuple(required.items())
+
+
 def _ignore(value: object, origin: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(i, str) for i in value):
         msg = f"{origin}: ignore must be a list of rule ids, got {value!r}"
@@ -242,6 +283,7 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "manifests": lambda value, origin: _paths(value, MANIFESTS | DATASET_FILES, origin, "manifests"),
     "write-manifests": _write_manifests,
     "exports": _exports,
+    "required-fields": _required_fields,
     "zenodo-contributor-type": _zenodo_contributor_type,
     "keywords-case-sensitive": lambda value, origin: _bool(value, origin, "keywords-case-sensitive"),
     "keywords-ignore-separators": lambda value, origin: _bool(value, origin, "keywords-ignore-separators"),
@@ -265,6 +307,12 @@ def render(config: Config) -> str:
         else "# manifests: not set, so every release manifest at the repo root",
         f"write-manifests = {json.dumps(list(config.write_manifests))}",
         f"exports = {json.dumps(list(config.exports))}",
+        "required-fields = {"
+        + ", ".join(
+            f"{json.dumps(path, ensure_ascii=False)} = {json.dumps(list(terms))}"
+            for path, terms in config.required_fields
+        )
+        + "}",
         f"zenodo-contributor-type = {json.dumps(config.zenodo_contributor_type)}"
         if config.zenodo_contributor_type is not None
         else "# zenodo-contributor-type: not set, so new contributors need a hand edit",

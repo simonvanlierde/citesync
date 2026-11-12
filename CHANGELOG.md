@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
+
 ## [0.5.0] - 2026-11-10
 
 To upgrade from 0.4.0:
