@@ -174,6 +174,14 @@ Only for a citation file named in the `files` setting. Without that setting, cit
 
 To fix: Run `citesync write` to create codemeta.json or .zenodo.json; use `citesync init` for CITATION.cff, or take the file off `files`.
 
+## required-field-missing
+
+A field listed under `required-fields` has no normalized value in its selected file. Severity: error.
+
+Each configured path must exist and hold a non-empty normalized value for every listed CodeMeta term. The check uses the pinned mapping, even when discovery excludes the file or a manifest is private. A missing file reports one finding per required term. An unreadable file reports `unreadable` instead. A missing source or explicitly listed manifest still stops discovery with exit 3 before this check runs. The source need not know the value. `identifier` requires a DOI, not an arbitrary identifier. This validates presence, not factual accuracy or full format conformance. `write` preserves omitted fields and does not fill them to satisfy this rule.
+
+To fix: Set the verified value in the selected file, or remove the requirement if it does not apply.
+
 ## export-stale
 
 A file listed under `exports` is missing or differs from what the source gives. Severity: error.

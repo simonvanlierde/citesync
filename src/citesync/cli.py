@@ -145,7 +145,7 @@ def _parser() -> argparse.ArgumentParser:
         "-v", "--verbose", action="store_true", help="also print info: fields not compared, manifests left out"
     )
     shown.add_argument("-q", "--quiet", action="store_true", help="print only errors, and no summary")
-    check = "report where the files disagree with the source"
+    check = "report disagreements with the source and missing configured required-fields"
     sub.add_parser("check", parents=[report], help=check, description=f"{check.capitalize()}.", epilog=_EPILOG)
     write = "rewrite the files to agree with the source"
     write_ = sub.add_parser(

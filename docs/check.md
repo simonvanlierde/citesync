@@ -74,3 +74,9 @@ A config error names the bad entry first and suggests the closest valid one. An 
 | 130 | interrupted with Ctrl-C. Files `write` moved into place before stay written. The command then ends by SIGINT, as Ctrl-C does, so a shell loop around it stops too |
 
 The JSON, GitHub and SARIF formats are in [output.md](output.md).
+
+## Require selected fields
+
+Set [`required-fields`](config.md#require-values-in-selected-files) to fail check when selected files omit values.
+The check uses CodeMeta terms and the pinned format mapping. It reports missing values even when the source also lacks them.
+Defaults still allow omissions, and write still preserves them.

@@ -149,7 +149,8 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
     """Every finding for the repo at ``root``, sorted, the number of files checked, and the unused ignore entries."""
     mapping = load_mapping()
     docs, read = read_docs(root, config, mapping)
-    extra = [*read, *version_behind_tag(docs[0], git_tags(root))]
+    required, additional = required_findings(root, docs, config, mapping)
+    extra = [*read, *required, *version_behind_tag(docs[0], git_tags(root))]
     if config.exports:
         from citesync.export import stale  # noqa: PLC0415
 
@@ -159,7 +160,34 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
         from citesync.positions import place  # noqa: PLC0415
 
         found = place(root, docs, found, mapping)
-    return sorted(found, key=Finding.sort_key), len(docs), unused
+    return sorted(found, key=Finding.sort_key), len(docs) + additional, unused
+
+
+def required_findings(root: Path, docs: list[Doc], config: Config, mapping: Mapping) -> tuple[list[Finding], int]:
+    """Check required values independently of discovery and source knowledge, without changing write's inputs."""
+    found, additional = [], 0
+    by_path = {doc.path: doc for doc in docs}
+    for path, terms in config.required_fields:
+        doc = by_path.get(path)
+        if doc is None:
+            if not (root / path).exists():
+                found.extend(
+                    Finding(path, term, "required-field-missing", "required file is missing") for term in terms
+                )
+                continue
+            additional += 1
+            try:
+                doc = read_doc(root, path, mapping)
+            except UnreadableError as err:
+                found.append(Finding(err.path, None, "unreadable", err.message, err.line, err.column))
+                continue
+        if doc.readable:
+            found.extend(
+                Finding(path, term, "required-field-missing", "required value is missing or empty")
+                for term in terms
+                if not doc.record.get(term)
+            )
+    return found, additional
 
 
 def git_tags(root: Path) -> list[str]:

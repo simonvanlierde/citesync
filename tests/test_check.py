@@ -940,7 +940,7 @@ to match one source file.
 
 positional arguments:
   command
-    check        report where the files disagree with the source
+    check        report disagreements with the source and missing configured required-fields
     write        rewrite the files to agree with the source
     init         write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
     export       print a citation or citation file made from the source, writing nothing
@@ -960,7 +960,7 @@ options:
 usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--format {text,json,github,sarif}]
                       [--json] [--color {auto,always,never}] [-v | -q]
 
-Report where the files disagree with the source.
+Report disagreements with the source and missing configured required-fields.
 
 options:
   -h, --help            show this help message and exit
