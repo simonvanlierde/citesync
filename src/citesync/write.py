@@ -92,9 +92,9 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
-    exported = export.stale(root, docs, config)
     ds_path = dataset_codemeta_path(root, config)
     ds_source = dataset_source(root, docs[0], config) if ds_path else docs[0]
+    exported = export.stale(root, [d for d in docs if d.path != ds_path], config)
     # zenodo-license-list sits on a term write may rewrite, but no rewrite turns the list into one licence
     errors = [
         f
@@ -325,7 +325,7 @@ def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]
     if (
         finding.file
         and finding.term
-        and format_of(finding.file) in MANIFESTS.values()
+        and PurePosixPath(finding.file).name in MANIFESTS
         and finding.term not in config.write_manifests
     ):
         return f"edit it by hand, or add {finding.term} to write-manifests"

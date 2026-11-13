@@ -183,16 +183,17 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
     docs, read = read_docs(root, config, mapping)
     required, additional = required_findings(root, docs, config, mapping)
     extra = [*read, *required, *version_behind_tag(docs[0], git_tags(root))]
+    ds_path = dataset_codemeta_path(root, config)
     if config.exports:
         from citesync.export import stale  # noqa: PLC0415
 
-        extra += stale(root, docs, config)
+        extra += stale(root, [d for d in docs if d.path != ds_path], config)
     found, unused = findings(
         docs,
         extra,
         config,
-        dataset_path=dataset_codemeta_path(root, config),
-        dataset_doc=dataset_source(root, docs[0], config),
+        dataset_path=ds_path,
+        dataset_doc=dataset_source(root, docs[0], config) if ds_path else docs[0],
     )
     if any(f.file and f.term for f in found):  # a check with nothing to point at reads no file twice
         from citesync.positions import place  # noqa: PLC0415

@@ -7,6 +7,7 @@ from citesync import cli
 from citesync.check import check
 from citesync.config import load_config
 from citesync.errors import CheckError
+from citesync.formats import cff_data_license
 from citesync.write import init, write
 
 CFF = """\
@@ -75,6 +76,43 @@ def test_update_and_autodiscover_dataset_codemeta(tmp_path: Path) -> None:
     assert json.loads((tmp_path / "dataset.codemeta.json").read_text(encoding="utf-8"))["version"] == "0.2.0"
 
 
+def test_rewrite_dataset_codemeta_on_licence_mismatch(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('dataset-license = "CC-BY-4.0"\n', encoding="utf-8")
+    (tmp_path / "dataset.codemeta.json").write_text(
+        json.dumps(
+            {
+                "@context": "https://w3id.org/codemeta/3.0",
+                "@type": "Dataset",
+                "name": "cml-ia-factors",
+                "version": "0.1.0",
+                "license": "https://spdx.org/licenses/MIT",
+                "author": [
+                    {
+                        "@type": "Person",
+                        "givenName": "Simon",
+                        "familyName": "van Lierde",
+                        "@id": "https://orcid.org/0009-0006-6953-909X",
+                    }
+                ],
+                "keywords": ["LCA", "Brightway"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    cfg = load_config(tmp_path)
+    found, _, _ = check(tmp_path, cfg)
+    assert any(f.file == "dataset.codemeta.json" and f.term == "license" for f in found)
+
+    write(tmp_path, cfg)
+    clean, _, _ = check(tmp_path, cfg)
+    assert [f for f in clean if f.severity == "error"] == []
+    assert (
+        json.loads((tmp_path / "dataset.codemeta.json").read_text(encoding="utf-8"))["license"]
+        == "https://spdx.org/licenses/CC-BY-4.0"
+    )
+
+
 def test_cff_data_reference_licence_fallback(tmp_path: Path) -> None:
     cff_with_ref = CFF + (
         "references:\n"
@@ -93,17 +131,81 @@ def test_cff_data_reference_licence_fallback(tmp_path: Path) -> None:
     assert [f for f in clean if f.severity == "error"] == []
 
 
+def test_cff_data_reference_licence_edge_cases(tmp_path: Path) -> None:
+    two_data = tmp_path / "two.cff"
+    two_data.write_text(
+        CFF
+        + "references:\n"
+        + "  - type: data\n    title: A\n    license: MIT\n"
+        + "  - type: data\n    title: B\n    license: CC0-1.0\n",
+        encoding="utf-8",
+    )
+    assert cff_data_license(two_data) is None
+
+    software_only = tmp_path / "sw.cff"
+    software_only.write_text(
+        CFF + "references:\n  - type: software\n    title: A\n    license: GPL-3.0-only\n",
+        encoding="utf-8",
+    )
+    assert cff_data_license(software_only) is None
+
+
 def test_cli_flags_override_and_default_path(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        'dataset-codemeta = "ignored.json"\ndataset-license = "MIT"\n', encoding="utf-8"
+    )
     code = cli.main(
-        ["write", "--root", str(tmp_path), "--dataset-license", "LicenseRef-CML-IA-no-licence-stated", "-q"]
+        [
+            "write",
+            "--root",
+            str(tmp_path),
+            "--dataset-codemeta",
+            "custom.codemeta.json",
+            "--dataset-license",
+            "LicenseRef-CML-IA-no-licence-stated",
+            "-q",
+        ]
     )
     assert code == 0
-    assert (tmp_path / "dataset.codemeta.json").is_file()
+    assert (tmp_path / "custom.codemeta.json").is_file()
+    assert not (tmp_path / "ignored.json").exists()
+    assert (
+        json.loads((tmp_path / "custom.codemeta.json").read_text(encoding="utf-8"))["license"]
+        == "LicenseRef-CML-IA-no-licence-stated"
+    )
     code = cli.main(
-        ["check", "--root", str(tmp_path), "--dataset-license", "LicenseRef-CML-IA-no-licence-stated", "-q"]
+        [
+            "check",
+            "--root",
+            str(tmp_path),
+            "--dataset-codemeta",
+            "custom.codemeta.json",
+            "--dataset-license",
+            "LicenseRef-CML-IA-no-licence-stated",
+            "-q",
+        ]
     )
     assert code == 0
+    capsys.readouterr()
+
+
+def test_exports_exclude_dataset_codemeta_and_advice_handles_custom_path(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cff_no_lic = CFF.replace("license: MIT\n", "")
+    (tmp_path / "CITATION.cff").write_text(cff_no_lic, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        'dataset-license = "CC-BY-4.0"\nexports = ["citation.csl.json"]\n', encoding="utf-8"
+    )
+    assert cli.main(["write", "--root", str(tmp_path), "-q"]) == 0
+    assert cli.main(["check", "--root", str(tmp_path), "-q"]) == 0
+
+    # An unfixable finding with a term on dataset.codemeta.json must not crash advice() in cli write.
+    data = json.loads((tmp_path / "dataset.codemeta.json").read_text(encoding="utf-8"))
+    data["madeUpKey"] = "x"
+    (tmp_path / "dataset.codemeta.json").write_text(json.dumps(data), encoding="utf-8")
+    assert cli.main(["write", "--root", str(tmp_path)]) == 1
     capsys.readouterr()
 
 
