@@ -957,7 +957,8 @@ options:
         (
             ["check", "--help"],
             """\
-usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--format {text,json,github,sarif}]
+usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--dataset-codemeta DATASET_CODEMETA]
+                      [--dataset-license DATASET_LICENSE] [--format {text,json,github,sarif}]
                       [--json] [--color {auto,always,never}] [-v | -q]
 
 Report disagreements with the source and missing configured required-fields.
@@ -967,6 +968,10 @@ options:
   --root ROOT           repo root (default: the nearest directory up with a citation file or
                         config, else the git repo's top)
   --source SOURCE       the file the others must agree with; overrides config
+  --dataset-codemeta DATASET_CODEMETA
+                        path to the dataset CodeMeta file; overrides config
+  --dataset-license DATASET_LICENSE
+                        dataset licence (SPDX id, expression, or URL); overrides config
   --format {text,json,github,sarif}
                         output format (default: text)
   --json                alias of --format json

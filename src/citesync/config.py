@@ -35,12 +35,14 @@ class Config:
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
     exports: tuple[str, ...] = ()
-    required_fields: tuple[tuple[str, tuple[str, ...]], ...] = ()
     zenodo_contributor_type: str | None = None
     keywords_case_sensitive: bool = False
     keywords_ignore_separators: bool = False
     ignore: tuple[str, ...] = ()
     origin: str = "defaults"
+    required_fields: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    dataset_codemeta: str | None = None
+    dataset_license: str | None = None
 
 
 # Config tables inside manifests, in the order docs/config.md lists them: (file, mapping path, origin).
@@ -99,8 +101,14 @@ def _is_repo(directory: Path) -> bool:
     return (git / "HEAD").is_file() or git.is_file()
 
 
-def load_config(root: Path, source: str | None = None) -> Config:
-    """The config in use under ``root``, with ``source`` from the command line on top.
+def load_config(
+    root: Path,
+    source: str | None = None,
+    *,
+    dataset_codemeta: str | None = None,
+    dataset_license: str | None = None,
+) -> Config:
+    """The config in use under ``root``, with ``source`` and dataset overrides from the command line on top.
 
     Raises:
         CheckError: on an unknown key or a value citesync can't use.
@@ -120,6 +128,12 @@ def load_config(root: Path, source: str | None = None) -> Config:
             raise CheckError(msg)
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
+    if dataset_codemeta is not None:
+        config = replace(config, dataset_codemeta=_dataset_codemeta(dataset_codemeta, "--dataset-codemeta"))
+    if dataset_license is not None:
+        config = replace(config, dataset_license=_dataset_license(dataset_license, "--dataset-license"))
+    if config.dataset_license is not None and config.dataset_codemeta is None:
+        config = replace(config, dataset_codemeta="dataset.codemeta.json")
     return config
 
 
@@ -275,10 +289,30 @@ def _ignore(value: object, origin: str) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _dataset_codemeta(value: object, origin: str) -> str:
+    if not isinstance(value, str) or not value.endswith(".json"):
+        msg = f"{origin}: dataset-codemeta must be a relative .json path, got {value!r}"
+        raise CheckError(msg)
+    rel = _relative(value, origin, "dataset-codemeta")
+    if rel in FORMAT_OF:
+        msg = f"{origin}: dataset-codemeta {rel!r} cannot name {rel}"
+        raise CheckError(msg)
+    return rel
+
+
+def _dataset_license(value: object, origin: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        msg = f"{origin}: dataset-license must be a non-empty SPDX id, expression, or URL"
+        raise CheckError(msg)
+    return value.strip()
+
+
 # One parser per key; each raises CheckError naming the key.
 _PARSE: dict[str, Callable[[object, str], Any]] = {
     "source": lambda value, origin: _path(value, FORMAT_OF, origin, "source"),
     "codemeta-version": _codemeta_version,
+    "dataset-codemeta": _dataset_codemeta,
+    "dataset-license": _dataset_license,
     "files": lambda value, origin: _paths(value, CITATION_FILES, origin, "files"),
     "manifests": lambda value, origin: _paths(value, MANIFESTS | DATASET_FILES, origin, "manifests"),
     "write-manifests": _write_manifests,
@@ -299,6 +333,12 @@ def render(config: Config) -> str:
         f"codemeta-version = {json.dumps(config.codemeta_version)}"
         if config.codemeta_version is not None
         else "# codemeta-version: not set, so any supported @context passes",
+        f"dataset-codemeta = {json.dumps(config.dataset_codemeta)}"
+        if config.dataset_codemeta is not None
+        else "# dataset-codemeta: not set",
+        f"dataset-license = {json.dumps(config.dataset_license)}"
+        if config.dataset_license is not None
+        else "# dataset-license: not set",
         f"files = {json.dumps(list(config.files))}"
         if config.files is not None
         else "# files: not set, so every citation file present",

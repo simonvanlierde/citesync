@@ -13,6 +13,8 @@ It ignores the others and doesn't merge them. `citesync config` prints the confi
 ```toml
 source = "CITATION.cff"                  # any supported source filename
 codemeta-version = "3.0"                 # default: unset, so any CodeMeta version passes
+dataset-codemeta = "dataset.codemeta.json"  # optional dataset CodeMeta file for sourceledger --codemeta
+dataset-license = "CC-BY-4.0"            # dataset licence when it differs from the code licence
 files = ["codemeta.json", ".zenodo.json"]  # default: the citation files present
 manifests = ["src/core/package.json"]      # replaces the default root manifests and dataset files
 write-manifests = ["keywords", "license"]  # or "all"; the manifest fields write may change
@@ -59,6 +61,8 @@ Review dates, authors, licences and identifiers before adding them by hand.
 Quote `codemeta-version`: `3.0` without quotes is a TOML number. With `codemeta-version` unset, `check` accepts CodeMeta 2.0, 3.0, 3.1 and 4.0, and `write` leaves `@context` alone. Once it's set, any other `@context` is a [`context-mismatch`](rules.md#context-mismatch) error, which `write` fixes.
 
 `exports` lists citation files made from the source: `.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris` or `.enw`, relative to the repo root. [Citation exports](export.md) has the formats.
+
+`dataset-codemeta` and `dataset-license` (or `--dataset-codemeta` and `--dataset-license`) write and check a dataset CodeMeta file (`@type: Dataset`, defaulting to `dataset.codemeta.json` when `dataset-license` is set) for `sourceledger release --codemeta`. Its fields come from the source, while `license` comes from `dataset-license` (or a single `type: data` entry in `CITATION.cff` `references`, falling back to the source's `license`).
 
 An `ignore` entry that matched no finding prints a warning to stderr, unless you pass `-q`. An unknown rule id is a config error, which suggests the closest rule id. You can't ignore `unreadable`.
 

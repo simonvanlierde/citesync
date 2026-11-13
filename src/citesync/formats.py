@@ -159,7 +159,27 @@ def inside(root: Path, rel: str) -> bool:
     return (root / rel).resolve().is_relative_to(root.resolve())
 
 
-def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors: bool = False) -> Doc:
+def cff_data_license(path: Path) -> str | None:
+    """Data licence from a ``type: data`` reference in CITATION.cff when exactly one states one."""
+    try:
+        data = load(path, path.name)
+    except UnreadableError:
+        return None
+    refs = data.get("references")
+    if not isinstance(refs, list):
+        return None
+    lics = [
+        codecs.license_decode(r.get("license") or r.get("license-url"))
+        for r in refs
+        if isinstance(r, dict) and r.get("type") == "data" and (r.get("license") or r.get("license-url"))
+    ]
+    found = [lic for lic in lics if lic]
+    return found[0] if len(found) == 1 else None
+
+
+def read_doc(
+    root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors: bool = False, fmt: str | None = None
+) -> Doc:
     """Read ``rel`` under ``root`` into its record.
 
     ``keep_empty_contributors`` preserves a Zenodo target's explicit empty contributors
@@ -169,7 +189,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
         UnreadableError: when the file resolves outside ``root``, can't be read or parsed, has a format version
             citesync doesn't read, or has a key holding a shape its format doesn't allow.
     """
-    fmt = format_of(rel)
+    fmt = fmt or format_of(rel)
     if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
         raise UnreadableError(rel, "resolves outside the repo root")
     data = load(root / rel, rel)
