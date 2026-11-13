@@ -56,6 +56,12 @@ jobs:
       # for known vulnerabilities and deprecated or quarantined projects. Still
       # experimental in uv, hence the preview flag.
       - run: uv audit --locked --preview-features audit-command
+      # Lists the license of each locked package that ships (no dependency groups), read
+      # from the installed metadata, and fails on one licensecheck's compatibility table
+      # says the license in pyproject.toml cannot take. With no runtime dependencies there
+      # is nothing to check, and licensecheck --zero would fail on the empty list.
+      - run: uv export --locked --no-default-groups --no-hashes --no-annotate --no-header --no-emit-project -q -o "$RUNNER_TEMP/requirements.txt"
+      - run: test ! -s "$RUNNER_TEMP/requirements.txt" || uv run --locked --with licensecheck==2026.0.8 licensecheck -r "$RUNNER_TEMP/requirements.txt" --zero
 
       - run: uv run ruff check --output-format=github
       - run: uv run ruff format --check
@@ -63,3 +69,26 @@ jobs:
       - run: uv run pytest
       # citesync on its own citation files, as the citesync git hook does.
       - run: uv run citesync check --format github
+
+  api:
+    # Fails when the public API lost or changed something since the last git tag,
+    # so a breaking change shows before it ships. Passes when there is no tag yet.
+    name: "python: API breaks since the last tag"
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history and tags: griffe reads the last tag's code from git.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          save-cache: ${{ github.event_name != 'pull_request' }}
+          version: "0.13.7"
+
+      # Reads the source without importing it, so the package needs no install. Runs
+      # from the root: griffe resolves --search against the repository root at the tag.
+      - run: uvx --exclude-newer "1 week" griffe@2.4.1 check --search src --format github citesync

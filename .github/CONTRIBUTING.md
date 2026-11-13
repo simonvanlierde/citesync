@@ -8,7 +8,7 @@ report vulnerabilities as [SECURITY.md](SECURITY.md) describes, not in a public 
 
 Open an [issue](https://github.com/simonvanlierde/citesync/issues) with the bug or
 feature form. For a bug, say what you did, what you expected and what happened, with the
-version you used. A question the README and docs don't answer is a gap in the docs: open
+release or commit you used. A question the README and docs don't answer is a gap in the docs: open
 a feature request for it.
 
 ## Scope and response
@@ -22,13 +22,17 @@ request outside what the project sets out to do is closed with a link to this se
 
 ## Set up and check
 
-[Development](../README.md#development) in the README installs the tools, the dependencies
+The [README](../README.md) says how to install the tools, the dependencies
 and the git hooks. `just check` runs the checks CI runs, and `just fmt` fixes and
 formats.
 
 Add automated tests for new functionality and regression tests for fixes.
 Run a regression test before the fix and check that it fails for the reported reason.
 Fix every lint and type warning, or suppress it with a stated reason.
+
+uv locks only releases at least a week old. If `just check` fails on
+a security fix newer than that, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`,
+and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 
 ## Profile
 
@@ -62,23 +66,32 @@ machines vary too much to fail a build on.
   `Revert "..."` title that GitHub's Revert button writes.
 - **The pull request body** has the shape of
   [the pull request template](pull_request_template.md): what it fixes and why, three or
-  four bullets, and a `Tests:` line.
+  four bullets, a `Tested:` line with the proof (the command and its result, or a test
+  that fails without the change), and a `Not checked:` line with what did not run and why,
+  and any design choice or security path that only a person can judge. "Nothing" is fine.
 - **The changelog** ([CHANGELOG.md](../CHANGELOG.md)) follows
   [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/). Write each entry for
   the people who use the project, not as a commit subject. Mark breaking changes
   **Breaking**, and put upgrade steps first under the version.
 - **The release notes** are that version's changelog section.
 
+## Make a release
+
+The maintainer runs `just release X.Y.Z`. [Publishing](https://github.com/simonvanlierde/project-templates/blob/main/docs/setup.md#publishing) has the steps and the one-time setup.
+
 ## Sign off your commits
 
 Every commit in a pull request carries a `Signed-off-by:` line, which says you wrote the
 change or have the right to submit it under this project's license: the
 [Developer Certificate of Origin 1.1](https://developercertificate.org/). `git commit -s`
-adds the line. For an unpushed branch, run `git fetch origin` and then
-`git rebase --signoff origin/main` to add sign-offs to its commits. If the branch is
-already published, coordinate with anyone using it before rewriting it. After checking
-the current remote commit, use `git push --force-with-lease=BRANCH:EXPECTED_SHA origin BRANCH`,
-with your branch name and the remote commit you checked. Never force-push main.
+adds the line, and the commit-msg hook refuses a commit without it.
+
+To add it to commits you already made, run `git fetch origin`, then
+`git rebase --signoff origin/main`. That works in a clone of this repository, where `origin`
+is the only remote. If you work from a fork, use the remote that points at this repository
+(often `upstream`) in place of `origin`. If you have not pushed the branch yet, that is all.
+If you pushed it already, update it with `git push --force-with-lease`, which refuses to
+overwrite work you have not seen. Do not use a plain `git push --force`.
 
 The `dco` workflow checks every pull request from a fork and fails on a commit without the line. Pull requests from a branch in this repository skip it: pushing that branch already needed write access.
 

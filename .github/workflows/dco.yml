@@ -1,9 +1,8 @@
 name: dco
 
-# Every commit in a pull request from a fork must carry a Signed-off-by line: the
-# Developer Certificate of Origin, as CONTRIBUTING.md asks. A pull request from a
-# branch in this repository skips the job, which counts as passing: pushing that
-# branch already needed write access.
+# Every commit in a pull request must carry a Signed-off-by line: the
+# Developer Certificate of Origin, as CONTRIBUTING.md asks. Bot commits on
+# bot-opened pull requests (such as Renovate) are skipped.
 on:
   pull_request:
 
@@ -17,7 +16,6 @@ concurrency:
 jobs:
   sign-off:
     name: DCO sign-off
-    if: github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -39,6 +37,8 @@ jobs:
           if [ -n "$missing" ]; then
             echo "These commits have no Signed-off-by line:"
             echo "$missing"
-            echo "Add it with 'git rebase --signoff upstream/main' (the branch you started from), then force-push."
+            echo "Add it with 'git fetch origin && git rebase --signoff origin/main'."
+            echo "(Use the remote that points at this repository: origin in a clone of it, often upstream in a fork.)"
+            echo "If the branch is already pushed, update it with 'git push --force-with-lease'."
             exit 1
           fi
