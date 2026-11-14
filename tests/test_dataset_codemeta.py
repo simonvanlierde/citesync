@@ -345,3 +345,39 @@ def test_dataset_version_checked_when_source_has_no_licence(tmp_path: Path) -> N
     found, _, _ = check(tmp_path, cfg)
     assert any(f.file == path.name and f.rule == "version-mismatch" for f in found)
     assert not [f for f in found if f.rule == "license-mismatch"]
+
+
+def test_dataset_and_export_cannot_share_a_destination(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        'dataset-codemeta = "citation.csl.json"\ndataset-license = "CC0-1.0"\nexports = ["./citation.csl.json"]\n',
+        encoding="utf-8",
+    )
+    path = tmp_path / "citation.csl.json"
+    original = json.dumps({"@context": "https://w3id.org/codemeta/3.0", "@type": "Dataset", "license": "MIT"})
+    path.write_text(original, encoding="utf-8")
+    with pytest.raises(CheckError, match="same file"):
+        write(tmp_path, load_config(tmp_path))
+    assert path.read_text(encoding="utf-8") == original
+
+
+@pytest.mark.parametrize("configured", [True, False])
+def test_dataset_alias_cannot_rewrite_software_metadata(tmp_path: Path, *, configured: bool) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    software = tmp_path / "codemeta.json"
+    original = json.dumps({"@context": "https://w3id.org/codemeta/3.0", "name": "cml-ia-factors", "license": "MIT"})
+    software.write_text(original, encoding="utf-8")
+    (tmp_path / "dataset.codemeta.json").symlink_to(software.name)
+    config = load_config(tmp_path, dataset_license="CC0-1.0") if configured else load_config(tmp_path)
+    with pytest.raises(CheckError, match="same file"):
+        write(tmp_path, config)
+    assert software.read_text(encoding="utf-8") == original
+
+
+def test_dataset_symlink_to_distinct_inside_file_still_updates(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    target = tmp_path / "metadata.json"
+    target.write_text(json.dumps({"@context": "https://w3id.org/codemeta/3.0", "license": "MIT"}), encoding="utf-8")
+    (tmp_path / "dataset.codemeta.json").symlink_to(target.name)
+    write(tmp_path, load_config(tmp_path, dataset_license="CC0-1.0"))
+    assert json.loads(target.read_text(encoding="utf-8"))["license"] == "CC0-1.0"

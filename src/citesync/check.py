@@ -10,6 +10,7 @@ from citesync.errors import CheckError, UnreadableError
 from citesync.formats import (
     CITATION_FILES,
     DATASET_FILES,
+    FORMAT_OF,
     MANIFESTS,
     ONE_AUTHOR,
     Doc,
@@ -103,10 +104,22 @@ def discover(root: Path, config: Config) -> list[str]:
 
 
 def dataset_codemeta_path(root: Path, config: Config) -> str | None:
-    """The configured dataset CodeMeta path, or ``dataset.codemeta.json`` when present."""
-    if config.dataset_codemeta is not None:
-        return config.dataset_codemeta
-    return "dataset.codemeta.json" if (root / "dataset.codemeta.json").is_file() else None
+    """The dataset CodeMeta path, kept distinct from software files and other outputs.
+
+    Raises:
+        CheckError: when the dataset path resolves to another metadata input or output.
+    """
+    path = config.dataset_codemeta
+    if path is None:
+        path = "dataset.codemeta.json" if (root / "dataset.codemeta.json").is_file() else None
+    if path is not None:
+        target = (root / path).resolve()
+        others = (config.source, *FORMAT_OF, *(config.files or ()), *(config.manifests or ()), *config.exports)
+        for other in dict.fromkeys(others):
+            if target == (root / other).resolve():
+                msg = f"dataset-codemeta {path!r} and {other!r} resolve to the same file"
+                raise CheckError(msg)
+    return path
 
 
 def dataset_source(source: Doc, config: Config) -> Doc:
