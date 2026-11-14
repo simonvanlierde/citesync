@@ -338,7 +338,7 @@ def _write_diff(root: Path, config: Config, *, quiet: bool) -> int:
 
 def _export(root: Path, config: Config, fmt: str) -> int:
     """Print the source's citation in ``fmt``; what it left out goes to stderr."""
-    from citesync.check import read_docs  # noqa: PLC0415
+    from citesync.check import dataset_codemeta_path, read_docs, software_docs  # noqa: PLC0415
     from citesync.export import record, render  # noqa: PLC0415
     from citesync.mapping import load_mapping  # noqa: PLC0415
     from citesync.write import _merged, citation_file, union  # noqa: PLC0415
@@ -350,6 +350,7 @@ def _export(root: Path, config: Config, fmt: str) -> int:
         notes = [f"leaving out {term}: {why}" for term, why in skipped.items()] + left_out
     else:
         docs, read = read_docs(root, config, mapping)
+        docs = software_docs(docs, dataset_codemeta_path(root, config))
         if not docs[0].readable:
             bad = next(f for f in read if f.file == docs[0].path and f.rule == "unreadable")
             msg = f"{bad.where}: {bad.message}"

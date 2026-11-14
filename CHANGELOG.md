@@ -12,6 +12,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
 - `dataset-codemeta` and `dataset-license` (plus `--dataset-codemeta` and `--dataset-license`) write and check a dataset CodeMeta file (`@type: Dataset`, defaulting to `dataset.codemeta.json`) for `sourceledger release --codemeta`, keeping code and dataset licences separate, including RO-Crate and Croissant checks and optional required-field checks ([configuration](docs/config.md)).
 
+### Fixed
+
+- Software citation exports no longer inherit a dataset's licence or other fields when the software source lacks them. [Dataset files](docs/formats.md#dataset-files) supply export values only when explicitly selected as the source.
+
 ## [0.5.0] - 2026-11-10
 
 To upgrade from 0.4.0:

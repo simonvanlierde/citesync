@@ -133,6 +133,11 @@ def dataset_source(source: Doc, config: Config) -> Doc:
     )
 
 
+def software_docs(docs: list[Doc], dataset_path: str | None) -> list[Doc]:
+    """Keep the selected source and exclude derived datasets from software citation exports."""
+    return docs[:1] + [doc for doc in docs[1:] if doc.path != dataset_path and doc.format not in DATASETS]
+
+
 def missing(root: Path, config: Config) -> list[str]:
     """The citation files the ``files`` setting lists that don't exist."""
     files = [p for p in config.files or () if not (root / p).is_file()]
@@ -198,7 +203,7 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
     if config.exports:
         from citesync.export import stale  # noqa: PLC0415
 
-        extra += stale(root, [d for d in docs if d.path != ds_path], config)
+        extra += stale(root, software_docs(docs, ds_path), config)
     found, unused = findings(
         docs,
         extra,

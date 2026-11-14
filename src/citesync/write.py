@@ -39,6 +39,7 @@ from citesync.check import (
     missing,
     near_misses,
     read_docs,
+    software_docs,
 )
 from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
@@ -94,7 +95,8 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     docs, unreadable = read_docs(root, config, mapping)
     ds_path = dataset_codemeta_path(root, config)
     ds_source = dataset_source(docs[0], config) if ds_path else docs[0]
-    exported = export.stale(root, [d for d in docs if d.path != ds_path], config)
+    software = software_docs(docs, ds_path)
+    exported = export.stale(root, software, config)
     # zenodo-license-list sits on a term write may rewrite, but no rewrite turns the list into one licence
     errors = [
         f
@@ -145,7 +147,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
         skipped |= {(rel, term): reason for term, reason in reasons.items()}
         done.add((rel, None))
     # an export is made whole from the docs as read, the source first, as check compares
-    rec = export.record([d for d in docs if d.path != ds_path])
+    rec = export.record(software)
     exports = {
         path: export.text(path, rec)
         for path in config.exports
