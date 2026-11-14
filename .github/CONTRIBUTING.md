@@ -93,7 +93,8 @@ is the only remote. If you work from a fork, use the remote that points at this 
 If you pushed it already, update it with `git push --force-with-lease`, which refuses to
 overwrite work you have not seen. Do not use a plain `git push --force`.
 
-The `dco` workflow checks every pull request from a fork and fails on a commit without the line. Pull requests from a branch in this repository skip it: pushing that branch already needed write access.
+The `dco` workflow checks every pull request and fails on a commit without the line.
+Bot commits on pull requests opened by a bot are exempt.
 
 ## Who maintains this
 
