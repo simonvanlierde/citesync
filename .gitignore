@@ -44,6 +44,7 @@ profile/
 # Browser build and test artifacts
 playground/wheels/
 playground/runtime.json
+playground/lookup.json
 playwright-report/
 test-results/
 

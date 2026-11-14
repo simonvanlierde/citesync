@@ -10,7 +10,7 @@ pnpm install --frozen-lockfile
 just playground
 ```
 
-Open <http://127.0.0.1:8468>. The page prepares Pyodide from jsDelivr in the background, downloading the converter packages concurrently. Loading feedback changes when the downloads and Python initialization finish and package setup begins; it does not estimate a percentage or completion time. The site serves the current citesync wheel and its dependencies. A network connection is required; offline operation is not promised.
+Open <http://127.0.0.1:8468>. This serves the same `site/` bundle that is deployed, with the playground at the root and documentation under `docs/`. The page prepares Pyodide from jsDelivr in the background, downloading the converter packages concurrently. Loading feedback changes when the downloads and Python initialization finish and package setup begins; it does not estimate a percentage or completion time. The site serves the current citesync wheel and its dependencies. A network connection is required; offline operation is not promised.
 
 Paste or open CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, PKG-INFO, METADATA, R DESCRIPTION or Julia Project.toml/JuliaProject.toml. Pasted content is detected automatically; use the filename selector to override an uncertain result. Both file selectors group their files and sort them by name, and you can type in them to filter, by filename or by group (`python`, `bibtex`). An opened file with a recognised filename uses that filename. Other text files are detected from their contents. Try an example follows the selected format; in automatic mode it uses the recognised format, or pyproject.toml for an empty or ambiguous input. While the example is unchanged, choosing another input format switches the example too. Editing or opening a real file ends that behaviour. Each request reads only that file, ignores its embedded citesync settings and uses a temporary repository in browser memory. It does not execute package code or fetch metadata from repository links. Inputs are limited to 1 MB.
 
@@ -29,6 +29,8 @@ The ZIP preserves filenames, including the first dot in .zenodo.json. Some brows
 Conversion notes show omitted values, warnings and errors, with remedies where available. Missing optional fields are not shown as problems. Template notes relate to the selected template.
 
 Field examples remain visible while typing. Version and SPDX help uses native disclosures and official reference links, accessible by keyboard and touch. Validation guidance shares the amber note style; copying and loading keep neutral feedback.
+
+Open **Field lookup** to search CodeMeta terms and field paths across CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml and package.json. Each card shows the pinned codemeta-drift mapping, including fields with no representation. The source link identifies the pinned release and commit. Lookup works independently of the Python converter. A mapped path does not mean citesync writes that field; see [supported files](../docs/formats.md) for write limits.
 
 The repository-use section provides copyable CLI commands, a pre-commit/prek hook and GitHub Actions steps, each with a labelled copy icon in its code block. The checks require committed citation files and fail on disagreement; they do not rewrite files.
 
@@ -50,5 +52,7 @@ The playground workflow builds and tests pull requests. On main it deploys the s
 Search and sharing metadata are in the initial HTML: a descriptive title, format-specific description, canonical URL and Open Graph/Twitter tags. The canonical deployment URL is <https://simonvanlierde.com/citesync/>, following the account's GitHub Pages domain. The site is deployed through GitHub Actions with HTTPS enforced; metadata alone does not establish indexing.
 
 The build also writes `site/`, with content-versioned JavaScript, styles, worker and wheel URLs. This keeps cached assets from different deployments together. The public runtime manifest and wheels use normal HTTP caching; citation drafts are never cached. CI runs the browser tests against that deployment bundle.
+
+The same build renders the Markdown files in `docs/` under `site/docs/`. Edit those source files to update the published guides. Documentation and the playground share navigation, typography and colours. Relative guide links and heading anchors stay on the website; links to repository files open their GitHub source. Documentation needs no JavaScript or Python runtime in the browser.
 
 The page has no upload endpoint, analytics or draft storage. A visitor's files stay in memory and disappear on reload. Runtime downloads contact jsDelivr; project links navigate to GitHub. The local server is for development, not public hosting.

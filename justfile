@@ -117,7 +117,7 @@ playground-build:
 
 # Build and serve the playground locally; no citation data leaves the browser.
 playground: playground-build
-    uv run --no-project python -m http.server 8468 --bind 127.0.0.1 --directory playground
+    uv run --no-project python -m http.server 8468 --bind 127.0.0.1 --directory site
 
 # Frontend checks; browser tests start their own server.
 playground-check:

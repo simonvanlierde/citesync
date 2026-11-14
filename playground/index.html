@@ -26,7 +26,7 @@
 <body>
 <a class="skip" href="#workspace">Skip to citation files</a>
 <div class="wrap">
-<header><h1>citesync</h1><p>Generate citation files for your software.</p></header>
+<header><h1>citesync</h1><p>Generate citation files for your software.</p><nav class="site-nav" aria-label="Site"><a href="./" aria-current="page">Playground</a><a href="https://simonvanlierde.com/citesync/docs/">Documentation</a></nav></header>
 <p class="preview-note">Start with a metadata file or a few project details. Your citation files update automatically.</p>
 <main id="workspace" tabindex="-1">
 <div class="workspace">
@@ -64,6 +64,17 @@
 <details id="details-notes" hidden><summary>What changed or could not be converted</summary><ul id="notes"></ul></details>
 </section>
 </div>
+<details id="field-lookup">
+<summary>Field lookup</summary>
+<p>Find where a CodeMeta term appears in six metadata formats. Paths come from the pinned mapping; they do not promise that every field can be written.</p>
+<label for="field-search">Find a field</label>
+<p class="hint field-hint" id="field-search-hint">Search a term or path, such as name, title, author or doi.</p>
+<input type="search" id="field-search" aria-describedby="field-search-hint" autocomplete="off" spellcheck="false">
+<p id="lookup-status" role="status"></p>
+<button type="button" id="lookup-retry" hidden>Retry field lookup</button>
+<div id="lookup-results"></div>
+<p><a id="lookup-source" hidden></a></p>
+</details>
 <section class="use" aria-labelledby="use-title">
 <h2 id="use-title">Use citesync in your repository</h2>
 <p>Keep citation files in sync as your project changes.</p>
@@ -85,10 +96,10 @@ uvx citesync check   # check that the files agree</pre></div></div>
   - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
   - run: uvx --from citesync==0.5.0 citesync check</pre></div></div>
 <span id="snippet-status" class="hint" role="status"></span>
-<a class="usage-docs" href="https://github.com/simonvanlierde/citesync#readme">Setup and configuration</a>
+<a class="usage-docs" href="https://simonvanlierde.com/citesync/docs/">Setup and configuration</a>
 </section>
 </main>
-<footer aria-label="About citesync"><p>Your files are processed in this browser and are not uploaded or saved between visits. Loading the converter requires a network connection.</p><div class="colophon"><div class="colophon-meta"><strong>citesync</strong><span id="version-label"></span><a href="https://github.com/simonvanlierde/citesync/blob/main/LICENSE">Apache-2.0 licence</a></div><nav aria-label="Project links"><a href="https://github.com/simonvanlierde/citesync">GitHub</a><a href="https://github.com/simonvanlierde/citesync#readme">Docs</a><a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a></nav></div></footer>
+<footer aria-label="About citesync"><p>Your files are processed in this browser and are not uploaded or saved between visits. Loading the converter requires a network connection.</p><div class="colophon"><div class="colophon-meta"><strong>citesync</strong><span id="version-label"></span><a href="https://github.com/simonvanlierde/citesync/blob/main/LICENSE">Apache-2.0 licence</a></div><nav aria-label="Project links"><a href="https://github.com/simonvanlierde/citesync">GitHub</a><a href="https://simonvanlierde.com/citesync/docs/">Docs</a><a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a></nav></div></footer>
 <noscript>This playground needs JavaScript and WebAssembly. You can also run citesync from the command line.</noscript>
 </div>
 </body>
