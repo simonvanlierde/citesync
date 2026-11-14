@@ -32,12 +32,12 @@ citesync.write.x__replace__mutmut_30  encoding=None writes the locale's encoding
 citesync.write.x__replace__mutmut_27  newline=None writes "\n" as os.linesep, which is "\n" wherever the tests run
 citesync.write.x__replace__mutmut_35  "UTF-8" and "utf-8" name the same codec
 citesync.write.x__replace__mutmut_44  the umask is set only to read it, and restored on the next line
-citesync.write.x__new_codemeta__mutmut_4  a blank's text is never read, only its type
 citesync.write.x__new_codemeta__mutmut_7  a blank's text is never read, only its type
 citesync.write.x__new_codemeta__mutmut_10  a blank's text is never read, only its type
-citesync.write.x__new_codemeta__mutmut_14  a blank's text is never read, only its type
-citesync.write.x__new_codemeta__mutmut_18  the DOI form is picked by a case-blind "http" prefix
-citesync.write.x__new_codemeta__mutmut_22  a blank's text is never read: "XXXX" has no git+ or .git to keep
+citesync.write.x__new_codemeta__mutmut_13  a blank's text is never read, only its type
+citesync.write.x__new_codemeta__mutmut_17  a blank's text is never read, only its type
+citesync.write.x__new_codemeta__mutmut_21  the DOI form is picked by a case-blind "http" prefix
+citesync.write.x__new_codemeta__mutmut_25  a blank's text is never read: "XXXX" has no git+ or .git to keep
 citesync.write.x__new_codemeta__mutmut_44  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_45  _encode reads only the stand-in Doc's format
 citesync.write.x__new_codemeta__mutmut_46  _encode reads only the stand-in Doc's format
@@ -77,7 +77,7 @@ citesync.write.x__new_cff__mutmut_135  mapping=None keeps ruamel's default of 2
 citesync.write.x__new_cff__mutmut_138  mapping's default is 2
 citesync.write.x__new_cff__mutmut_141  init writes no mapping inside a mapping, the only place this indent shows
 citesync.write.x__new_cff__mutmut_3  a new file's Doc is only encoded into, and encoding never reads its path
-citesync.check.x_read_docs__mutmut_55  readable is only read as a truth value, and None is falsy like False
+citesync.check.x_read_docs__mutmut_69  readable is only read as a truth value, and None is falsy like False
 citesync.write.x__apply__mutmut_42  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
 citesync.write.x__apply__mutmut_98  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__new_person__mutmut_48  a person with no name is rejected before reaching Cargo or npm
@@ -115,8 +115,8 @@ citesync.write.x__rewrite__mutmut_16  only JSON CodeMeta reads context
 citesync.write.x__rewrite__mutmut_18  only Zenodo reads the default contributor type
 citesync.write.x__rewrite__mutmut_54  only JSON CodeMeta reads context
 citesync.write.x__rewrite__mutmut_56  only Zenodo reads the default contributor type
-citesync.write.x_write__mutmut_127  without a context, no (file, @context) error exists for done to mark fixed
-citesync.write.x_write__mutmut_70  UTF-8 and utf-8 name the same codec
+citesync.write.x_write__mutmut_167  without a context, no (file, @context) error exists for done to mark fixed
+citesync.write.x_write__mutmut_108  UTF-8 and utf-8 name the same codec
 citesync.write.x_citation_file__mutmut_33  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_34  _encode reads only the stand-in Doc's format
 citesync.write.x_citation_file__mutmut_46  _encode reads only the stand-in Doc's format
@@ -125,5 +125,8 @@ citesync.write.x__replace__mutmut_2  the loop sets rel before anything in it can
 citesync.write.x__replace__mutmut_3  the loop sets rel before anything in it can raise, so its start value is never read
 citesync.write.x_citation_file__mutmut_23  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.write.x_citation_file__mutmut_36  a new file's Doc is only encoded into, and encoding never reads its path
-citesync.write.x_write__mutmut_155  a new file's Doc is only encoded into, and encoding never reads its path
-citesync.write.x_write__mutmut_166  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_write__mutmut_218  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_write__mutmut_231  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.check.x_check__mutmut_54  without a dataset path, compare_term never reads dataset_doc
+citesync.write.x_write__mutmut_18  without a dataset path, neither comparison nor rewriting reads ds_source
+citesync.write.x_write__mutmut_171  without a resource type repair, no (file, @type) error exists for done to mark fixed

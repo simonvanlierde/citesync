@@ -4,9 +4,10 @@ from pathlib import Path
 import pytest
 
 from citesync import cli
-from citesync.check import check
-from citesync.config import load_config
+from citesync.check import check, dataset_codemeta_path, version_behind_tag
+from citesync.config import Config, load_config
 from citesync.errors import CheckError
+from citesync.formats import Doc
 from citesync.write import init, write
 
 CFF = """\
@@ -381,3 +382,79 @@ def test_dataset_symlink_to_distinct_inside_file_still_updates(tmp_path: Path) -
     (tmp_path / "dataset.codemeta.json").symlink_to(target.name)
     write(tmp_path, load_config(tmp_path, dataset_license="CC0-1.0"))
     assert json.loads(target.read_text(encoding="utf-8"))["license"] == "CC0-1.0"
+
+
+def test_absent_dataset_metadata_has_no_discovered_path(tmp_path: Path) -> None:
+    assert dataset_codemeta_path(tmp_path, Config()) is None
+
+
+def test_autodiscovered_dataset_keeps_its_licence_separate_during_check_and_repair(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    software = tmp_path / "codemeta.json"
+    dataset = tmp_path / "dataset.codemeta.json"
+    common = {"@context": "https://w3id.org/codemeta/3.0", "name": "cml-ia-factors", "version": "0.1.0"}
+    software.write_text(json.dumps(common | {"license": "MIT"}), encoding="utf-8")
+    dataset.write_text(json.dumps(common | {"@type": "Dataset", "license": "CC0-1.0"}), encoding="utf-8")
+    cfg = Config(dataset_license="CC0-1.0")
+    assert not [finding for finding in check(tmp_path, cfg)[0] if finding.severity == "error"]
+    software.write_text(json.dumps(common | {"license": "Apache-2.0"}), encoding="utf-8")
+    dataset.write_text(json.dumps(common | {"@type": "Dataset", "license": "MIT"}), encoding="utf-8")
+    write(tmp_path, cfg)
+    assert json.loads(software.read_text(encoding="utf-8"))["license"] == "MIT"
+    assert json.loads(dataset.read_text(encoding="utf-8"))["license"] == "CC0-1.0"
+
+
+def test_init_does_not_inherit_values_only_present_in_dataset_metadata(tmp_path: Path) -> None:
+    software = {"@context": "https://w3id.org/codemeta/3.0", "name": "Tidepool", "author": [{"familyName": "Curie"}]}
+    (tmp_path / "codemeta.json").write_text(json.dumps(software), encoding="utf-8")
+    dataset = software | {"@type": "Dataset", "license": "CC0-1.0", "keywords": ["dataset-only"]}
+    (tmp_path / "dataset.codemeta.json").write_text(json.dumps(dataset), encoding="utf-8")
+    text, _, _, _ = init(tmp_path, Config(), dry_run=True)
+    assert "license:" not in text
+    assert "dataset-only" not in text
+
+
+def test_codemeta_citation_export_has_software_resource_type(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    assert cli.main(["export", "--format", "codemeta", "--root", str(tmp_path)]) == 0
+    assert json.loads(capsys.readouterr().out)["@type"] == "SoftwareSourceCode"
+
+
+def test_invalid_tag_does_not_hide_a_later_release() -> None:
+    source = Doc("CITATION.cff", "cff-1.2.0", {"version": "0.1.0"}, frozenset({"version"}), None, release=True)
+    findings = version_behind_tag(source, ["nightly", "v0.2.0"])
+    assert [finding.message for finding in findings] == ["0.1.0, the newest tag is v0.2.0"]
+
+
+@pytest.mark.parametrize("software_fallback", [False, True])
+def test_written_export_uses_software_fallback_and_excludes_discovered_dataset(
+    tmp_path: Path, *, software_fallback: bool
+) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF.replace("license: MIT\n", ""), encoding="utf-8")
+    common = {"@context": "https://w3id.org/codemeta/3.0", "name": "cml-ia-factors"}
+    if software_fallback:
+        (tmp_path / "codemeta.json").write_text(json.dumps(common | {"license": "MIT"}), encoding="utf-8")
+    (tmp_path / "dataset.codemeta.json").write_text(
+        json.dumps(common | {"@type": "Dataset", "license": "CC0-1.0"}), encoding="utf-8"
+    )
+    write(tmp_path, Config(exports=("schema.jsonld",)))
+    licence = json.loads((tmp_path / "schema.jsonld").read_text(encoding="utf-8")).get("license")
+    assert licence == ("https://spdx.org/licenses/MIT" if software_fallback else None)
+
+
+def test_dataset_type_diagnostic_is_reported_and_marked_fixed(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    dataset = tmp_path / "dataset.codemeta.json"
+    dataset.write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "@type": "SoftwareSourceCode"}), encoding="utf-8"
+    )
+    cfg = Config()
+    before = [finding for finding in check(tmp_path, cfg)[0] if finding.rule == "dataset-type-mismatch"]
+    assert [(finding.file, finding.term, finding.message) for finding in before] == [
+        (dataset.name, "@type", "expected Dataset")
+    ]
+    _, _, _, fixed = write(tmp_path, cfg)
+    assert [finding for finding in fixed if finding.rule == "dataset-type-mismatch"] == before
+    assert not [finding for finding in check(tmp_path, cfg)[0] if finding.rule == "dataset-type-mismatch"]
