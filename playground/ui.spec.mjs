@@ -152,6 +152,7 @@ test("examples follow the selected format and name editing stays optional", asyn
     await choose(page, "source-format", filename);
     await page.locator("#example").click();
     await expect(page.locator("#source-format")).toHaveValue(filename);
+    await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
     await expect(page.locator("#output")).toContainText("lensgrind", { timeout: 90000 });
     await expect(page.locator("#status")).not.toContainText("Updating");
     await expect(page.locator("#message")).toBeEmpty();
@@ -343,6 +344,40 @@ test("form validation uses the note colours and technical hints stay visible", a
   await page.locator("#licence").fill("Apache-2.0");
   await expect(page.locator("#licence-hint")).toBeVisible();
   await accessible(page);
+});
+
+test("an arriving preview preserves an output choice being clicked", async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    window.Worker = class extends NativeWorker {
+      set onmessage(receive) {
+        super.onmessage = (event) => {
+          if (window.holdPreview && event.data.type === "result") {
+            window.releasePreview = () => receive(event);
+          } else receive(event);
+        };
+      }
+    };
+  });
+  await page.goto("/");
+  await page.locator("#example").click();
+  await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
+  await page.evaluate(() => {
+    window.holdPreview = true;
+  });
+  const input = page.locator("#input");
+  await input.fill((await input.inputValue()).replace("lensgrind", "updated optics"));
+  await page.waitForFunction(() => window.releasePreview);
+  await page.locator("#output-file-search").click();
+  const option = page.locator('#output-file-list [role="option"][data-value=".zenodo.json"]');
+  await option.hover();
+  await page.mouse.down();
+  await page.evaluate(() => window.releasePreview());
+  await expect(page.locator("#output")).toContainText("updated optics");
+  await page.mouse.up();
+  await expect(page.locator("#output-file")).toHaveValue(".zenodo.json");
+  await expect(page.locator("#output")).toContainText('"upload_type": "software"');
+  await expect(option).toHaveAttribute("aria-selected", "true");
 });
 
 test("an unchanged uploaded citation file keeps its line endings", async ({ page }) => {
