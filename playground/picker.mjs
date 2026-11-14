@@ -85,6 +85,12 @@ export function picker(select) {
     close();
     if (changed) select.dispatchEvent(new Event("change", { bubbles: true }));
   };
+  const syncSelection = () => {
+    for (const item of list.querySelectorAll('[role="option"]')) {
+      item.setAttribute("aria-selected", String(item.dataset.value === select.value));
+    }
+    if (list.hidden) show();
+  };
   const build = () => {
     const groups = select.querySelectorAll("optgroup").length
       ? [...select.children].map((child) => (child.tagName === "OPTGROUP" ? child : { label: "", children: [child] }))
@@ -117,12 +123,9 @@ export function picker(select) {
         return item;
       }),
     );
-    for (const item of list.querySelectorAll('[role="option"]')) {
-      item.setAttribute("aria-selected", String(item.dataset.value === select.value));
-    }
     input.size = Math.max(10, ...[...select.options].map((option) => option.text.length)); // as wide as a select
-    if (list.hidden) show();
-    else open(query); // a refresh while the list is open keeps what the person typed
+    syncSelection();
+    if (!list.hidden) open(query); // changed options keep what the person typed
   };
   // code sets select.value directly, which fires no event, so the shown text follows the setter
   Object.defineProperty(select, "value", {
@@ -130,7 +133,7 @@ export function picker(select) {
     get: Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").get.bind(select),
     set(value) {
       setValue.call(select, value);
-      build();
+      syncSelection();
     },
   });
   new MutationObserver(build).observe(select, { childList: true, subtree: true });
