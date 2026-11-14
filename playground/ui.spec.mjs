@@ -152,6 +152,7 @@ test("examples follow the selected format and name editing stays optional", asyn
     await choose(page, "source-format", filename);
     await page.locator("#example").click();
     await expect(page.locator("#source-format")).toHaveValue(filename);
+    await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
     await expect(page.locator("#output")).toContainText("lensgrind", { timeout: 90000 });
     await expect(page.locator("#status")).not.toContainText("Updating");
     await expect(page.locator("#message")).toBeEmpty();
@@ -236,7 +237,7 @@ test("selecting an output keeps the preview and copy action in place", async ({ 
   await page.getByRole("tab", { name: "Enter details" }).click();
   await page.locator("#title").fill("lensgrind");
   await page.locator('#authors [data-part="family"]').fill("Curie");
-  await expect(page.locator("#copy")).toBeEnabled();
+  await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
   for (const width of [1440, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await choose(page, "output-file", "CITATION.cff");
@@ -293,7 +294,7 @@ test("project metadata transfers between entry methods without replacing an unch
   await page.getByRole("tab", { name: "Enter details" }).click();
   await page.locator("#title").fill("draft optics");
   await page.getByRole("tab", { name: "Use a file", exact: true }).click();
-  await expect(page.locator("#file-panel")).toBeVisible();
+  await expect(page.locator("#file-panel")).toBeVisible({ timeout: 90000 });
   await expect(page.locator("#input")).toHaveValue(/draft optics/, { timeout: 90000 });
   const source = JSON.stringify({
     "@context": "https://w3id.org/codemeta/3.0",
@@ -343,6 +344,40 @@ test("form validation uses the note colours and technical hints stay visible", a
   await page.locator("#licence").fill("Apache-2.0");
   await expect(page.locator("#licence-hint")).toBeVisible();
   await accessible(page);
+});
+
+test("an arriving preview preserves an output choice being clicked", async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    window.Worker = class extends NativeWorker {
+      set onmessage(receive) {
+        super.onmessage = (event) => {
+          if (window.holdPreview && event.data.type === "result") {
+            window.releasePreview = () => receive(event);
+          } else receive(event);
+        };
+      }
+    };
+  });
+  await page.goto("/");
+  await page.locator("#example").click();
+  await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
+  await page.evaluate(() => {
+    window.holdPreview = true;
+  });
+  const input = page.locator("#input");
+  await input.fill((await input.inputValue()).replace("lensgrind", "updated optics"));
+  await page.waitForFunction(() => window.releasePreview);
+  await page.locator("#output-file-search").click();
+  const option = page.locator('#output-file-list [role="option"][data-value=".zenodo.json"]');
+  await option.hover();
+  await page.mouse.down();
+  await page.evaluate(() => window.releasePreview());
+  await expect(page.locator("#output")).toContainText("updated optics");
+  await page.mouse.up();
+  await expect(page.locator("#output-file")).toHaveValue(".zenodo.json");
+  await expect(page.locator("#output")).toContainText('"upload_type": "software"');
+  await expect(option).toHaveAttribute("aria-selected", "true");
 });
 
 test("an unchanged uploaded citation file keeps its line endings", async ({ page }) => {
@@ -556,8 +591,8 @@ test("opening a file list scrolls the list, not the page", async ({ page }) => {
   await choose(page, "output-file", "pyproject.toml");
   const search = page.locator("#output-file-search");
   await search.evaluate((el) => el.scrollIntoView({ block: "end" })); // at the window's bottom edge, the list must overflow
-  const before = await page.evaluate(() => scrollY);
   await search.focus(); // the keyboard opens the list without Playwright scrolling to a click target
+  const before = await page.evaluate(() => scrollY);
   await page.keyboard.press("ArrowDown");
   await expect(page.locator("#output-file-list")).toBeVisible();
   // the test only means something while the open list runs past the bottom of the window

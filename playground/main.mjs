@@ -1,5 +1,8 @@
 import { detectFormats } from "./detect.mjs";
+import { fieldLookup } from "./lookup.mjs";
 import { byName, picker } from "./picker.mjs";
+
+fieldLookup();
 
 const $ = (selector) => document.querySelector(selector);
 let mode = "file";
@@ -377,7 +380,7 @@ function render() {
   $("#empty-result").hidden = true;
   for (const id of ["output-choice", "output-panel", "exports"]) $(`#${id}`).hidden = false;
   $("#output-panel").dataset.stale = "false";
-  const outputNames = [...Object.keys(result.files), ...Object.keys(result.templates)];
+  const outputNames = [...Object.keys(result.files).sort(byName), ...Object.keys(result.templates).sort(byName)];
   if (
     [...$("#output-file").options]
       .filter((option) => !option.disabled)

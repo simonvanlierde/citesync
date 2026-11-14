@@ -33,6 +33,7 @@ dependencies = [
 dev = [
     { name = "hypothesis" },
     { name = "jsonschema" },
+    { name = "markdown-it-py" },
     { name = "memray", marker = "sys_platform != 'win32'" },
     { name = "mutmut" },
     { name = "pybtex" },
@@ -55,6 +56,7 @@ requires-dist = [
 dev = [
     { name = "hypothesis", specifier = ">=6.140" },
     { name = "jsonschema", specifier = ">=4.25" },
+    { name = "markdown-it-py", specifier = ">=4.2.0" },
     { name = "memray", marker = "sys_platform != 'win32'", specifier = ">=1.20.0" },
     { name = "mutmut", specifier = "==3.8.1" },
     { name = "pybtex", specifier = ">=0.25" },
