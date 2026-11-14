@@ -1,11 +1,16 @@
 # Roadmap
 
-Last reviewed: 2026-11-13
+Last reviewed: 2026-11-14
 
-## Next year
+## Before 0.6
 
-- Write and check a dataset CodeMeta file (`dataset.codemeta.json`) from `CITATION.cff` with the dataset licence ([citesync#105](https://github.com/simonvanlierde/citesync/issues/105)).
-- Add a form mode and field lookup cards for the six supported formats in the browser playground ([citesync#106](https://github.com/simonvanlierde/citesync/issues/106)).
+- Review and merge dataset CodeMeta writing and checking, including required-field checks and distinct software and dataset licences ([#108](https://github.com/simonvanlierde/citesync/pull/108)).
+- Add field lookup beside the existing form mode and publish the guides on this website ([#109](https://github.com/simonvanlierde/citesync/pull/109)).
+- Adopt the metadata checks in the repositories that consume citesync and complete the release checks.
+
+## After 0.6
+
+- Submit citesync to the Research Software Directory after the release is published.
 
 ## Not planned
 
