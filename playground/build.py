@@ -15,7 +15,6 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 from urllib.request import urlopen
 
 from markdown_it import MarkdownIt
-from markdown_it.renderer import RendererHTML
 from packaging.markers import Marker, default_environment
 from packaging.requirements import Requirement
 
@@ -139,12 +138,24 @@ def _doc_link(source: Path, link: str, pages: dict[Path, Path], *, image: bool =
 def _doc_body(source: Path, pages: dict[Path, Path]) -> tuple[str, str]:
     """Render Markdown tokens with stable heading anchors and site-relative links."""
     markdown = MarkdownIt("commonmark", {"html": False}).enable(["table", "strikethrough"])
+    markdown.add_render_rule(
+        "table_open",
+        lambda *_: '<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>\n',
+    )
+    markdown.add_render_rule("table_close", lambda *_: "</table></div>\n")
     tokens = markdown.parse(source.read_text())
     title = source.stem
     headings: set[str] = set()
     for index, token in enumerate(tokens):
         if token.type == "heading_open":
-            text = RendererHTML().renderInlineAsText(tokens[index + 1].children, markdown.options, {})
+            text = "".join(
+                child.content
+                if child.type in {"text", "code_inline", "image"}
+                else " "
+                if child.type in {"softbreak", "hardbreak"}
+                else ""
+                for child in tokens[index + 1].children or []
+            )
             base = re.sub(r"[^\w -]", "", text.lower()).replace(" ", "-")
             anchor = base
             count = 0
@@ -182,7 +193,13 @@ def _docs(site: Path, assets: str) -> None:
         prefix = Path(relpath(".", destination.parent)).as_posix() + "/"
         links = "".join(
             f'<li><a href="{escape(prefix + pages[item].parent.as_posix())}/"'
-            + (' aria-current="page"' if item == source else "")
+            + (
+                ' aria-current="page"'
+                if item == source
+                else ' aria-current="location"'
+                if item.parent != ROOT / "docs" and source.is_relative_to(item.parent)
+                else ""
+            )
             + f">{escape(rendered[item][1])}</a></li>"
             for item in menu
         )

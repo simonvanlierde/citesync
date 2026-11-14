@@ -29,10 +29,13 @@ export function fieldLookup() {
   let loading = false;
 
   function render() {
-    const terms = lookupTerms(mapping.rows, search.value);
-    status.textContent = terms.length
-      ? `${terms.length} matching ${terms.length === 1 ? "field" : "fields"}`
-      : "No matching fields. Try a CodeMeta term or a field name.";
+    const query = search.value.trim();
+    const terms = query ? lookupTerms(mapping.rows, query) : [];
+    status.textContent = !query
+      ? "Search for a field to compare its paths across formats."
+      : terms.length
+        ? `${terms.length} matching ${terms.length === 1 ? "field" : "fields"}`
+        : "No matching fields. Try a CodeMeta term or a field name.";
     results.replaceChildren();
     for (const [format, filename] of terms.length ? formats : []) {
       const card = document.createElement("section");

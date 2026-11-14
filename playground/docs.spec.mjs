@@ -59,3 +59,38 @@ test("format tables and nested decision guides retain links on narrow screens", 
     "https://github.com/simonvanlierde/citesync/blob/main/docs/decisions/0002-vendored-mapping.md",
   );
 });
+
+test("documentation navigation distinguishes commands and identifies the current section", async ({ page }) => {
+  await page.goto("docs/check/");
+  const menu = page.getByRole("navigation", { name: "Documentation pages" });
+  await menu.getByText("Browse documentation", { exact: true }).click();
+  for (const command of ["check", "init", "write"]) {
+    await expect(menu.getByRole("link", { name: `How citesync ${command} works`, exact: true })).toBeVisible();
+  }
+  await expect(menu.locator('[aria-current="page"]')).toHaveText("How citesync check works");
+  await page.goto("docs/decisions/0002-vendored-mapping/");
+  await menu.getByText("Browse documentation", { exact: true }).click();
+  await expect(menu.locator('[aria-current="location"]')).toHaveText("Design decisions");
+});
+
+test("mobile reference tables preserve filenames and scroll with the keyboard", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("docs/formats/");
+  const table = page.getByRole("table").first();
+  const lines = await table
+    .locator("tbody tr")
+    .first()
+    .locator("td")
+    .first()
+    .evaluate((cell) => {
+      const range = document.createRange();
+      range.selectNodeContents(cell);
+      return range.getClientRects().length;
+    });
+  expect(lines).toBe(1);
+  const region = page.getByRole("region", { name: "Scrollable table" }).first();
+  await region.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});

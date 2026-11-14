@@ -11,6 +11,11 @@ test("field lookup uses the pinned mapping without waiting for Python", async ({
   await page.getByText("Field lookup", { exact: true }).focus();
   await page.keyboard.press("Enter");
   const cards = page.locator("#lookup-results section");
+  await expect(page.locator("#lookup-source")).toBeVisible();
+  await expect(cards).toHaveCount(0);
+  await expect(page.locator("#lookup-status")).toContainText("Search for a field");
+  const search = page.getByRole("searchbox", { name: "Find a field" });
+  await search.fill("title");
   await expect(cards).toHaveCount(6);
   await expect(cards.locator("h3")).toHaveText([
     "CITATION.cff",
@@ -32,7 +37,6 @@ test("field lookup uses the pinned mapping without waiting for Python", async ({
     `https://github.com/simonvanlierde/codemeta-drift/tree/${mapping.commit}`,
   );
 
-  const search = page.getByRole("searchbox", { name: "Find a field" });
   await search.fill("  TITLE ");
   await expect(page.locator("#lookup-status")).toHaveText("1 matching field");
   await expect(cards.locator("dt")).toHaveText(Array(6).fill("name"));
@@ -45,6 +49,9 @@ test("field lookup uses the pinned mapping without waiting for Python", async ({
   await search.fill("nothing-matches");
   await expect(cards).toHaveCount(0);
   await expect(page.locator("#lookup-status")).toContainText("No matching fields");
+  await search.fill("   ");
+  await expect(cards).toHaveCount(0);
+  await expect(page.locator("#lookup-status")).toContainText("Search for a field");
   await search.fill("author.givenName");
   await expect(cards).toHaveCount(6);
 

@@ -16,6 +16,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Choosing an output format stays selected while the preview updates.
+- Documentation navigation preserves command names and marks the current guide or section. Reference tables scroll on narrow screens without splitting filenames; field lookup starts with a search prompt.
 
 ## [0.5.0] - 2026-11-10
 

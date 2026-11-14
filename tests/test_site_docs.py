@@ -100,6 +100,18 @@ def test_all_documentation_links_and_anchors_resolve(tmp_path: Path):
                 assert unquote(url.fragment) in Links(target.read_text()).ids, (path, link)
 
 
+def test_documentation_titles_and_anchors_preserve_inline_commands(tmp_path: Path):
+    builder._docs(tmp_path, "assets/test")
+    menu = (tmp_path / "docs/index.html").read_text()
+    for command in ("check", "init", "write"):
+        title = f"How citesync {command} works"
+        guide = (tmp_path / f"docs/{command}/index.html").read_text()
+        assert f">{title}</a>" in menu
+        assert f"<title>{title} — citesync documentation</title>" in guide
+        assert f'id="how-citesync-{command}-works"' in guide
+        assert f"<code>citesync {command}</code>" in guide
+
+
 def test_missing_documentation_link_stops_the_build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs/README.md").write_text("# Documentation\n\n[Missing guide](missing.md)\n")

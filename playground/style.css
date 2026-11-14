@@ -702,10 +702,12 @@ header .brand { margin: 0; font-size: 26px; font-weight: bold; text-decoration: 
 .doc-content li { margin: 8px 0; }
 .doc-content code { font: 14px / 1.6 ui-monospace, monospace; }
 .doc-content pre { max-height: none; white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: var(--wash); border: 1px solid var(--line); }
-.doc-content table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 15px; }
+.table-scroll { max-width: 100%; overflow-x: auto; }
+.doc-content table { width: 100%; min-width: 40rem; border-collapse: collapse; font-size: 15px; overflow-wrap: normal; }
 .doc-content th, .doc-content td { border-bottom: 1px solid var(--line); padding: 10px 8px; text-align: left; vertical-align: top; }
 .docs-menu { padding-left: 24px; }
 .docs-menu a { display: inline-flex; min-height: 44px; align-items: center; }
+.docs-menu [aria-current] { color: var(--ink); font-weight: bold; text-decoration-thickness: 2px; }
 .docs-page footer { max-width: 75ch; margin: 0 auto; }
 .docs-page footer a { display: inline-flex; min-height: 44px; align-items: center; }
 @media (max-width: 800px) {
