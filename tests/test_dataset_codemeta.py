@@ -7,7 +7,6 @@ from citesync import cli
 from citesync.check import check
 from citesync.config import load_config
 from citesync.errors import CheckError
-from citesync.formats import cff_data_license
 from citesync.write import init, write
 
 CFF = """\
@@ -76,9 +75,10 @@ def test_update_and_autodiscover_dataset_codemeta(tmp_path: Path) -> None:
     assert json.loads((tmp_path / "dataset.codemeta.json").read_text(encoding="utf-8"))["version"] == "0.2.0"
 
 
-def test_rewrite_dataset_codemeta_on_licence_mismatch(tmp_path: Path) -> None:
+@pytest.mark.parametrize("licence", ["CC-BY-4.0", "https://spdx.org/licenses/CC-BY-4.0"])
+def test_rewrite_dataset_codemeta_on_licence_mismatch(tmp_path: Path, licence: str) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
-    (tmp_path / "citesync.toml").write_text('dataset-license = "CC-BY-4.0"\n', encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(f'dataset-license = "{licence}"\n', encoding="utf-8")
     (tmp_path / "dataset.codemeta.json").write_text(
         json.dumps(
             {
@@ -113,41 +113,17 @@ def test_rewrite_dataset_codemeta_on_licence_mismatch(tmp_path: Path) -> None:
     )
 
 
-def test_cff_data_reference_licence_fallback(tmp_path: Path) -> None:
-    cff_with_ref = CFF + (
-        "references:\n"
-        "  - type: data\n"
-        "    title: Upstream dataset\n"
-        "    authors:\n"
-        "      - name: Example Lab\n"
-        "    license: CC-BY-4.0\n"
+def test_unmapped_reference_licence_is_not_used(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(
+        CFF + "references:\n  - type: data\n    title: Other work\n    license: CC-BY-4.0\n",
+        encoding="utf-8",
     )
-    (tmp_path / "CITATION.cff").write_text(cff_with_ref, encoding="utf-8")
-    cfg = load_config(tmp_path, dataset_codemeta="manifests/dataset.codemeta.json")
+    cfg = load_config(tmp_path, dataset_codemeta="metadata.json")
     write(tmp_path, cfg)
-    dataset = json.loads((tmp_path / "manifests/dataset.codemeta.json").read_text(encoding="utf-8"))
-    assert dataset["license"] == "https://spdx.org/licenses/CC-BY-4.0"
-    clean, _, _ = check(tmp_path, cfg)
-    assert [f for f in clean if f.severity == "error"] == []
-
-
-def test_cff_data_reference_licence_edge_cases(tmp_path: Path) -> None:
-    two_data = tmp_path / "two.cff"
-    two_data.write_text(
-        CFF
-        + "references:\n"
-        + "  - type: data\n    title: A\n    license: MIT\n"
-        + "  - type: data\n    title: B\n    license: CC0-1.0\n",
-        encoding="utf-8",
+    assert (
+        json.loads((tmp_path / "metadata.json").read_text(encoding="utf-8"))["license"]
+        == "https://spdx.org/licenses/MIT"
     )
-    assert cff_data_license(two_data) is None
-
-    software_only = tmp_path / "sw.cff"
-    software_only.write_text(
-        CFF + "references:\n  - type: software\n    title: A\n    license: GPL-3.0-only\n",
-        encoding="utf-8",
-    )
-    assert cff_data_license(software_only) is None
 
 
 def test_cli_flags_override_and_default_path(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -243,3 +219,129 @@ def test_invalid_dataset_codemeta_config(tmp_path: Path, toml: str) -> None:
     (tmp_path / "citesync.toml").write_text(toml, encoding="utf-8")
     with pytest.raises(CheckError):
         load_config(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "rel",
+    ["metadata/croissant.json", "metadata/ro-crate-metadata.json", "metadata/codemeta.json", "metadata/package.json"],
+)
+def test_nested_reserved_dataset_path_is_rejected(tmp_path: Path, rel: str) -> None:
+    with pytest.raises(CheckError, match="dataset-codemeta"):
+        load_config(tmp_path, dataset_codemeta=rel)
+
+
+@pytest.mark.parametrize(
+    "licence",
+    ["http://example.org/Licence(foo)", "https://example.org/Licence(foo)", "HTTPS://example.org/Licence(foo)"],
+)
+def test_dataset_license_url_survives_creation_and_repair(tmp_path: Path, licence: str) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    cfg = load_config(tmp_path, dataset_license=licence)
+    write(tmp_path, cfg)
+    path = tmp_path / "dataset.codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["license"] == licence
+    for wrong in ["https://example.org/Licencefoo", "https://example.org/licence(foo)"]:
+        data["license"] = wrong
+        path.write_text(json.dumps(data), encoding="utf-8")
+        assert any(f.term == "license" and f.file == path.name for f in check(tmp_path, cfg)[0])
+        write(tmp_path, cfg)
+        assert json.loads(path.read_text(encoding="utf-8"))["license"] == licence
+    assert not [f for f in check(tmp_path, cfg)[0] if f.severity == "error"]
+
+
+@pytest.mark.parametrize("rel", ["dataset.codemeta.json", "metadata/data.json", "./metadata/data.json"])
+def test_required_fields_apply_to_dataset_codemeta(tmp_path: Path, rel: str) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        f'required-fields = {{ "{rel}" = ["name", "version", "author", "license"] }}\n'
+        f'dataset-codemeta = "{rel}"\ndataset-license = "CC0-1.0"\n',
+        encoding="utf-8",
+    )
+    cfg = load_config(tmp_path)
+    rel = str(Path(rel))
+    missing, _, _ = check(tmp_path, cfg)
+    assert {(f.file, f.term) for f in missing if f.rule == "required-field-missing"} == {
+        (rel, term) for term in ["name", "version", "author", "license"]
+    }
+    write(tmp_path, cfg)
+    assert not [f for f in check(tmp_path, cfg)[0] if f.severity == "error"]
+    path = tmp_path / rel
+    data = json.loads(path.read_text(encoding="utf-8"))
+    del data["version"]
+    path.write_text(json.dumps(data), encoding="utf-8")
+    found, _, _ = check(tmp_path, cfg)
+    assert any(f.file == rel and f.term == "version" and f.rule == "required-field-missing" for f in found)
+
+
+@pytest.mark.parametrize("rel", ["dataset.codemeta.json", "metadata/data.json"])
+def test_required_dataset_symlink_cannot_escape_root(tmp_path: Path, rel: str) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    target = repo / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.symlink_to(tmp_path / "outside.json")
+    (repo / "citesync.toml").write_text(
+        f'dataset-codemeta = "{rel}"\nrequired-fields = {{ "{rel}" = ["license"] }}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(CheckError, match="resolves outside"):
+        load_config(repo)
+
+
+def test_required_default_dataset_is_read_with_custom_dataset_configured(tmp_path: Path) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        'dataset-codemeta = "metadata/data.json"\nrequired-fields = { "dataset.codemeta.json" = ["license"] }\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "dataset.codemeta.json").write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "@type": "Dataset", "name": "Example"}),
+        encoding="utf-8",
+    )
+    found, _, _ = check(tmp_path, load_config(tmp_path))
+    assert any(
+        f.file == "dataset.codemeta.json" and f.term == "license" and f.rule == "required-field-missing" for f in found
+    )
+
+
+@pytest.mark.parametrize(
+    "first", ["http://example.org/Licence(foo)", "https://example.org/Licence(foo)", "HTTPS://example.org/Licence(foo)"]
+)
+def test_url_and_spdx_licence_list_preserves_each_value(tmp_path: Path, first: str) -> None:
+    (tmp_path / "codemeta.json").write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "name": "Example", "license": [first, "MIT"]}),
+        encoding="utf-8",
+    )
+    cfg = load_config(tmp_path, source="codemeta.json", dataset_codemeta="dataset.codemeta.json")
+    write(tmp_path, cfg)
+    data = json.loads((tmp_path / "dataset.codemeta.json").read_text(encoding="utf-8"))
+    assert data["license"] == [first, "https://spdx.org/licenses/MIT"]
+    assert not [f for f in check(tmp_path, cfg)[0] if f.severity == "error"]
+
+
+def test_dataset_licence_rewrites_when_source_format_has_no_licence_slot(tmp_path: Path) -> None:
+    (tmp_path / "Project.toml").write_text('name = "Tidepool"\nversion = "0.1.0"\n', encoding="utf-8")
+    cfg = load_config(tmp_path, source="Project.toml", dataset_license="CC0-1.0")
+    write(tmp_path, cfg)
+    path = tmp_path / "dataset.codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["license"] = "MIT"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    write(tmp_path, cfg)
+    assert json.loads(path.read_text(encoding="utf-8"))["license"] == "CC0-1.0"
+
+
+def test_dataset_version_checked_when_source_has_no_licence(tmp_path: Path) -> None:
+    source = tmp_path / "CITATION.cff"
+    source.write_text(CFF.replace("license: MIT\n", ""), encoding="utf-8")
+    cfg = load_config(tmp_path, dataset_codemeta="dataset.codemeta.json")
+    write(tmp_path, cfg)
+    path = tmp_path / "dataset.codemeta.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["license"] = "MIT"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    source.write_text(source.read_text(encoding="utf-8").replace("0.1.0", "0.2.0"), encoding="utf-8")
+    found, _, _ = check(tmp_path, cfg)
+    assert any(f.file == path.name and f.rule == "version-mismatch" for f in found)
+    assert not [f for f in found if f.rule == "license-mismatch"]

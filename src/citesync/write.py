@@ -93,7 +93,7 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
     ds_path = dataset_codemeta_path(root, config)
-    ds_source = dataset_source(root, docs[0], config) if ds_path else docs[0]
+    ds_source = dataset_source(docs[0], config) if ds_path else docs[0]
     exported = export.stale(root, [d for d in docs if d.path != ds_path], config)
     # zenodo-license-list sits on a term write may rewrite, but no rewrite turns the list into one licence
     errors = [
@@ -659,10 +659,11 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
         raise CannotWrite(msg)
     first = old[0] if isinstance(old, list) and old else old
     form = "spdx-url" if isinstance(first, str) and first.startswith("http") else "spdx"
-    ids = [
-        codecs.license_encode(i, "spdx" if i.startswith(("http://", "https://", "LicenseRef-")) else form)
-        for i in spdx.replace("(", "").replace(")", "").split(" OR ")
-    ]
+    ids = []
+    for item in spdx.split(" OR "):
+        is_url = item.lower().startswith(("http://", "https://"))
+        value = item if is_url else item.replace("(", "").replace(")", "")
+        ids.append(codecs.license_encode(value, "spdx" if is_url or value.startswith("LicenseRef-") else form))
     return ids if len(ids) > 1 or isinstance(old, list) else ids[0]
 
 

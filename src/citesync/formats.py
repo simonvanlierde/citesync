@@ -159,24 +159,6 @@ def inside(root: Path, rel: str) -> bool:
     return (root / rel).resolve().is_relative_to(root.resolve())
 
 
-def cff_data_license(path: Path) -> str | None:
-    """Data licence from a ``type: data`` reference in CITATION.cff when exactly one states one."""
-    try:
-        data = load(path, path.name)
-    except UnreadableError:
-        return None
-    refs = data.get("references")
-    if not isinstance(refs, list):
-        return None
-    lics = [
-        codecs.license_decode(r.get("license") or r.get("license-url"))
-        for r in refs
-        if isinstance(r, dict) and r.get("type") == "data" and (r.get("license") or r.get("license-url"))
-    ]
-    found = [lic for lic in lics if lic]
-    return found[0] if len(found) == 1 else None
-
-
 def read_doc(
     root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors: bool = False, fmt: str | None = None
 ) -> Doc:

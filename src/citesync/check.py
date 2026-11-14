@@ -14,7 +14,6 @@ from citesync.formats import (
     ONE_AUTHOR,
     Doc,
     Person,
-    cff_data_license,
     format_of,
     read_doc,
     same_name,
@@ -110,15 +109,14 @@ def dataset_codemeta_path(root: Path, config: Config) -> str | None:
     return "dataset.codemeta.json" if (root / "dataset.codemeta.json").is_file() else None
 
 
-def dataset_source(root: Path, source: Doc, config: Config) -> Doc:
-    """``source`` with its ``license`` set to the dataset licence when configured or in CITATION.cff."""
-    lic = config.dataset_license or (
-        cff_data_license(root / source.path) if source.readable and source.format == "cff-1.2.0" else None
-    )
-    if lic is None:
+def dataset_source(source: Doc, config: Config) -> Doc:
+    """The source with its licence replaced by the configured dataset licence."""
+    if config.dataset_license is None:
         return source
     return replace(
-        source, record=source.record | {"license": codecs.license_decode(lic) or lic}, slots=source.slots | {"license"}
+        source,
+        record=source.record | {"license": codecs.license_decode(config.dataset_license) or config.dataset_license},
+        slots=source.slots | {"license"},
     )
 
 
@@ -193,7 +191,7 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
         extra,
         config,
         dataset_path=ds_path,
-        dataset_doc=dataset_source(root, docs[0], config) if ds_path else docs[0],
+        dataset_doc=dataset_source(docs[0], config) if ds_path else docs[0],
     )
     if any(f.file and f.term for f in found):  # a check with nothing to point at reads no file twice
         from citesync.positions import place  # noqa: PLC0415
@@ -216,7 +214,12 @@ def required_findings(root: Path, docs: list[Doc], config: Config, mapping: Mapp
                 continue
             additional += 1
             try:
-                doc = read_doc(root, path, mapping)
+                doc = read_doc(
+                    root,
+                    path,
+                    mapping,
+                    fmt="codemeta" if path in {config.dataset_codemeta, "dataset.codemeta.json"} else None,
+                )
             except UnreadableError as err:
                 found.append(Finding(err.path, None, "unreadable", err.message, err.line, err.column))
                 continue
@@ -354,8 +357,8 @@ def compare_term(
     """
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
     if term == "license" and dataset_path and dataset_doc is not None:
-        ds = [d for d in others if d.path == dataset_path]
-        others = [d for d in others if d.path != dataset_path]
+        ds = [d for d in others if d.path == dataset_path or d.format in DATASETS]
+        others = [d for d in others if not (d.path == dataset_path or d.format in DATASETS)]
         ds_found = [compare(term, dataset_doc, d, kw_key=kw_key) for d in ds] if "license" in dataset_doc.record else []
     else:
         ds_found = []

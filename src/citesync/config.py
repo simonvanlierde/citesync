@@ -121,11 +121,10 @@ def load_config(
     if unknown:
         msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(_PARSE)}"
         raise CheckError(msg)
-    config = Config(origin=origin, **{key.replace("-", "_"): _PARSE[key](value, origin) for key, value in raw.items()})
-    for path, _ in config.required_fields:
-        if not inside(root, path):
-            msg = f"{origin}: required-fields path {path!r} resolves outside the repo root"
-            raise CheckError(msg)
+    config = Config(
+        origin=origin,
+        **{key.replace("-", "_"): _PARSE[key](value, origin) for key, value in raw.items() if key != "required-fields"},
+    )
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
     if dataset_codemeta is not None:
@@ -134,6 +133,15 @@ def load_config(
         config = replace(config, dataset_license=_dataset_license(dataset_license, "--dataset-license"))
     if config.dataset_license is not None and config.dataset_codemeta is None:
         config = replace(config, dataset_codemeta="dataset.codemeta.json")
+    if "required-fields" in raw:
+        config = replace(
+            config,
+            required_fields=_required_fields(raw["required-fields"], origin, config.dataset_codemeta),
+        )
+    for path, _ in config.required_fields:
+        if not inside(root, path):
+            msg = f"{origin}: required-fields path {path!r} resolves outside the repo root"
+            raise CheckError(msg)
     return config
 
 
@@ -248,7 +256,9 @@ def _exports(value: object, origin: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(_relative(item, origin, "exports") for item in value))
 
 
-def _required_fields(value: object, origin: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+def _required_fields(
+    value: object, origin: str, dataset_codemeta: str | None = None
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
     """Validate named record terms against the pinned format's slots."""
     if not isinstance(value, dict):
         msg = f"{origin}: required-fields must be a table of paths to lists of CodeMeta terms"
@@ -256,7 +266,12 @@ def _required_fields(value: object, origin: str) -> tuple[tuple[str, tuple[str, 
     required = {}
     mapping = load_mapping()
     for path, terms in value.items():
-        rel = _path(path, FORMAT_OF, origin, "required-fields")
+        rel = _relative(path, origin, "required-fields")
+        fmt = (
+            "codemeta"
+            if rel in {dataset_codemeta, "dataset.codemeta.json"}
+            else format_of(_path(path, FORMAT_OF, origin, "required-fields"))
+        )
         if "\\" in path or ":" in path or not path.isprintable():
             msg = f"{origin}: required-fields path {path!r} must be a printable relative POSIX path"
             raise CheckError(msg)
@@ -267,7 +282,7 @@ def _required_fields(value: object, origin: str) -> tuple[tuple[str, tuple[str, 
             if term not in TERMS:
                 msg = f"{origin}: required-fields: {term!r} is not a supported term; choose from {', '.join(TERMS)}"
                 raise CheckError(msg)
-            if term not in slots(format_of(rel), mapping):
+            if term not in slots(fmt, mapping):
                 msg = f"{origin}: required-fields: {path!r} cannot represent {term!r} in the pinned mapping"
                 raise CheckError(msg)
         required[rel] = tuple(dict.fromkeys((*required.get(rel, ()), *terms)))
@@ -294,7 +309,7 @@ def _dataset_codemeta(value: object, origin: str) -> str:
         msg = f"{origin}: dataset-codemeta must be a relative .json path, got {value!r}"
         raise CheckError(msg)
     rel = _relative(value, origin, "dataset-codemeta")
-    if rel in FORMAT_OF:
+    if PurePosixPath(rel).name in FORMAT_OF:
         msg = f"{origin}: dataset-codemeta {rel!r} cannot name {rel}"
         raise CheckError(msg)
     return rel
