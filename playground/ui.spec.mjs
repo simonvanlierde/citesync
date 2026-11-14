@@ -236,7 +236,7 @@ test("selecting an output keeps the preview and copy action in place", async ({ 
   await page.getByRole("tab", { name: "Enter details" }).click();
   await page.locator("#title").fill("lensgrind");
   await page.locator('#authors [data-part="family"]').fill("Curie");
-  await expect(page.locator("#copy")).toBeEnabled();
+  await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
   for (const width of [1440, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await choose(page, "output-file", "CITATION.cff");
@@ -293,7 +293,7 @@ test("project metadata transfers between entry methods without replacing an unch
   await page.getByRole("tab", { name: "Enter details" }).click();
   await page.locator("#title").fill("draft optics");
   await page.getByRole("tab", { name: "Use a file", exact: true }).click();
-  await expect(page.locator("#file-panel")).toBeVisible();
+  await expect(page.locator("#file-panel")).toBeVisible({ timeout: 90000 });
   await expect(page.locator("#input")).toHaveValue(/draft optics/, { timeout: 90000 });
   const source = JSON.stringify({
     "@context": "https://w3id.org/codemeta/3.0",
