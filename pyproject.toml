@@ -30,6 +30,7 @@ citesync = "citesync.cli:entry"
 
 [project.urls]
 Homepage = "https://simonvanlierde.com/citesync/"
+Documentation = "https://simonvanlierde.com/citesync/docs/"
 Source = "https://github.com/simonvanlierde/citesync"
 Issues = "https://github.com/simonvanlierde/citesync/issues"
 Changelog = "https://github.com/simonvanlierde/citesync/blob/main/CHANGELOG.md"
@@ -38,6 +39,7 @@ Changelog = "https://github.com/simonvanlierde/citesync/blob/main/CHANGELOG.md"
 dev = [
   "hypothesis>=6.140",
   "jsonschema>=4.25",
+  "markdown-it-py>=4.2.0",
   "memray>=1.20.0 ; sys_platform != 'win32'",
   "mutmut==3.8.1",
   "pybtex>=0.25",

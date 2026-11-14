@@ -11,3 +11,5 @@ Entry modes are views of project metadata: transfer via the same Python engine, 
 Use persistent short field hints, rather than placeholders for instructions. Put technical version/licence help in native disclosures with separate links, outside the hint descriptions read with the input. Apply the same note colours to form guidance and parse/conversion warnings. Do not reserve an empty status row beneath downloads.
 
 Field lookup stays in a secondary disclosure beneath the workspace. Show each format's paths in a plain section separated by a hairline. Search terms and paths together, keep unsupported fields explicit, and link to the pinned mapping source. Lookup loads independently of the converter and retains its search on retry.
+
+Documentation uses Read mode within the same website, palette and Georgia typography. Shared Playground and Documentation links remain visible on phones. Keep prose to 75 characters per line, wrap long code examples, and use a native Browse documentation disclosure for the guide list. Show the current page and preserve heading anchors. Render existing Markdown sources; do not copy guides into the website.

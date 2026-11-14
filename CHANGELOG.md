@@ -9,8 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The [website](https://simonvanlierde.com/citesync/docs/) includes the existing guides and reference beside the playground, with shared navigation and pages that work without JavaScript.
 - The playground's **Field lookup** searches the pinned CodeMeta mappings across six metadata formats, including fields those formats cannot represent ([playground](playground/README.md)).
 - Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
+
+### Fixed
+
+- Choosing an output format stays selected while the preview updates.
 
 ## [0.5.0] - 2026-11-10
 
