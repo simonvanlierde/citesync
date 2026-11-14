@@ -34,7 +34,7 @@ mutation:
     echo "${gone:-none}"
     [ -z "$new$gone" ]
 
-# Time `citesync check` on this repo's own files: 30 runs after 3 warm-ups, median in the table.
+# Time `citesync check` on this repo's own files: 30 runs after 3 warm-ups, mean in the table.
 # Runs the venv's script directly, since `uv run` adds more than check itself takes.
 bench:
     uv sync -q
