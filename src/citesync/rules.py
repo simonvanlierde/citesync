@@ -141,6 +141,13 @@ RULES = {
         "A manifest's keywords must all be in the citation file's, whichever of the two is the source."
         " A citation file can hold more keywords than a registry allows (crates.io allows five)." + _SEPARATORS,
     ),
+    "dataset-type-mismatch": Rule(
+        "error",
+        "The dataset CodeMeta file does not declare the Dataset type.",
+        "Run citesync write to set the dataset resource type.",
+        "The configured or discovered dataset CodeMeta file must declare Dataset in its JSON-LD type."
+        " The type alias, schema:Dataset, full schema.org IRIs and lists containing Dataset also pass.",
+    ),
     "context-mismatch": Rule(
         "error",
         "codemeta.json's `@context` is not the configured CodeMeta version.",

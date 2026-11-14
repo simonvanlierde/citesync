@@ -129,6 +129,8 @@ def _parser() -> argparse.ArgumentParser:
         help="repo root (default: the nearest directory up with a citation file or config, else the git repo's top)",
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
+    root.add_argument("--dataset-codemeta", help="path to the dataset CodeMeta file; overrides config")
+    root.add_argument("--dataset-license", help="dataset licence (SPDX id, expression, or URL); overrides config")
     report = _Parser(add_help=False, parents=[root])
     report.add_argument(
         "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
@@ -234,7 +236,12 @@ def _run(args: argparse.Namespace) -> int:
     if args.command in {"rules", "explain"}:
         return _rules(args)
     args.root = args.root or find_root(Path.cwd())
-    config = load_config(args.root, args.source)
+    config = load_config(
+        args.root,
+        args.source,
+        dataset_codemeta=args.dataset_codemeta,
+        dataset_license=args.dataset_license,
+    )
     if args.command == "config":
         print(f"# root: {args.root}\n{render(config)}")
         return 0
@@ -331,7 +338,7 @@ def _write_diff(root: Path, config: Config, *, quiet: bool) -> int:
 
 def _export(root: Path, config: Config, fmt: str) -> int:
     """Print the source's citation in ``fmt``; what it left out goes to stderr."""
-    from citesync.check import read_docs  # noqa: PLC0415
+    from citesync.check import dataset_codemeta_path, read_docs, software_docs  # noqa: PLC0415
     from citesync.export import record, render  # noqa: PLC0415
     from citesync.mapping import load_mapping  # noqa: PLC0415
     from citesync.write import _merged, citation_file, union  # noqa: PLC0415
@@ -343,6 +350,7 @@ def _export(root: Path, config: Config, fmt: str) -> int:
         notes = [f"leaving out {term}: {why}" for term, why in skipped.items()] + left_out
     else:
         docs, read = read_docs(root, config, mapping)
+        docs = software_docs(docs, dataset_codemeta_path(root, config))
         if not docs[0].readable:
             bad = next(f for f in read if f.file == docs[0].path and f.rule == "unreadable")
             msg = f"{bad.where}: {bad.message}"

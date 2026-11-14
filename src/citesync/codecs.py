@@ -80,9 +80,17 @@ def license_key(spdx: str) -> str:
     """Licences compare case-insensitively, since Zenodo lowercases them.
 
     Parentheses group nothing when ``OR`` is the only operator, so they are dropped then.
+    Non-SPDX URLs compare as written, since their paths can be case-sensitive.
     """
-    key = spdx.casefold()
-    return key if {"and", "with"} & set(key.split()) else key.replace("(", "").replace(")", "")
+    grouped = {"and", "with"} & set(spdx.casefold().split())
+    parts = []
+    for item in spdx.split(" OR "):
+        if item.lower().startswith(("http://", "https://")):
+            parts.append(item)
+        else:
+            key = item.casefold()
+            parts.append(key if grouped else key.replace("(", "").replace(")", ""))
+    return " or ".join(parts)
 
 
 # ORCID: a URL or a bare iD.

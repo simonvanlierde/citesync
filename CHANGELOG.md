@@ -12,10 +12,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The [website](https://simonvanlierde.com/citesync/docs/) includes the existing guides and reference beside the playground, with shared navigation and pages that work without JavaScript.
 - The playground's **Field lookup** searches the pinned CodeMeta mappings across six metadata formats, including fields those formats cannot represent ([playground](playground/README.md)).
 - Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
+- `dataset-codemeta` and `dataset-license` (plus `--dataset-codemeta` and `--dataset-license`) write and check a dataset CodeMeta file (`@type: Dataset`, defaulting to `dataset.codemeta.json`) for `sourceledger release --codemeta`, keeping code and dataset licences separate, including RO-Crate and Croissant checks and optional required-field checks ([configuration](docs/config.md)).
 
 ### Fixed
 
+- Existing dataset CodeMeta files now have their Dataset resource type checked and repaired by `write` ([configuration](docs/config.md)).
+
+- Software citation exports no longer inherit a dataset's licence or other fields when the software source lacks them. [Dataset files](docs/formats.md#dataset-files) supply export values only when explicitly selected as the source.
+
 - Choosing an output format stays selected while the preview updates.
+
 - Documentation navigation preserves command names and marks the current guide or section. Reference tables scroll on narrow screens without splitting filenames; field lookup starts with a search prompt.
 
 ## [0.5.0] - 2026-11-10

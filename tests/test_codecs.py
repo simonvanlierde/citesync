@@ -365,3 +365,11 @@ def test_date_decode_keeps_what_is_not_iso(raw: object, expected: str | None) ->
 )
 def test_publisher_decode_takes_a_name_or_an_organization(raw: object, expected: str | None) -> None:
     assert codecs.publisher_decode(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "url", ["http://example.org/Licence(foo)", "https://example.org/Licence(foo)", "HTTPS://example.org/Licence(foo)"]
+)
+def test_custom_url_in_licence_expression_keeps_its_path(url: str) -> None:
+    assert codecs.license_key(url + " OR MIT") == url + " or mit"
+    assert codecs.license_key(url + " OR MIT") != codecs.license_key(url.replace("(", "").replace(")", "") + " OR MIT")

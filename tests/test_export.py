@@ -269,6 +269,54 @@ def test_check_reports_and_write_makes_each_export(tmp_path: Path, run: "Run") -
     assert run("check", "--root", str(root))[0] == 0
 
 
+@pytest.mark.parametrize(
+    ("fmt", "filename"),
+    [("jsonld", "schema.jsonld"), ("codemeta", "codemeta.json"), ("zenodo", ".zenodo.json")],
+)
+@pytest.mark.parametrize("dataset_file", ["dataset.codemeta.json", "ro-crate-metadata.json", "croissant.json"])
+def test_cli_exports_keep_dataset_licence_out_of_software_citations(
+    tmp_path: Path, run: "Run", fmt: str, filename: str, dataset_file: str
+) -> None:
+    (tmp_path / "CITATION.cff").write_text(
+        "cff-version: 1.2.0\nmessage: Cite this software.\ntitle: Tidepool\nauthors:\n  - family-names: Curie\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "citesync.toml").write_text(
+        'dataset-license = "CC0-1.0"\nfiles = ["codemeta.json", ".zenodo.json"]\nexports = ["schema.jsonld"]\n',
+        encoding="utf-8",
+    )
+    if dataset_file != "dataset.codemeta.json":
+        dataset = {"@type": "Dataset", "name": "Tidepool", "license": "https://spdx.org/licenses/CC0-1.0"}
+        if dataset_file == "ro-crate-metadata.json":
+            dataset = {
+                "@context": "https://w3id.org/ro/crate/1.3/context",
+                "@graph": [{"@id": "./", **dataset}],
+            }
+        (tmp_path / dataset_file).write_text(json.dumps(dataset), encoding="utf-8")
+    assert run("write", "--root", str(tmp_path), "-q")[0] == 0
+    assert run("check", "--root", str(tmp_path), "-q")[0] == 0
+    written = json.loads((tmp_path / filename).read_text(encoding="utf-8"))
+    assert "license" not in written
+    code, out, _ = run("export", "--root", str(tmp_path), "--format", fmt)
+    assert code == 0
+    assert json.loads(out) == written
+
+
+@pytest.mark.parametrize("source", ["ro-crate-metadata.json", "croissant.json"])
+def test_an_explicit_dataset_source_still_supplies_export_values(tmp_path: Path, run: "Run", source: str) -> None:
+    dataset = {"@type": "Dataset", "name": "Tidepool", "license": "https://spdx.org/licenses/CC0-1.0"}
+    if source == "ro-crate-metadata.json":
+        dataset = {"@context": "https://w3id.org/ro/crate/1.3/context", "@graph": [{"@id": "./", **dataset}]}
+    (tmp_path / source).write_text(json.dumps(dataset), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(f'source = "{source}"\nexports = ["schema.jsonld"]\n', encoding="utf-8")
+    assert run("write", "--root", str(tmp_path), "-q")[0] == 0
+    written = json.loads((tmp_path / "schema.jsonld").read_text(encoding="utf-8"))
+    code, out, _ = run("export", "--root", str(tmp_path), "--format", "jsonld")
+    assert code == 0
+    assert json.loads(out) == written
+    assert written["license"] == "https://spdx.org/licenses/CC0-1.0"
+
+
 def test_an_edited_export_is_stale_and_write_puts_it_back(tmp_path: Path, run: "Run") -> None:
     root = _repo(tmp_path)
     run("write", "--root", str(root))

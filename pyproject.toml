@@ -66,6 +66,10 @@ exclude-newer = "1 week"
 [tool.uv.build-backend]
 module-name = "citesync"
 
+[tool.citesync.required-fields]
+"CITATION.cff" = ["name", "version", "author", "license", "identifier"]
+"codemeta.json" = ["name", "version", "author", "license", "identifier"]
+
 # NOTE: self-contained ruff config, deliberately not extended from any shared base.
 # No target-version: ruff derives it from requires-python above.
 [tool.ruff]
@@ -119,7 +123,8 @@ log_level = "INFO"
 # Coverage is opt-in via `pytest --cov` (`just py-cov`), not addopts, because it
 # slows every plain test run. No fail_under until there is a suite worth setting
 # one against.
-# Mutation testing (`just mutation`, not in CI) covers the comparison code only.
+# Mutation testing covers check, codecs, write and jsonsplice via `just mutation`
+# and the weekly or manually triggered workflow.
 [tool.mutmut]
 source_paths = ["src/citesync"]
 only_mutate = ["src/citesync/check.py", "src/citesync/codecs.py", "src/citesync/write.py", "src/citesync/jsonsplice.py"]

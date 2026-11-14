@@ -61,6 +61,8 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         "# from defaults\n"
         'source = "CITATION.cff"\n'
         "# codemeta-version: not set, so any supported @context passes\n"
+        "# dataset-codemeta: not set\n"
+        "# dataset-license: not set\n"
         "# files: not set, so every citation file present\n"
         "# manifests: not set, so every release manifest at the repo root\n"
         "write-manifests = []\n"

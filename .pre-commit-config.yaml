@@ -106,16 +106,6 @@ repos:
     hooks:
       - id: check-citation-file-format
 
-  # CITATION.cff is the source: codemeta.json, any .zenodo.json and the package manifests
-  # must agree with it. `just citation` runs the manual-stage writer to fix them.
-  - repo: https://github.com/simonvanlierde/citesync
-    rev: a3c5a9794449e78a33583e456af41bb24ebd240e # frozen: v0.1.0
-    hooks:
-      - id: citesync
-        additional_dependencies: [packaging==26.3, ruamel-yaml==0.19.1, tomlkit==0.15.2]
-      - id: citesync-write
-        additional_dependencies: [packaging==26.3, ruamel-yaml==0.19.1, tomlkit==0.15.2]
-
   - repo: https://github.com/kynan/nbstripout
     rev: 34071b78c181af3bf5af955c1426466e096fc3db # frozen: 0.9.1
     hooks:
@@ -198,4 +188,11 @@ repos:
         entry: uv run --frozen citesync check
         language: system
         pass_filenames: false
+        files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|\.?citesync\.toml)$
+      - id: citesync-write
+        name: citesync write
+        entry: uv run --frozen citesync write
+        language: system
+        pass_filenames: false
+        stages: [manual]
         files: (^|/)(CITATION\.cff|codemeta\.json|\.zenodo\.json|pyproject\.toml|\.?citesync\.toml)$

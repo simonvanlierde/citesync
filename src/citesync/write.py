@@ -31,12 +31,15 @@ from citesync.check import (
     ZENODO_GAPS,
     Finding,
     cargo_keyword_key,
+    dataset_codemeta_path,
+    dataset_source,
     findings,
     has_slot,
     keyword_key,
     missing,
     near_misses,
     read_docs,
+    software_docs,
 )
 from citesync.config import Config
 from citesync.errors import CannotWrite, CheckError
@@ -51,6 +54,7 @@ from citesync.formats import (
     cff_person,
     codemeta_orcid,
     codemeta_person,
+    codemeta_type_key,
     codemeta_version,
     format_of,
     inside,
@@ -67,7 +71,7 @@ from citesync.mapping import DATASETS, PEOPLE, TERMS, Mapping, load_mapping, per
 NEW_CODEMETA_VERSION = "3.0"
 
 
-def write(  # noqa: C901 - preserve each format and create requested citation targets
+def write(  # noqa: C901, PLR0915 - preserve each format and create requested citation targets
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
 ) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding], list[Finding]]:
     """Write every finding write may fix; return what it wrote and skipped, what it couldn't read, and what it fixed.
@@ -90,11 +94,14 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     """
     mapping = mapping or load_mapping()
     docs, unreadable = read_docs(root, config, mapping)
-    exported = export.stale(root, docs, config)
+    ds_path = dataset_codemeta_path(root, config)
+    ds_source = dataset_source(docs[0], config) if ds_path else docs[0]
+    software = software_docs(docs, ds_path)
+    exported = export.stale(root, software, config)
     # zenodo-license-list sits on a term write may rewrite, but no rewrite turns the list into one licence
     errors = [
         f
-        for f in findings(docs, [*unreadable, *exported], config)[0]
+        for f in findings(docs, [*unreadable, *exported], config, dataset_path=ds_path, dataset_doc=ds_source)[0]
         if f.severity == "error" and f.rule != "zenodo-license-list"
     ]
     fix = {(f.file, f.term) for f in errors}
@@ -103,42 +110,48 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
     for doc in docs:  # the source too, for its @context
         if PurePosixPath(doc.path).name in IMPORTS | DATASET_FILES:
             continue
+        ref = ds_source if doc.path == ds_path else source
         terms = [
             t
             for t in TERMS
             if (doc.path, t) in fix
-            and has_slot(source, t)  # else the others were compared with each other (docs/check.md): left alone
-            and t in source.record
+            and has_slot(ref, t)  # else the others were compared with each other (docs/check.md): left alone
+            and t in ref.record
             and t in doc.record
             and (doc.is_citation or t in config.write_manifests)
         ]
         context = config.codemeta_version if (doc.path, "@context") in fix else None
-        if not terms and not context:
+        resource_type = "Dataset" if (doc.path, "@type") in fix else None
+        if not terms and not context and not resource_type:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
         bom = "\ufeff" if old.startswith("\ufeff") else ""  # ruamel.yaml drops one, so put it back
         # edited with LF line ends, which the YAML and JSON writers add
         lf = old.removeprefix(bom).replace("\r\n", "\n")
-        new, reasons = _rewrite(doc, source, terms, lf, mapping, context, key, config.zenodo_contributor_type)
+        new, reasons = _rewrite(
+            doc, ref, terms, lf, mapping, context, key, config.zenodo_contributor_type, resource_type
+        )
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != lf:
             crlf = old.count("\r\n") * 2 > old.count("\n")  # a file with both gets the more common one
             texts[doc.path] = bom + (new.replace("\n", "\r\n") if crlf else new)
-            changed = [*terms, "@context"] if context else terms
+            changed = [*terms, *(["@context"] if context else []), *(["@type"] if resource_type else [])]
             done |= {(doc.path, t) for t in changed if t not in reasons}
     version = config.codemeta_version or NEW_CODEMETA_VERSION
     for rel in missing(root, config) if source.readable else ():
-        fmt = format_of(rel)
+        fmt = "codemeta" if rel == ds_path else format_of(rel)
         if fmt not in {"codemeta", "zenodo"} or (rel, None) not in fix:
             continue
         if fmt == "codemeta":
-            texts[rel], reasons = _new_codemeta(rel, source, version, mapping, key)
+            ref = ds_source if rel == ds_path else source
+            rtype = "Dataset" if rel == ds_path else "SoftwareSourceCode"
+            texts[rel], reasons = _new_codemeta(rel, ref, version, mapping, key, resource_type=rtype)
         else:
             texts[rel], reasons = _new_zenodo(rel, source, mapping, key, config.zenodo_contributor_type)
         skipped |= {(rel, term): reason for term, reason in reasons.items()}
         done.add((rel, None))
     # an export is made whole from the docs as read, the source first, as check compares
-    rec = export.record(docs)
+    rec = export.record(software)
     exports = {
         path: export.text(path, rec)
         for path in config.exports
@@ -271,7 +284,10 @@ def _merged(root: Path, config: Config, mapping: Mapping) -> tuple[Doc, list[str
         msg = f"no codemeta.json, .zenodo.json or package manifest in {root} to make a CITATION.cff from"
         raise CheckError(msg)
     docs, read = read_docs(root, replace(config, source=first), mapping)
-    copies = {d.path for d in docs[1:] if d.format in DATASETS}  # made from codemeta.json, so they give nothing
+    ds_path = dataset_codemeta_path(root, config)
+    copies = {
+        d.path for d in docs[1:] if d.format in DATASETS or d.path == ds_path
+    }  # made from codemeta/source, so they give nothing
     docs, read = [d for d in docs if d.path not in copies], [f for f in read if f.file not in copies]
     if bad := next((f for f in read if f.rule == "unreadable"), None):
         msg = f"{bad.where}: {bad.message}"
@@ -315,7 +331,7 @@ def advice(finding: Finding, config: Config, skipped: dict[tuple[str, str], str]
     if (
         finding.file
         and finding.term
-        and format_of(finding.file) in MANIFESTS.values()
+        and PurePosixPath(finding.file).name in MANIFESTS
         and finding.term not in config.write_manifests
     ):
         return f"edit it by hand, or add {finding.term} to write-manifests"
@@ -366,6 +382,7 @@ def _rewrite(
     context: str | None,
     keyword_key: Callable[[str], str],
     zenodo_contributor_type: str | None,
+    resource_type: str | None,
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
     if doc.format in {"cff-1.2.0", "quarto"}:
@@ -382,12 +399,22 @@ def _rewrite(
         return tomlkit.dumps(data), skipped
     old = json.loads(text)
     data = copy.deepcopy(old)
+    if resource_type:
+        type_key = codemeta_type_key(data)
+        old_types = data.get(type_key)
+        data[type_key] = [*old_types, resource_type] if isinstance(old_types, list) else resource_type
     skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
     return splice(text, old, data), skipped
 
 
 def _new_codemeta(
-    rel: str, source: Doc, version: str, mapping: Mapping, keyword_key: Callable[[str], str]
+    rel: str,
+    source: Doc,
+    version: str,
+    mapping: Mapping,
+    keyword_key: Callable[[str], str],
+    *,
+    resource_type: str = "SoftwareSourceCode",
 ) -> tuple[str, dict[str, str]]:
     """A codemeta.json at ``rel`` holding each term the source has, spelled as codemeta spells it.
 
@@ -406,7 +433,7 @@ def _new_codemeta(
         "contributor": [],
         "keywords": [],
     }
-    data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": "SoftwareSourceCode"}
+    data: dict[str, Any] = {"@context": f"https://w3id.org/codemeta/{version}", "@type": resource_type}
     doc = Doc(rel, "codemeta", {}, frozenset(), version, release=True)
     values, skipped = _encode_terms(doc, source, blank, mapping, keyword_key)
     if swhid := source.record.get("swhid"):  # codemeta holds it in identifier, beside the DOI
@@ -643,7 +670,11 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
         raise CannotWrite(msg)
     first = old[0] if isinstance(old, list) and old else old
     form = "spdx-url" if isinstance(first, str) and first.startswith("http") else "spdx"
-    ids = [codecs.license_encode(i, form) for i in spdx.replace("(", "").replace(")", "").split(" OR ")]
+    ids = []
+    for item in spdx.split(" OR "):
+        is_url = item.lower().startswith(("http://", "https://"))
+        value = item if is_url else item.replace("(", "").replace(")", "")
+        ids.append(codecs.license_encode(value, "spdx" if is_url or value.startswith("LicenseRef-") else form))
     return ids if len(ids) > 1 or isinstance(old, list) else ids[0]
 
 
