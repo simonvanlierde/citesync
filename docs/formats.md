@@ -7,6 +7,7 @@ Reading, updating and creating a file are separate operations:
 | CITATION.cff | Yes | Supported fields | `citesync init` |
 | codemeta.json | Yes | Supported fields | `citesync write`, when listed in `files` |
 | .zenodo.json | Yes | Supported fields | `citesync write`, when listed in `files` |
+| Dataset CodeMeta (`dataset.codemeta.json` or configured path) | Yes, shared source fields and dataset licence | Shared fields and Dataset type | `citesync write`, when configured ([dataset guide](datasets.md)) |
 | pyproject.toml | Yes, `[project]` metadata | Selected fields, opt-in | No |
 | Cargo.toml | Yes, package metadata | Selected fields, opt-in | No |
 | package.json | Yes, npm package metadata | Selected fields, opt-in | No |
@@ -19,7 +20,7 @@ Reading, updating and creating a file are separate operations:
 | croissant.json | Yes, a Croissant 1.1 dataset | Never | No, sourceledger `release` makes it |
 | Exports: `.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris`, `.enw` | Compared whole with what the source gives | Made again whole | `citesync write`, when listed in `exports` ([exports](export.md)) |
 
-Any supported file can be the source. For example, `citesync init` can read a package manifest
+The dataset CodeMeta file is a derived destination, not a source. Any supported software metadata file can be the source. For example, `citesync init` can read a package manifest
 to create CITATION.cff. It does not require an existing codemeta.json.
 
 The [init guide](init.md) explains how fields are combined and names are split.
@@ -27,6 +28,8 @@ The [write guide](write.md) describes file creation, omitted fields and preserva
 The [configuration reference](config.md) lists the manifest fields that can be updated.
 
 ## Dataset files
+
+Use a separate [dataset CodeMeta file](datasets.md) when software and data have different licences. citesync writes and checks that file; sourceledger writes the derived RO-Crate and Croissant files described below.
 
 sourceledger's `release` copies the name, description, licence, version, DOI, release date and authors from codemeta.json into `ro-crate-metadata.json` and `croissant.json`. `check` compares them with the source like a citation file, on every field they hold, so a release made from a stale codemeta.json shows up. It finds them at the repo root; a release folder goes under `manifests`, such as `manifests = ["pyproject.toml", "release/ro-crate-metadata.json"]`. `write` never changes them: fix the source, run `citesync write`, then `sourceledger release` again.
 

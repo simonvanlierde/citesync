@@ -9,7 +9,7 @@
 ```json
 {
   "schema_version": 1,
-  "tool": { "name": "citesync", "version": "0.5.0" },
+  "tool": { "name": "citesync", "version": "0.6.0" },
   "summary": { "files": 3, "errors": 1, "warnings": 0, "info": 0 },
   "findings": [
     {
@@ -19,7 +19,7 @@
       "term": "version",
       "message": "'2.0.0', CITATION.cff has '1.0.0'",
       "help": "Make the file agree with the source, or the other way round if the source is wrong.",
-      "url": "https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md#version-mismatch",
+      "url": "https://simonvanlierde.com/citesync/docs/rules/#version-mismatch",
       "line": 3,
       "column": 3
     }
@@ -33,7 +33,7 @@
 ```json
 {
   "schema_version": 1,
-  "tool": { "name": "citesync", "version": "0.5.0" },
+  "tool": { "name": "citesync", "version": "0.6.0" },
   "errors": [{ "message": "CITATION.cff: the source file is missing from /home/ada/radium; name another with --source, or the repo with --root", "help": null }]
 }
 ```

@@ -34,7 +34,7 @@ def test_rules_lists_every_rule(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["rules", "--format", "json"]) == 0
     rules = json.loads(capsys.readouterr().out)
     assert [r["rule"] for r in rules] == list(RULES)
-    assert rules[-1]["url"].endswith("docs/rules.md#not-checked")
+    assert rules[-1]["url"].endswith("docs/rules/#not-checked")
 
 
 def test_explain(capsys: pytest.CaptureFixture[str]) -> None:

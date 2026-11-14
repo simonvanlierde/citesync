@@ -236,7 +236,7 @@ def test_sarif_format(tmp_path: Path, run: "Run") -> None:
     assert run["columnKind"] == "unicodeCodePoints"
     assert driver["informationUri"] == "https://github.com/simonvanlierde/citesync"
     assert [(r["id"], r["defaultConfiguration"]["level"]) for r in driver["rules"]] == [("name-mismatch", "error")]
-    assert driver["rules"][0]["helpUri"].endswith("/docs/rules.md#name-mismatch")
+    assert driver["rules"][0]["helpUri"].endswith("/docs/rules/#name-mismatch")
     (result,) = run["results"]
     assert (result["ruleId"], result["level"]) == ("name-mismatch", "error")
     assert result["message"]["text"] == "name: 'y', CITATION.cff has 'x'"
@@ -890,7 +890,7 @@ def test_not_checked_detail(tmp_path: Path, run: "Run") -> None:
         "term": "author",
         "message": "no file holds a value",
         "help": "Add the field to the source if the files should carry it.",
-        "url": "https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md#not-checked",
+        "url": "https://simonvanlierde.com/citesync/docs/rules/#not-checked",
         "line": None,
         "column": None,
     }
@@ -922,7 +922,7 @@ exit codes:
 config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
 [workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
 
-docs: https://github.com/simonvanlierde/citesync/blob/main/docs
+docs: https://simonvanlierde.com/citesync/docs/
 """
 
 

@@ -115,7 +115,7 @@ _EPILOG = f"""exit codes:
 config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
 [workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
 
-docs: {DOCS_URL.rsplit("/", 1)[0]}"""
+docs: {DOCS_URL.rstrip("/").rsplit("/", 1)[0] + "/"}"""
 
 
 def _parser() -> argparse.ArgumentParser:

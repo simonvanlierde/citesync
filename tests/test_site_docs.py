@@ -3,6 +3,7 @@
 # ruff: noqa: SLF001 - test the build's publication boundary directly
 
 import importlib.util
+import json
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -22,10 +23,13 @@ class Links(HTMLParser):
         super().__init__()
         self.links: list[str] = []
         self.ids: set[str] = set()
+        self.description: str | None = None
         self.feed(text)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
+        if tag == "meta" and values.get("name") == "description":
+            self.description = values.get("content")
         if ident := values.get("id"):
             self.ids.add(ident)
         if tag in {"a", "link", "img", "script"} and (target := values.get("href") or values.get("src")):
@@ -38,6 +42,7 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     output.mkdir(parents=True)
     for name in (
         "style.css",
+        "docs-search.mjs",
         "main.mjs",
         "detect.mjs",
         "picker.mjs",
@@ -59,9 +64,14 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     (root / "docs/README.md").write_text("# Documentation\n\n[Guide](guide.md#same-heading)\n")
     (root / "docs/guide.md").write_text(
         "# Guide\n\n## Same heading\n\n## Same heading\n\n## Same heading-1\n\n"
-        "[Source](../README.md#setup)\n\n```sh\n<not-markup>\n```\n"
+        "[Source](../README.md#setup)\n\n"
+        "[Guide copied from GitHub](https://github.com/simonvanlierde/citesync/blob/main/README.md#setup)\n\n"
+        "![Example](figure.svg)\n\n```sh\n<not-markup>\n```\n"
     )
-    (root / "README.md").write_text("# Repository\n\n## Setup\n")
+    (root / "README.md").write_text(
+        "# Repository\n\n## Setup\n\n[![build](https://example.invalid/badge)](https://example.invalid/)\n"
+    )
+    (root / "docs/figure.svg").write_text("<svg/>")
     monkeypatch.setattr(builder, "ROOT", root)
     monkeypatch.setattr(builder, "OUTPUT", output)
     monkeypatch.setattr(builder, "WHEELS", wheels)
@@ -73,7 +83,14 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     assert 'id="same-heading"' in guide
     assert 'id="same-heading-1"' in guide
     assert 'id="same-heading-1-1"' in guide
-    assert 'href="https://github.com/simonvanlierde/citesync/blob/main/README.md#setup"' in guide
+    assert 'href="../repository/#setup"' in guide
+    assert guide.count('href="../repository/#setup"') == 2
+    assert (root / "site/docs/repository/index.html").is_file()
+    assert "example.invalid" not in (root / "site/docs/repository/index.html").read_text()
+    assert (root / "site/docs/files/docs/figure.svg").read_text() == "<svg/>"
+    index = json.loads((root / "site/docs/search-index.json").read_text())
+    assert any(item["url"] == "repository/#setup" for item in index)
+    assert 'id="docs-search"' in guide
     assert "&lt;not-markup&gt;" in guide
     assert "<not-markup>" not in guide
     assert 'href="../../"' in guide
@@ -86,7 +103,7 @@ def test_all_documentation_links_and_anchors_resolve(tmp_path: Path):
     assert not (tmp_path / "docs/decisions/0000-template/index.html").exists()
     pages = {path: Links(path.read_text()) for path in (tmp_path / "docs").rglob("*.html")}
     expected = {path.relative_to(ROOT / "docs") for path in (ROOT / "docs").rglob("*.md")}
-    assert len(pages) == len(expected)
+    assert len(pages) > len(expected)
     for path, parsed in pages.items():
         for link in parsed.links:
             url = urlsplit(link)
@@ -118,3 +135,54 @@ def test_missing_documentation_link_stops_the_build(tmp_path: Path, monkeypatch:
     monkeypatch.setattr(builder, "ROOT", tmp_path)
     with pytest.raises(ValueError, match=r"linked file does not exist: missing\.md"):
         builder._docs(tmp_path / "site", "assets/test")
+
+
+def test_search_index_targets_published_sections_and_includes_full_text(tmp_path: Path):
+    builder._docs(tmp_path, "assets/test")
+    index = json.loads((tmp_path / "docs/search-index.json").read_text())
+    assert any("uv tool install citesync" in section["text"] for section in index)
+    assert any(section["url"].startswith("changelog/#") for section in index)
+    for section in index:
+        url = urlsplit(section["url"])
+        assert not url.scheme
+        assert not url.netloc
+        assert not url.path.startswith("/")
+        target = (tmp_path / "docs" / unquote(url.path) / "index.html").resolve()
+        assert target.is_file(), section
+        assert unquote(url.fragment) in Links(target.read_text()).ids, section
+    for page in (tmp_path / "docs").rglob("*.html"):
+        for link in Links(page.read_text()).links:
+            assert not (
+                link.startswith("https://github.com/simonvanlierde/citesync/blob/main/")
+                and ".md" in urlsplit(link).path
+            ), (page, link)
+
+
+def test_getting_started_is_a_task_guide_and_repository_badges_stay_off_site(tmp_path: Path):
+    builder._docs(tmp_path, "assets/test")
+    guide = (tmp_path / "docs/getting-started/index.html").read_text()
+    assert '<h1 id="getting-started">Getting started</h1>' in guide
+    assert "uv tool install citesync" in guide
+    repository = (tmp_path / "docs/repository/index.html").read_text()
+    assert "<img" not in repository
+    assert 'href="https://pypi.org/project/citesync/"' not in repository
+
+
+def test_documentation_descriptions_follow_the_page_and_escape_markup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    builder._docs(tmp_path, "assets/test")
+    config = Links((tmp_path / "docs/config/index.html").read_text()).description
+    dataset = Links((tmp_path / "docs/datasets/index.html").read_text()).description
+    assert config
+    assert config.startswith("Configuration. citesync reads")
+    assert dataset
+    assert "dataset" in dataset
+    assert config != dataset
+    assert len(config) <= 160
+    assert len(dataset) <= 160
+    root = tmp_path / "repo"
+    (root / "docs").mkdir(parents=True)
+    (root / "docs/README.md").write_text('# Alpha & "Beta"\n\nUse <literal> & "quoted" values.\n')
+    monkeypatch.setattr(builder, "ROOT", root)
+    builder._docs(root / "site", "assets/test")
+    html = (root / "site/docs/index.html").read_text()
+    assert 'content="Alpha &amp; &quot;Beta&quot;. Use &lt;literal&gt; &amp; &quot;quoted&quot; values."' in html

@@ -4,9 +4,10 @@ Last reviewed: 2026-11-14
 
 ## Before 0.6
 
-- Review and merge dataset CodeMeta writing and checking, including required-field checks and distinct software and dataset licences ([#108](https://github.com/simonvanlierde/citesync/pull/108)).
-- Add field lookup beside the existing form mode and publish the guides on this website ([#109](https://github.com/simonvanlierde/citesync/pull/109)).
-- Adopt the metadata checks in the repositories that consume citesync and complete the release checks.
+- Finish the release review and checks for dataset CodeMeta, required fields, playground form mode and field lookup.
+- Complete physical-device, screen-reader and reference-manager checks before publication.
+
+Dataset metadata and required-field checks are implemented, and the consuming repositories have adopted them. The playground includes form mode and field lookup. Documentation is searchable, and installation, playground and reference guides stay on this website. See the [release notes](../CHANGELOG.md) for the changes.
 
 ## After 0.6
 

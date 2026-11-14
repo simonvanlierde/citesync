@@ -10,7 +10,7 @@ One static website contains the playground and documentation. The build renders 
 
 ## Users and purpose
 
-Help a researcher generate software citation files without installing a tool. Start with one existing metadata file or basic project details. Preview actual generated content automatically while typing, correct inferred names, then copy or download it. Detect inputs conservatively with an explicit override. Transfer metadata between entry methods, preserve unchanged source drafts and keep extra CodeMeta metadata through form edits. Offer BibTeX, CSL-JSON, APA and JSON-LD alongside citation metadata; keep incomplete package templates in a separate labelled group. Field lookup explains the pinned mappings in a secondary disclosure. The website's documentation explains repository checks, configuration and exports.
+Help a researcher generate software citation files without installing a tool. Start with one existing metadata file or basic project details. Preview actual generated content automatically while typing, correct inferred names, then copy or download it. Detect inputs conservatively with an explicit override. Transfer metadata between entry methods, preserve unchanged source drafts and keep extra CodeMeta metadata through form edits. Offer BibTeX, CSL-JSON, APA and JSON-LD alongside citation metadata; keep incomplete package templates in a separate labelled group. Field lookup explains the pinned mappings in a secondary disclosure. The website's searchable documentation explains installation, repository checks, dataset metadata, configuration and exports. Readers can follow guides without leaving the website.
 
 ## Constraints
 
