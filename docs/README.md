@@ -22,4 +22,4 @@ Generate citation files in the [playground](https://simonvanlierde.com/citesync/
 ## About the project
 
 - [Tests on real repositories](tested-repositories.md).
-- [Design decisions](decisions/README.md).
+- [Design decisions](decisions/index.md).

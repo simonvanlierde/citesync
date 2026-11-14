@@ -169,13 +169,13 @@ def _docs(site: Path, assets: str) -> None:
     pages = {
         source: Path("docs")
         / source.relative_to(ROOT / "docs").parent
-        / ("" if source.name == "README.md" else source.stem)
+        / ("" if source.name in {"README.md", "index.md"} else source.stem)
         / "index.html"
         for source in sources
     }
     rendered = {source: _doc_body(source, pages) for source in sources}
     menu = [
-        source for source in sources if source.parent == ROOT / "docs" or source == ROOT / "docs/decisions/README.md"
+        source for source in sources if source.parent == ROOT / "docs" or source == ROOT / "docs/decisions/index.md"
     ]
     for source, destination in pages.items():
         body, title = rendered[source]

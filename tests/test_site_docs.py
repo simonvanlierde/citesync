@@ -82,6 +82,8 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
 def test_all_documentation_links_and_anchors_resolve(tmp_path: Path):
     (tmp_path / "index.html").write_text((ROOT / "playground/index.html").read_text())
     builder._docs(tmp_path, "assets/test")
+    assert (tmp_path / "docs/decisions/index.html").is_file()
+    assert not (tmp_path / "docs/decisions/0000-template/index.html").exists()
     pages = {path: Links(path.read_text()) for path in (tmp_path / "docs").rglob("*.html")}
     expected = {path.relative_to(ROOT / "docs") for path in (ROOT / "docs").rglob("*.md")}
     assert len(pages) == len(expected)
