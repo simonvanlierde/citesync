@@ -35,12 +35,12 @@ class Config:
     manifests: tuple[str, ...] | None = None
     write_manifests: tuple[str, ...] = ()
     exports: tuple[str, ...] = ()
-    required_fields: tuple[tuple[str, tuple[str, ...]], ...] = ()
     zenodo_contributor_type: str | None = None
     keywords_case_sensitive: bool = False
     keywords_ignore_separators: bool = False
     ignore: tuple[str, ...] = ()
     origin: str = "defaults"
+    required_fields: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 # Config tables inside manifests, in the order docs/config.md lists them: (file, mapping path, origin).
