@@ -42,7 +42,8 @@ Names and keywords compare case-insensitively. Titles and descriptions compare a
 - `keywords-case-sensitive = true` compares keywords by case too.
 - `keywords-ignore-separators = true` treats `big-data`, `big_data` and `big data` as equal. Without it, the finding names such a keyword as a near miss, and write gives it the source's spelling.
 
-A [dataset file](formats.md#dataset-files) is compared like a citation file, on every field it holds. Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords. They aren't compared on name or description. npm's and Quarto's one `author` is compared with the first author, and an `author` list there, in package.json or a Quarto `_extension.yml`, makes the file `unreadable`.
+A [dataset file](formats.md#dataset-files) is compared like a citation file, on every field it holds.
+When `dataset-license` is configured, dataset CodeMeta, RO-Crate and Croissant use that licence instead of the software source's. Manifests are compared on version, authors' names (and npm contributors' names), licence, repository URL and keywords. They aren't compared on name or description. npm's and Quarto's one `author` is compared with the first author, and an `author` list there, in package.json or a Quarto `_extension.yml`, makes the file `unreadable`.
 
 ## Findings and exit codes
 

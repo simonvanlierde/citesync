@@ -159,7 +159,9 @@ def inside(root: Path, rel: str) -> bool:
     return (root / rel).resolve().is_relative_to(root.resolve())
 
 
-def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors: bool = False) -> Doc:
+def read_doc(
+    root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors: bool = False, fmt: str | None = None
+) -> Doc:
     """Read ``rel`` under ``root`` into its record.
 
     ``keep_empty_contributors`` preserves a Zenodo target's explicit empty contributors
@@ -169,7 +171,7 @@ def read_doc(root: Path, rel: str, mapping: Mapping, *, keep_empty_contributors:
         UnreadableError: when the file resolves outside ``root``, can't be read or parsed, has a format version
             citesync doesn't read, or has a key holding a shape its format doesn't allow.
     """
-    fmt = format_of(rel)
+    fmt = fmt or format_of(rel)
     if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
         raise UnreadableError(rel, "resolves outside the repo root")
     data = load(root / rel, rel)

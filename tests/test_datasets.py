@@ -226,3 +226,26 @@ def test_an_ro_crate_licence_with_a_local_id_is_not_compared(tmp_path: Path, run
     crate["@graph"].append({"@id": "#license", "@type": "CreativeWork", "url": "https://spdx.org/licenses/MIT"})
     code, out, _ = run("check", "--root", str(_repo(tmp_path, "ro-crate-metadata.json", crate)))
     assert code == 0, out
+
+
+@pytest.mark.parametrize("name", MAKERS)
+def test_dataset_release_uses_configured_dataset_licence(name: str, tmp_path: Path, run: "Run") -> None:
+    root = _repo(tmp_path, name, MAKERS[name](license="https://spdx.org/licenses/CC-BY-4.0"))
+    with (root / "citesync.toml").open("a", encoding="utf-8") as config:
+        config.write('dataset-license = "CC-BY-4.0"\nfiles = ["codemeta.json"]\n')
+    code, out, _ = run("write", "--root", str(root))
+    assert code == 0, out
+    assert (
+        json.loads((root / "codemeta.json").read_text(encoding="utf-8"))["license"]
+        == "https://spdx.org/licenses/Apache-2.0"
+    )
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 0, out
+    path = root / "release" / name
+    before = path.read_bytes()
+    data = MAKERS[name](license="https://spdx.org/licenses/Apache-2.0")
+    path.write_text(json.dumps(data), encoding="utf-8")
+    code, out, _ = run("check", "--root", str(root))
+    assert code == 1
+    assert "license-mismatch" in out
+    assert path.read_bytes() != before

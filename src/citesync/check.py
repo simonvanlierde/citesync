@@ -1,7 +1,7 @@
 """Compare the files' records term by term and report what disagrees."""
 
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from citesync import codecs
@@ -10,6 +10,7 @@ from citesync.errors import CheckError, UnreadableError
 from citesync.formats import (
     CITATION_FILES,
     DATASET_FILES,
+    FORMAT_OF,
     MANIFESTS,
     ONE_AUTHOR,
     Doc,
@@ -97,12 +98,51 @@ def discover(root: Path, config: Config) -> list[str]:
                 msg = f"{path}: listed under manifests but missing"
                 raise CheckError(msg)
         paths += config.manifests
+    if (ds := dataset_codemeta_path(root, config)) and (root / ds).is_file():
+        paths.append(ds)
     return list(dict.fromkeys(paths))
+
+
+def dataset_codemeta_path(root: Path, config: Config) -> str | None:
+    """The dataset CodeMeta path, kept distinct from software files and other outputs.
+
+    Raises:
+        CheckError: when the dataset path resolves to another metadata input or output.
+    """
+    path = config.dataset_codemeta
+    if path is None:
+        path = "dataset.codemeta.json" if (root / "dataset.codemeta.json").is_file() else None
+    if path is not None:
+        target = (root / path).resolve()
+        others = (config.source, *FORMAT_OF, *(config.files or ()), *(config.manifests or ()), *config.exports)
+        for other in dict.fromkeys(others):
+            if target == (root / other).resolve():
+                msg = f"dataset-codemeta {path!r} and {other!r} resolve to the same file"
+                raise CheckError(msg)
+    return path
+
+
+def dataset_source(source: Doc, config: Config) -> Doc:
+    """The source with its licence replaced by the configured dataset licence."""
+    if config.dataset_license is None:
+        return source
+    return replace(
+        source,
+        record=source.record | {"license": codecs.license_decode(config.dataset_license) or config.dataset_license},
+        slots=source.slots | {"license"},
+    )
 
 
 def missing(root: Path, config: Config) -> list[str]:
     """The citation files the ``files`` setting lists that don't exist."""
-    return [p for p in config.files or () if not (root / p).is_file()]
+    files = [p for p in config.files or () if not (root / p).is_file()]
+    if (
+        config.dataset_codemeta
+        and not (root / config.dataset_codemeta).is_file()
+        and config.dataset_codemeta not in files
+    ):
+        files.append(config.dataset_codemeta)
+    return files
 
 
 def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], list[Finding]]:
@@ -114,7 +154,9 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
     and a manifest left out a ``manifest-skipped`` one.
     """
     docs, unreadable = [], [Finding(p, None, "file-missing", "listed under files") for p in missing(root, config)]
+    ds = dataset_codemeta_path(root, config)
     for path in discover(root, config):
+        fmt_override = "codemeta" if path == ds else None
         try:
             docs.append(
                 read_doc(
@@ -122,11 +164,12 @@ def read_docs(root: Path, config: Config, mapping: Mapping) -> tuple[list[Doc], 
                     path,
                     mapping,
                     keep_empty_contributors=config.zenodo_contributor_type is not None and path != config.source,
+                    fmt=fmt_override,
                 )
             )
         except UnreadableError as err:
             unreadable.append(Finding(err.path, None, "unreadable", err.message, err.line, err.column))
-            fmt = format_of(path)
+            fmt = fmt_override or format_of(path)
             docs.append(Doc(path, fmt, {}, slots(fmt, mapping), None, release=True, readable=False))
     if config.manifests is None:  # a manifest named in config, or the source, is checked whatever it is
         kept = [d for d in docs if d.release or d.is_citation or d.path == config.source]
@@ -151,11 +194,18 @@ def check(root: Path, config: Config) -> tuple[list[Finding], int, list[str]]:
     docs, read = read_docs(root, config, mapping)
     required, additional = required_findings(root, docs, config, mapping)
     extra = [*read, *required, *version_behind_tag(docs[0], git_tags(root))]
+    ds_path = dataset_codemeta_path(root, config)
     if config.exports:
         from citesync.export import stale  # noqa: PLC0415
 
-        extra += stale(root, docs, config)
-    found, unused = findings(docs, extra, config)
+        extra += stale(root, [d for d in docs if d.path != ds_path], config)
+    found, unused = findings(
+        docs,
+        extra,
+        config,
+        dataset_path=ds_path,
+        dataset_doc=dataset_source(docs[0], config) if ds_path else docs[0],
+    )
     if any(f.file and f.term for f in found):  # a check with nothing to point at reads no file twice
         from citesync.positions import place  # noqa: PLC0415
 
@@ -177,7 +227,12 @@ def required_findings(root: Path, docs: list[Doc], config: Config, mapping: Mapp
                 continue
             additional += 1
             try:
-                doc = read_doc(root, path, mapping)
+                doc = read_doc(
+                    root,
+                    path,
+                    mapping,
+                    fmt="codemeta" if path in {config.dataset_codemeta, "dataset.codemeta.json"} else None,
+                )
             except UnreadableError as err:
                 found.append(Finding(err.path, None, "unreadable", err.message, err.line, err.column))
                 continue
@@ -238,7 +293,14 @@ def version_behind_tag(source: Doc, tags: list[str]) -> list[Finding]:
     return [Finding(source.path, "version", "version-behind-tag", f"{version}, the newest tag is {newest}")]
 
 
-def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set[Finding], list[str]]:
+def findings(
+    docs: list[Doc],
+    extra: list[Finding],
+    config: Config,
+    *,
+    dataset_path: str | None = None,
+    dataset_doc: Doc | None = None,
+) -> tuple[set[Finding], list[str]]:
     """The findings for ``docs`` and ``extra`` less the rules ``ignore`` lists, and the entries that matched none.
 
     ``docs`` (the source first) and ``extra`` are as :func:`read_docs` gives them. :func:`check` adds
@@ -267,7 +329,15 @@ def findings(docs: list[Doc], extra: list[Finding], config: Config) -> tuple[set
         elif not any(term in d.record for d in docs):
             found.add(Finding(None, term, "not-checked", "no file holds a value"))
             continue
-        found.update(compare_term(term, docs, kw_key=keyword_key(config)))
+        found.update(
+            compare_term(
+                term,
+                docs,
+                kw_key=keyword_key(config),
+                dataset_path=dataset_path or config.dataset_codemeta,
+                dataset_doc=dataset_doc,
+            )
+        )
     unused = [rule for rule in config.ignore if not any(f.rule == rule for f in found)]
     return {f for f in found if f.rule not in config.ignore}, unused
 
@@ -283,7 +353,14 @@ def has_slot(doc: Doc, term: str) -> bool:
     return term in doc.slots and (doc.is_citation or term not in {"name", "description"})
 
 
-def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) -> Iterable[Finding]:
+def compare_term(
+    term: str,
+    docs: list[Doc],
+    *,
+    kw_key: Callable[[str], str],
+    dataset_path: str | None = None,
+    dataset_doc: Doc | None = None,
+) -> Iterable[Finding]:
     """Compare ``term`` in ``docs[1:]`` with the source ``docs[0]``.
 
     When the source has no slot or no value for it (docs/check.md), the other files that hold
@@ -292,6 +369,12 @@ def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) ->
     keywords of the rest compared that way, since a subset of one isn't a subset of all.
     """
     source, others = docs[0], [d for d in docs[1:] if term in d.record]
+    if term == "license" and dataset_path and dataset_doc is not None:
+        ds = [d for d in others if d.path == dataset_path or d.format in DATASETS]
+        others = [d for d in others if not (d.path == dataset_path or d.format in DATASETS)]
+        ds_found = [compare(term, dataset_doc, d, kw_key=kw_key) for d in ds] if "license" in dataset_doc.record else []
+    else:
+        ds_found = []
     if has_slot(source, term) and term in source.record:
         found = [compare(term, source, doc, kw_key=kw_key) for doc in others]
         if term in PEOPLE and f"{term}.@id" not in source.slots:
@@ -300,7 +383,7 @@ def compare_term(term: str, docs: list[Doc], *, kw_key: Callable[[str], str]) ->
             found += _between(term, others, kw_key=kw_key)
     else:
         found = _between(term, others, kw_key=kw_key)
-    return [f for f in found if f]
+    return [f for f in (*found, *ds_found) if f]
 
 
 def _between(

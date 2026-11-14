@@ -129,6 +129,8 @@ def _parser() -> argparse.ArgumentParser:
         help="repo root (default: the nearest directory up with a citation file or config, else the git repo's top)",
     )
     root.add_argument("--source", help="the file the others must agree with; overrides config")
+    root.add_argument("--dataset-codemeta", help="path to the dataset CodeMeta file; overrides config")
+    root.add_argument("--dataset-license", help="dataset licence (SPDX id, expression, or URL); overrides config")
     report = _Parser(add_help=False, parents=[root])
     report.add_argument(
         "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
@@ -234,7 +236,12 @@ def _run(args: argparse.Namespace) -> int:
     if args.command in {"rules", "explain"}:
         return _rules(args)
     args.root = args.root or find_root(Path.cwd())
-    config = load_config(args.root, args.source)
+    config = load_config(
+        args.root,
+        args.source,
+        dataset_codemeta=args.dataset_codemeta,
+        dataset_license=args.dataset_license,
+    )
     if args.command == "config":
         print(f"# root: {args.root}\n{render(config)}")
         return 0

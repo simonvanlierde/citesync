@@ -2,7 +2,8 @@
 # Mutant numbers shift when their function changes: rerun and recheck each line then.
 citesync.check.xǁFindingǁsort_key__mutmut_3  every finding with no file gets the same stand-in, and they already sort last
 citesync.check.xǁFindingǁsort_key__mutmut_5  only unreadable has no term, and a file has at most one, so its stand-in is never compared
-citesync.check.x_compare_term__mutmut_28  authors compare with orcid_only=True, where kw_key is not read
+citesync.check.x_compare_term__mutmut_26  licence comparison never reads kw_key
+citesync.check.x_compare_term__mutmut_58  authors compare with orcid_only=True, where kw_key is not read
 citesync.check.x__same_people__mutmut_16  zip's strict=None is falsy, the same as False
 citesync.check.x__same_people__mutmut_19  zip's strict defaults to False
 citesync.check.x_git_tags__mutmut_12  encoding=None reads the locale's encoding, UTF-8 wherever the tests run, and git files are ASCII
