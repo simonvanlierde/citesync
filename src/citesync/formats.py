@@ -108,6 +108,7 @@ class Doc:
         record: Term to normalised value; a term with no value is left out.
         slots: Terms and person sub-terms the format has a place for (a non-null mapping path).
         version: The detected format version (CFF and codemeta only).
+        is_dataset: Whether CodeMeta declares the JSON-LD Dataset type.
         release: False for a manifest that isn't released: a pyproject.toml with no
             ``[build-system]``, a private package.json.
         readable: False for a file citesync couldn't read, whose record is empty.
@@ -131,6 +132,7 @@ class Doc:
     import_notes: tuple[tuple[str, str], ...] = ()
     stray_terms: tuple[tuple[str, str, str], ...] = ()
     unusable: tuple[str, ...] = ()
+    is_dataset: bool = False
 
     @property
     def is_citation(self) -> bool:
@@ -175,6 +177,12 @@ def read_doc(
     if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
         raise UnreadableError(rel, "resolves outside the repo root")
     data = load(root / rel, rel)
+    types = data.get(codemeta_type_key(data))
+    is_dataset = fmt == "codemeta" and any(
+        isinstance(kind, str)
+        and kind in {"Dataset", "schema:Dataset", "http://schema.org/Dataset", "https://schema.org/Dataset"}
+        for kind in (types if isinstance(types, list) else [types])
+    )
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
     stray = stray_terms(data, version) if fmt == "codemeta" and version else ()
@@ -210,7 +218,24 @@ def read_doc(
         zenodo_gaps=gaps,
         import_notes=tuple(data.get("_import_notes", ())) if PurePosixPath(rel).name in IMPORTS else (),
         unusable=tuple(unusable),
+        is_dataset=is_dataset,
     )
+
+
+def codemeta_type_key(data: dict[str, Any]) -> str:
+    """The root JSON-LD type key, respecting an inline override of CodeMeta's ``type`` alias."""
+    context = data.get("@context")
+    alias: object = "@type"
+    for item in context if isinstance(context, list) else [context]:
+        if item is None:
+            alias = None
+        elif codemeta_version(item):
+            alias = "@type"
+        elif isinstance(item, dict) and "type" in item:
+            alias = item["type"]
+    if isinstance(alias, dict):
+        alias = alias.get("@id")
+    return "type" if "@type" not in data and "type" in data and alias == "@type" else "@type"
 
 
 def zenodo_gaps(cff: dict[str, Any]) -> tuple[tuple[str, str], ...]:

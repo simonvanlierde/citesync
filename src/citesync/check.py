@@ -313,6 +313,12 @@ def findings(
     """
     found: set[Finding] = set(extra)
     source = docs[0]
+    dataset_path = dataset_path or config.dataset_codemeta
+    found.update(
+        Finding(doc.path, "@type", "dataset-type-mismatch", "expected Dataset")
+        for doc in docs
+        if doc.path == dataset_path and doc.readable and not doc.is_dataset
+    )
     for doc in docs:
         configured = config.codemeta_version
         if configured and doc.readable and doc.is_citation and doc.format == "codemeta" and doc.version != configured:
@@ -339,7 +345,7 @@ def findings(
                 term,
                 docs,
                 kw_key=keyword_key(config),
-                dataset_path=dataset_path or config.dataset_codemeta,
+                dataset_path=dataset_path,
                 dataset_doc=dataset_doc,
             )
         )

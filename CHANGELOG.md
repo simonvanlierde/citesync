@@ -14,6 +14,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Existing dataset CodeMeta files now have their Dataset resource type checked and repaired by `write` ([configuration](docs/config.md)).
+
 - Software citation exports no longer inherit a dataset's licence or other fields when the software source lacks them. [Dataset files](docs/formats.md#dataset-files) supply export values only when explicitly selected as the source.
 
 ## [0.5.0] - 2026-11-10

@@ -110,6 +110,14 @@ A manifest's keywords must all be in the citation file's, whichever of the two i
 
 To fix: Add the keyword to the citation file, or remove it from the manifest.
 
+## dataset-type-mismatch
+
+The dataset CodeMeta file does not declare the Dataset type. Severity: error.
+
+The configured or discovered dataset CodeMeta file must declare Dataset in its JSON-LD type. The type alias, schema:Dataset, full schema.org IRIs and lists containing Dataset also pass.
+
+To fix: Run citesync write to set the dataset resource type.
+
 ## context-mismatch
 
 codemeta.json's `@context` is not the configured CodeMeta version. Severity: error.

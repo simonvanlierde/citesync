@@ -54,6 +54,7 @@ from citesync.formats import (
     cff_person,
     codemeta_orcid,
     codemeta_person,
+    codemeta_type_key,
     codemeta_version,
     format_of,
     inside,
@@ -70,7 +71,7 @@ from citesync.mapping import DATASETS, PEOPLE, TERMS, Mapping, load_mapping, per
 NEW_CODEMETA_VERSION = "3.0"
 
 
-def write(  # noqa: C901 - preserve each format and create requested citation targets
+def write(  # noqa: C901, PLR0915 - preserve each format and create requested citation targets
     root: Path, config: Config, mapping: Mapping | None = None, *, dry_run: bool = False
 ) -> tuple[dict[str, str], dict[tuple[str, str], str], list[Finding], list[Finding]]:
     """Write every finding write may fix; return what it wrote and skipped, what it couldn't read, and what it fixed.
@@ -120,18 +121,21 @@ def write(  # noqa: C901 - preserve each format and create requested citation ta
             and (doc.is_citation or t in config.write_manifests)
         ]
         context = config.codemeta_version if (doc.path, "@context") in fix else None
-        if not terms and not context:
+        resource_type = "Dataset" if (doc.path, "@type") in fix else None
+        if not terms and not context and not resource_type:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
         bom = "\ufeff" if old.startswith("\ufeff") else ""  # ruamel.yaml drops one, so put it back
         # edited with LF line ends, which the YAML and JSON writers add
         lf = old.removeprefix(bom).replace("\r\n", "\n")
-        new, reasons = _rewrite(doc, ref, terms, lf, mapping, context, key, config.zenodo_contributor_type)
+        new, reasons = _rewrite(
+            doc, ref, terms, lf, mapping, context, key, config.zenodo_contributor_type, resource_type
+        )
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != lf:
             crlf = old.count("\r\n") * 2 > old.count("\n")  # a file with both gets the more common one
             texts[doc.path] = bom + (new.replace("\n", "\r\n") if crlf else new)
-            changed = [*terms, "@context"] if context else terms
+            changed = [*terms, *(["@context"] if context else []), *(["@type"] if resource_type else [])]
             done |= {(doc.path, t) for t in changed if t not in reasons}
     version = config.codemeta_version or NEW_CODEMETA_VERSION
     for rel in missing(root, config) if source.readable else ():
@@ -378,6 +382,7 @@ def _rewrite(
     context: str | None,
     keyword_key: Callable[[str], str],
     zenodo_contributor_type: str | None,
+    resource_type: str | None,
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
     if doc.format in {"cff-1.2.0", "quarto"}:
@@ -394,6 +399,10 @@ def _rewrite(
         return tomlkit.dumps(data), skipped
     old = json.loads(text)
     data = copy.deepcopy(old)
+    if resource_type:
+        type_key = codemeta_type_key(data)
+        old_types = data.get(type_key)
+        data[type_key] = [*old_types, resource_type] if isinstance(old_types, list) else resource_type
     skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
     return splice(text, old, data), skipped
 
