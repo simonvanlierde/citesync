@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The playground's **Field lookup** searches the pinned CodeMeta mappings across six metadata formats, including fields those formats cannot represent ([playground](playground/README.md)).
 - Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
 
 ## [0.5.0] - 2026-11-10

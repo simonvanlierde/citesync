@@ -62,11 +62,28 @@ def main() -> None:
         ],
     }
     (OUTPUT / "runtime.json").write_text(json.dumps(manifest) + "\n")
+    package = ROOT / "src" / "citesync"
+    pin = dict(
+        line.split(maxsplit=1)
+        for line in (package / "MAPPING_SOURCE").read_text().splitlines()
+        if line.startswith(("tag ", "commit "))
+    )
+    mapping = json.loads((package / "mapping-local.json").read_text())
+    (OUTPUT / "lookup.json").write_text(json.dumps({"rows": mapping["rows"], **pin}) + "\n")
     _site(manifest)
 
 
 def _site(manifest: dict[str, object]) -> None:
-    assets = ("style.css", "main.mjs", "detect.mjs", "picker.mjs", "worker.mjs", "runtime.json")
+    assets = (
+        "style.css",
+        "main.mjs",
+        "detect.mjs",
+        "picker.mjs",
+        "lookup.mjs",
+        "lookup.json",
+        "worker.mjs",
+        "runtime.json",
+    )
     digest = hashlib.sha256(json.dumps(manifest).encode())
     for name in assets:
         digest.update((OUTPUT / name).read_bytes())

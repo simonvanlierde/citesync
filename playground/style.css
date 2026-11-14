@@ -660,3 +660,26 @@ textarea[aria-invalid="true"] {
 #names-right {
   margin-top: 16px;
 }
+
+#lookup-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px 32px;
+}
+#lookup-results section {
+  min-width: 0;
+  border-top: 1px solid var(--line);
+}
+#lookup-results h3 {
+  font-size: 17px;
+  font-weight: normal;
+  margin: 12px 0;
+}
+#lookup-results dt {
+  margin-top: 12px;
+}
+#lookup-results dd {
+  margin-left: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}

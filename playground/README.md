@@ -30,6 +30,8 @@ Conversion notes show omitted values, warnings and errors, with remedies where a
 
 Field examples remain visible while typing. Version and SPDX help uses native disclosures and official reference links, accessible by keyboard and touch. Validation guidance shares the amber note style; copying and loading keep neutral feedback.
 
+Open **Field lookup** to search CodeMeta terms and field paths across CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml and package.json. Each card shows the pinned codemeta-drift mapping, including fields with no representation. The source link identifies the pinned release and commit. Lookup works independently of the Python converter. A mapped path does not mean citesync writes that field; see [supported files](../docs/formats.md) for write limits.
+
 The repository-use section provides copyable CLI commands, a pre-commit/prek hook and GitHub Actions steps, each with a labelled copy icon in its code block. The checks require committed citation files and fail on disagreement; they do not rewrite files.
 
 ## Check

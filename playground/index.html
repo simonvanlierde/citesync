@@ -64,6 +64,17 @@
 <details id="details-notes" hidden><summary>What changed or could not be converted</summary><ul id="notes"></ul></details>
 </section>
 </div>
+<details id="field-lookup">
+<summary>Field lookup</summary>
+<p>Find where a CodeMeta term appears in six metadata formats. Paths come from the pinned mapping; they do not promise that every field can be written.</p>
+<label for="field-search">Find a field</label>
+<p class="hint field-hint" id="field-search-hint">Search a term or path, such as name, title, author or doi.</p>
+<input type="search" id="field-search" aria-describedby="field-search-hint" autocomplete="off" spellcheck="false">
+<p id="lookup-status" role="status"></p>
+<button type="button" id="lookup-retry" hidden>Retry field lookup</button>
+<div id="lookup-results"></div>
+<p><a id="lookup-source" hidden></a></p>
+</details>
 <section class="use" aria-labelledby="use-title">
 <h2 id="use-title">Use citesync in your repository</h2>
 <p>Keep citation files in sync as your project changes.</p>

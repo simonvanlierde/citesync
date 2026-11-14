@@ -1,5 +1,8 @@
 import { detectFormats } from "./detect.mjs";
+import { fieldLookup } from "./lookup.mjs";
 import { byName, picker } from "./picker.mjs";
+
+fieldLookup();
 
 const $ = (selector) => document.querySelector(selector);
 let mode = "file";
