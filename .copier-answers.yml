@@ -1,28 +1,30 @@
 # Managed by copier. Do not edit by hand. Run: copier update
-_commit: v0.11.0-15-g406e3a0
+_commit: v0.15.0
 _src_path: gh:simonvanlierde/project-templates
 author_email: code@duinlab.nl
 author_name: Simon van Lierde
 author_orcid: 0009-0006-6953-909X
-codecov: false
-codspeed: false
 copyright_year: '2026'
 customise: false
+decision_records: false
 dependency_bot: renovate
+extras: []
 github_user: simonvanlierde
-kind: library
+level: minimal
 license: Apache-2.0
 module_name: citesync
-openssf_badge: none
-project_description: 'Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks'
+project_description: Check that CITATION.cff, codemeta.json, .zenodo.json and the
+    package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite
+    them to match one source file, using the CodeMeta crosswalks
 project_name: citesync
 public: true
 publish_to_pypi: true
+python_api: true
 python_dir: .
+python_kind: library
 python_layout: src
 python_min: '3.13'
 python_version: '3.14'
+site: none
 stacks:
 - python
-status: experimental
-test_extras: []

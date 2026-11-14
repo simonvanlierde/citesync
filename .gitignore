@@ -11,13 +11,23 @@
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+# pnpm settings live in pnpm-workspace.yaml, so an .npmrc here would hold a registry token.
+.npmrc
+
+# The rumdl hook's cache. An older rumdl left it without an ignore file of its own,
+# and Biome then formats its JSON.
+.rumdl_cache/
+
+# Build output
+build/
+dist/
 
 # Python
 __pycache__/
 *.py[cod]
 .venv/
-build/
-dist/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
@@ -25,7 +35,6 @@ dist/
 htmlcov/
 .coverage
 coverage.xml
-
 # Node
 node_modules/
 .pnpm-store/
