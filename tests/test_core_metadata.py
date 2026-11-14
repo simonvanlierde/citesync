@@ -82,6 +82,15 @@ def test_legacy_licence_is_not_invented_as_spdx(tmp_path: Path) -> None:
         lambda s: s.replace("License-Expression: Apache-2.0", "License-Expression: invented licence"),
         lambda s: s.replace("Summary:", "broken line\nSummary:"),
     ],
+    ids=[
+        "missing-name",
+        "missing-version",
+        "unsupported-metadata-version",
+        "duplicate-name",
+        "duplicate-repository-url",
+        "invalid-license-expression",
+        "malformed-header-line",
+    ],
 )
 def test_malformed_or_ambiguous_metadata_is_actionable(change: Callable[[str], str], tmp_path: Path) -> None:
     path = tmp_path / "METADATA"
