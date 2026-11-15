@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 
-DOCS_URL = "https://github.com/simonvanlierde/citesync/blob/main/docs/rules.md"
+DOCS_URL = "https://simonvanlierde.com/citesync/docs/rules/"
 
 
 def url(rule: str) -> str:

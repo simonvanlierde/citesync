@@ -1,13 +1,20 @@
 # Documentation
 
-Generate citation files in the [playground](https://simonvanlierde.com/citesync/), or use citesync in a repository to keep its metadata in step.
+citesync keeps software citation files in step with the metadata in your repository. Use the command line for repeatable checks, or generate files in the [browser playground](https://simonvanlierde.com/citesync/) without installing Python.
+
+## Start here
+
+- [Install citesync](getting-started.md), then run `citesync check` in your repository.
+- [Create a CITATION.cff](init.md) from package metadata when you do not have one yet.
+- [Use the playground](../playground/README.md) to paste a file or enter project details, review the results and download citation files.
 
 ## Work with a repository
 
-- [Set up the command line or a pre-commit hook](../README.md#usage).
-- [Create a CITATION.cff](init.md) from existing package metadata.
-- [Check that files agree](check.md), including required-field checks.
-- [Update citation files](write.md) and selected package metadata.
+- [Check that files agree](check.md) and understand findings and exit codes.
+- [Update citation files](write.md) while preserving comments and unmapped metadata.
+- [Require selected fields](config.md#require-values-in-selected-files), such as authors, licences or a release DOI.
+- [Keep software and dataset metadata separate](datasets.md), including their licences.
+- [Set up a pre-commit hook](../README.md#pre-commit-hook) to catch metadata drift before committing.
 - [Export citations](export.md) for publications, websites and reference managers.
 - [Cite software with Pandoc or Quarto](pandoc.md).
 
@@ -21,5 +28,8 @@ Generate citation files in the [playground](https://simonvanlierde.com/citesync/
 
 ## About the project
 
+- [Release notes](../CHANGELOG.md).
+- [Roadmap](roadmap.md).
 - [Tests on real repositories](tested-repositories.md).
 - [Design decisions](decisions/index.md).
+- [Contributing](../.github/CONTRIBUTING.md).

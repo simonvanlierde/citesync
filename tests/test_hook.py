@@ -19,6 +19,7 @@ NAMES = [
     ".citesync.toml",
     *DEFAULT_NAMES.values(),
     "lensgrind.bib",
+    "dataset.codemeta.json",
 ]
 
 

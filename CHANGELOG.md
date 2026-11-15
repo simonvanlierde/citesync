@@ -7,14 +7,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-14
+
 ### Added
 
-- The [website](https://simonvanlierde.com/citesync/docs/) includes the existing guides and reference beside the playground, with shared navigation and pages that work without JavaScript.
+- The [documentation website](https://simonvanlierde.com/citesync/docs/) includes installation, playground guides and reference pages beside the playground. Search the full documentation without leaving the website; guides remain readable without JavaScript.
 - The playground's **Field lookup** searches the pinned CodeMeta mappings across six metadata formats, including fields those formats cannot represent ([playground](playground/README.md)).
+- Shared website links show a social card with an example of package metadata converted to CITATION.cff.
 - Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
 - `dataset-codemeta` and `dataset-license` (plus `--dataset-codemeta` and `--dataset-license`) write and check a dataset CodeMeta file (`@type: Dataset`, defaulting to `dataset.codemeta.json`) for `sourceledger release --codemeta`, keeping code and dataset licences separate, including RO-Crate and Croissant checks and optional required-field checks ([configuration](docs/config.md)).
 
+### Changed
+
+- On the same v0.5.0 metadata, `check` averaged 60.2 ms versus 61.5 ms in 0.5.0 (about 2% lower). Both used Python 3.14.4 with JIT disabled and 30 runs after three warm-ups; shared-host variation exceeds the difference.
+
 ### Fixed
+
+- Both pre-commit hooks now recognize `dataset.codemeta.json`, including nested paths. For custom names, use `always_run: true` ([hook setup](README.md#usage)).
+
+- CLI help and finding links open the on-site documentation.
 
 - Existing dataset CodeMeta files now have their Dataset resource type checked and repaired by `write` ([configuration](docs/config.md)).
 
@@ -196,7 +207,8 @@ To upgrade from 0.1.0:
 - `citesync write`: rewrites the citation files that disagree with the source, and the manifest fields listed in `write-manifests`, keeping comments, key order, formatting and CRLF line ends, and writing through symlinks. Fields a file leaves out stay out. A value a file can't hold without losing something is left for you, with the reason: a compound licence in .zenodo.json, an `AND` licence in CITATION.cff or codemeta.json, a version semver can't spell in Cargo.toml or package.json, a version that isn't PEP 440 in pyproject.toml, or a renamed author whose old entry holds an email or affiliation. It reports the findings left as `check` does, each saying what to do, and never writes an ignored finding or an unreadable file. Exit 0 when the files agree afterwards, 1 when an error finding remains, 2 when it couldn't run and wrote nothing.
 - `citesync write --diff` prints the edits write would make as a unified diff and writes nothing. Exit 0 when there is nothing to change, 1 when there is or when a file can't be read (listed on stderr), as `ruff format --diff` does.
 
-[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/simonvanlierde/citesync/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/simonvanlierde/citesync/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/simonvanlierde/citesync/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/simonvanlierde/citesync/compare/v0.2.0...v0.3.0

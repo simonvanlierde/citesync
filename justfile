@@ -193,9 +193,6 @@ repo-settings:
         if ! echo "$policies" | grep -qxF 'v*'; then
             gh api -X POST "repos/{owner}/{repo}/environments/$env/deployment-branch-policies" -f name="v*" -f type="tag" >/dev/null 2>"$err" || fail
         fi
-        if [ "$env" = "ghcr" ] && ! echo "$policies" | grep -qxF 'main'; then
-            gh api -X POST "repos/{owner}/{repo}/environments/$env/deployment-branch-policies" -f name="main" -f type="branch" >/dev/null 2>"$err" || fail
-        fi
         echo "Configured environment '$env'."
     done
     repo_full_name=$(gh api repos/{owner}/{repo} --jq .full_name 2>"$err") || fail

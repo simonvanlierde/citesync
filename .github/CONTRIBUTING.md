@@ -30,9 +30,9 @@ Add automated tests for new functionality and regression tests for fixes.
 Run a regression test before the fix and check that it fails for the reported reason.
 Fix every lint and type warning, or suppress it with a stated reason.
 
-uv locks only releases at least a week old. If `just check` fails on
-a security fix newer than that, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`,
-and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
+uv locks only releases at least a week old. For a newer security fix, pin its source
+archive at an exact commit, then return to the registry version after a week
+([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 
 ## Profile
 
@@ -48,7 +48,7 @@ machines vary too much to fail a build on.
 ## When you change a compared field
 
 1. Change its comparison and message in `src/citesync/rules.py`. Keep normalisation detail only there.
-2. Change its row in `src/citesync/mapping-local.json` if where the field sits in a file changes.
+2. If the field location changes, update its row in codemeta-drift first, then pin the exported mapping here. Keep value conversions such as name splitting in citesync.
 3. Update the fixtures: `uv run pytest --update-expected` rewrites the expected `cases.json` and `record.json` from actual output. Read the git diff before you commit. [tests/fixtures/README.md](../tests/fixtures/README.md) says how the files are made.
 4. Update the docs. `docs/config.md` lists the fields, and `tests/test_docs.py` fails if one is missing there.
 5. Run `just mutation`, as the README describes.

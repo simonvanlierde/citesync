@@ -1,22 +1,18 @@
 # Generate citation files in the browser
 
-The playground accepts one existing metadata file or a form with project details and authors. It uses the Python engine from this checkout through Pyodide 314.0.7 in a worker. Python dependencies come from `uv.lock`, with artifact hashes checked during the build and again when loading. There is no separate JavaScript converter.
+[Open the playground](https://simonvanlierde.com/citesync/) to generate citation files from one metadata file or a form with project details and authors. You do not need Python installed. Your files stay in browser memory; they are not uploaded or saved between visits. Downloading the converter requires a network connection.
 
-## Run locally
-
-```sh
-uv sync --locked
-pnpm install --frozen-lockfile
-just playground
-```
-
-Open <http://127.0.0.1:8468>. This serves the same `site/` bundle that is deployed, with the playground at the root and documentation under `docs/`. The page prepares Pyodide from jsDelivr in the background, downloading the converter packages concurrently. Loading feedback changes when the downloads and Python initialization finish and package setup begins; it does not estimate a percentage or completion time. The site serves the current citesync wheel and its dependencies. A network connection is required; offline operation is not promised.
+## Paste a file or enter project details
 
 Paste or open CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml, package.json, PKG-INFO, METADATA, R DESCRIPTION or Julia Project.toml/JuliaProject.toml. Pasted content is detected automatically; use the filename selector to override an uncertain result. Both file selectors group their files and sort them by name, and you can type in them to filter, by filename or by group (`python`, `bibtex`). An opened file with a recognised filename uses that filename. Other text files are detected from their contents. Try an example follows the selected format; in automatic mode it uses the recognised format, or pyproject.toml for an empty or ambiguous input. While the example is unchanged, choosing another input format switches the example too. Editing or opening a real file ends that behaviour. Each request reads only that file, ignores its embedded citesync settings and uses a temporary repository in browser memory. It does not execute package code or fetch metadata from repository links. Inputs are limited to 1 MB.
 
 Switching entry methods transfers project metadata. An unchanged file draft keeps its original text and format. Editing details creates a CodeMeta working copy for the file view, retaining extra CodeMeta fields, author identifiers, affiliations and Role objects. Other formats are projected through the engine: formatting and unmapped fields from CFF or package manifests are not represented in the CodeMeta form. Keep the original file when those matter. Partial drafts transfer too. Invalid file syntax cannot populate the form; the original file and any previous details remain available, with a notice. Failed or superseded transfers cannot overwrite a newer edit. Unchanged uploaded CFF files retain their original line endings until edited.
 
+## Review author names
+
 The form accepts multiple authors with explicit given and family names. Imported one-string names can be edited in an optional Author names disclosure. It opens for potentially ambiguous cases: single or multiple words, initials, punctuation, and East Asian scripts. **Names look right**, or closing the disclosure, keeps it closed until the imported names change. Corrections stay while you edit the source, as long as the imported names are the same. Two-word names can still have a different order; this is a prompt, not a confidence score. Downloads do not require a confirmation checkbox. Corrections update the preview automatically. Editing the source or switching entry methods disables old downloads immediately, then refreshes after a 100 ms typing pause. Updates keep keyboard focus in the field being edited. Entry-method tabs use arrow keys to move focus and Enter or Space to open a view; snippet tabs update immediately. Drafts remain on the page after an error.
+
+## Copy or download the results
 
 The playground creates CITATION.cff, codemeta.json and .zenodo.json. Existing metadata is updated where the engine supports it. Conversion notes report fields a destination cannot carry. The preview preserves source metadata where the engine does, including CodeMeta Role objects; it does not invent unavailable values. Zenodo output is metadata for review, not a submission to Zenodo.
 
@@ -30,9 +26,25 @@ Conversion notes show omitted values, warnings and errors, with remedies where a
 
 Field examples remain visible while typing. Version and SPDX help uses native disclosures and official reference links, accessible by keyboard and touch. Validation guidance shares the amber note style; copying and loading keep neutral feedback.
 
+## Look up a field
+
 Open **Field lookup** to search CodeMeta terms and field paths across CITATION.cff, codemeta.json, .zenodo.json, pyproject.toml, Cargo.toml and package.json. Each card shows the pinned codemeta-drift mapping, including fields with no representation. The source link identifies the pinned release and commit. Lookup works independently of the Python converter. A mapped path does not mean citesync writes that field; see [supported files](../docs/formats.md) for write limits.
 
+## Use citesync in a repository
+
 The repository-use section provides copyable CLI commands, a pre-commit/prek hook and GitHub Actions steps, each with a labelled copy icon in its code block. The checks require committed citation files and fail on disagreement; they do not rewrite files.
+
+## Run locally
+
+```sh
+uv sync --locked
+pnpm install --frozen-lockfile
+just playground
+```
+
+Open <http://127.0.0.1:8468>. This serves the same `site/` bundle that is deployed, with the playground at the root and documentation under `docs/`.
+
+The playground uses the Python engine from this checkout through Pyodide 314.0.7 in a worker. Python dependencies come from `uv.lock`, with artifact hashes checked during the build and again when loading. There is no separate JavaScript converter. The page prepares Pyodide from jsDelivr in the background, downloading converter packages concurrently. Loading feedback follows download, initialization and package setup stages; it does not estimate completion time. Offline operation is not promised.
 
 ## Check
 
@@ -53,6 +65,6 @@ Search and sharing metadata are in the initial HTML: a descriptive title, format
 
 The build also writes `site/`, with content-versioned JavaScript, styles, worker and wheel URLs. This keeps cached assets from different deployments together. The public runtime manifest and wheels use normal HTTP caching; citation drafts are never cached. CI runs the browser tests against that deployment bundle.
 
-The same build renders the Markdown files in `docs/` under `site/docs/`. Edit those source files to update the published guides. Documentation and the playground share navigation, typography and colours. Relative guide links and heading anchors stay on the website; links to repository files open their GitHub source. Documentation needs no JavaScript or Python runtime in the browser.
+The same build renders the Markdown files in `docs/` and their linked repository guides under `site/docs/`. Edit those source files to update the published guides. Documentation and the playground share navigation, typography and colours. Guide links and heading anchors stay on the website. Full-text search uses a same-site index in the browser, independently of the Python converter. Reading and browsing guides still work without JavaScript.
 
 The page has no upload endpoint, analytics or draft storage. A visitor's files stay in memory and disappear on reload. Runtime downloads contact jsDelivr; project links navigate to GitHub. The local server is for development, not public hosting.

@@ -54,6 +54,8 @@ For example, `identifier` requires a DOI that citesync can decode; an arbitrary 
 Requiring `author` means at least one decoded person or organization, not an ORCID for every author.
 Review dates, authors, licences and identifiers before adding them by hand.
 
+For a complete workflow, see [keep software and dataset metadata separate](datasets.md).
+
 ## Other settings
 
 `write-manifests` takes the fields a manifest holds, by their CodeMeta term: `version`, `author`, `contributor`, `license`, `codeRepository` and `keywords`. `"all"` means those six. This is the `term` in the JSON output. Rule ids use the plainer `repository`, but `write-manifests` takes only the term, and says which one to use. Write never changes the other compared fields, `name`, `description`, `identifier` (the DOI), `swhid` (the Software Heritage identifier) and `datePublished`, in a manifest.

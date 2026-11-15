@@ -10,7 +10,7 @@
 
 Status: experimental. It may change in ways that break your code, without notice.
 
-Questions and bugs: see [CONTRIBUTING.md](https://github.com/simonvanlierde/citesync/blob/main/.github/CONTRIBUTING.md).
+Questions and bugs: see [contributing guide](.github/CONTRIBUTING.md).
 
 Generate software citation files from package metadata, then keep them in sync across CITATION.cff, codemeta.json, .zenodo.json and package manifests, including [Typst and Quarto plugin manifests](docs/formats.md#plugin-manifests). Use the CLI, a pre-commit hook or the [browser playground](https://simonvanlierde.com/citesync/). Field mappings come from CodeMeta's crosswalks, as exported by [codemeta-drift](https://github.com/simonvanlierde/codemeta-drift).
 
@@ -54,7 +54,7 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 
 ## Browser playground
 
-Generate citation files from existing metadata or basic project details, without installing Python. [Open the playground](https://simonvanlierde.com/citesync/) or [run it locally](https://github.com/simonvanlierde/citesync/blob/main/playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
+Generate citation files from existing metadata or basic project details, without installing Python. [Open the playground](https://simonvanlierde.com/citesync/) or [read the playground guide](playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
 
 ## Pre-commit hook
 
@@ -63,7 +63,7 @@ For [prek](https://prek.j178.dev) or [pre-commit](https://pre-commit.com), in `.
 ```yaml
 repos:
   - repo: https://github.com/simonvanlierde/citesync
-    rev: v0.5.0
+    rev: v0.6.0
     hooks:
       - id: citesync
       - id: citesync-write
@@ -82,6 +82,8 @@ pnpm exec playwright screenshot --browser=chromium --viewport-size=1200,630 \
 ```
 
 `playground/build.py` copies the card into the built site; the tags are in `playground/index.html`.
+
+For a dataset file with a custom name, set `always_run: true` on each citesync hook. This checks all configured paths on every commit or manual run, even when the default filename filter would skip the changed file.
 
 ## Development
 
@@ -104,7 +106,7 @@ just hooks       # the git hooks, as the checks workflow runs them
 
 `just mutation` mutation-tests the modules `only_mutate` lists under `[tool.mutmut]` in `pyproject.toml`. CI runs it weekly, on Mondays ([`mutation.yml`](.github/workflows/mutation.yml)). It fails when the tests miss a change that `tests/mutation-baseline.txt` doesn't list. A change that can't alter behaviour goes in that file, with the reason. It also fails when the tests now catch a listed change, so drop that line.
 
-uv locks only releases at least a week old. If `just check` fails on a newer security fix, add the package to `exclude-newer-package` under `[tool.uv]` in `pyproject.toml`, and remove it a week later ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
+uv locks only releases at least a week old. For a newer security fix, pin the source archive at an exact commit, then return to the registry version after a week ([how](https://github.com/simonvanlierde/project-templates/blob/main/docs/tooling.md#dependencies)).
 
 ## Licence
 

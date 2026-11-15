@@ -1,6 +1,6 @@
 [project]
 name = "citesync"
-version = "0.5.0"
+version = "0.6.0"
 description = "Generate and synchronize software citation files from package metadata. CLI, pre-commit hook and browser playground."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -33,7 +33,7 @@ Homepage = "https://simonvanlierde.com/citesync/"
 Documentation = "https://simonvanlierde.com/citesync/docs/"
 Source = "https://github.com/simonvanlierde/citesync"
 Issues = "https://github.com/simonvanlierde/citesync/issues"
-Changelog = "https://github.com/simonvanlierde/citesync/blob/main/CHANGELOG.md"
+Changelog = "https://simonvanlierde.com/citesync/docs/changelog/"
 
 [dependency-groups]
 dev = [
@@ -129,7 +129,20 @@ log_level = "INFO"
 source_paths = ["src/citesync"]
 only_mutate = ["src/citesync/check.py", "src/citesync/codecs.py", "src/citesync/write.py", "src/citesync/jsonsplice.py"]
 pytest_add_cli_args_test_selection = ["tests"]
-also_copy = ["docs", ".pre-commit-hooks.yaml"]
+also_copy = [
+    "docs",
+    "playground",
+    "README.md",
+    "CHANGELOG.md",
+    "CITATION.cff",
+    "codemeta.json",
+    ".github",
+    "GOVERNANCE.md",
+    "LICENSE",
+    "committed.toml",
+    ".pre-commit-config.yaml",
+    ".pre-commit-hooks.yaml",
+]
 
 [tool.coverage.run]
 source = ["src"]
