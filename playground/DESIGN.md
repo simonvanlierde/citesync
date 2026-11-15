@@ -29,7 +29,7 @@ Layout and component notes describe the current implementation. Preserve product
 
 ## Colors
 
-The frontmatter records the stylesheet's light palette and its dark replacements. Names without a `dark-` prefix describe light mode. Match each dark replacement to its unprefixed role. The unchanged on-brand and brand-muted colors apply in both themes. Sidecar tonal ramps are derived previews, not implemented theme values.
+The frontmatter records the stylesheet's light palette and its dark replacements. Names without a `dark-` prefix describe light mode. Match each dark replacement to its unprefixed role. The unchanged on-brand and brand-muted colors apply in both themes.
 
 ### Primary
 
