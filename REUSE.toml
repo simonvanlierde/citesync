@@ -15,3 +15,9 @@ SPDX-License-Identifier = "Apache-2.0"
 path = ".github/CODE_OF_CONDUCT.md"
 SPDX-FileCopyrightText = "Organization for Ethical Source"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
+path = "playground/fonts/*.woff2"
+precedence = "override"
+SPDX-FileCopyrightText = "2017 IBM Corp."
+SPDX-License-Identifier = "OFL-1.1"

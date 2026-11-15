@@ -1,7 +1,10 @@
 # Words typos must leave alone. Add your own below.
+[default]
+extend-ignore-re = ['U\+[0-9A-Fa-f?]+(?:-[0-9A-Fa-f?]+)?']
+
 [default.extend-words]
 # NumPy's API spells it this way (`array.flags.writeable`).
 writeable = "writeable"
 WRITEABLE = "WRITEABLE"
 # The in-toto provenance bundle suffix, `<asset>.intoto.jsonl`.
-intoto = "intoto"
+intoto    = "intoto"

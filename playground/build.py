@@ -83,6 +83,12 @@ def main() -> None:
 def _site(manifest: dict[str, object]) -> None:
     assets = (
         "style.css",
+        "fonts/plex-sans-latin.woff2",
+        "fonts/plex-sans-latin-ext.woff2",
+        "fonts/plex-sans-vietnamese.woff2",
+        "fonts/plex-sans-greek.woff2",
+        "fonts/plex-sans-cyrillic.woff2",
+        "fonts/plex-sans-cyrillic-ext.woff2",
         "docs-search.mjs",
         "main.mjs",
         "detect.mjs",
@@ -102,18 +108,19 @@ def _site(manifest: dict[str, object]) -> None:
     target = site / folder
     target.mkdir(parents=True)
     for name in assets:
+        (target / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(OUTPUT / name, target / name)
     shutil.copytree(WHEELS, target / "wheels")
     html = (OUTPUT / "index.html").read_text()
     html = html.replace('"main.mjs"', f'"{folder}/main.mjs"').replace('"style.css"', f'"{folder}/style.css"')
-    html = html.replace('href="https://simonvanlierde.com/citesync/docs/"', 'href="docs/"')
+    html = html.replace('href="https://simonvanlierde.com/citesync/docs/', 'href="docs/')
     # Platforms cache a link preview by image URL, so the card URL carries the PNG's hash.
     card = hashlib.sha256((OUTPUT / "og.png").read_bytes()).hexdigest()[:8]
     html = html.replace('/og.png"', f'/og.png?v={card}"')
     (site / "index.html").write_text(html)
     for name in ("favicon.svg", "og.png"):
         shutil.copyfile(OUTPUT / name, site / name)
-    _docs(site, folder)
+    _docs(site, folder, card)
 
 
 def _doc_target(source: Path, link: str) -> Path | None:
@@ -292,6 +299,7 @@ def _doc_menu(source: Path, pages: dict[Path, Path], rendered: dict[Path, tuple[
                 "../.github/CONTRIBUTING.md",
                 "../CHANGELOG.md",
                 "roadmap.md",
+                "accessibility.md",
             ),
         ),
     )
@@ -324,7 +332,7 @@ def _doc_menu(source: Path, pages: dict[Path, Path], rendered: dict[Path, tuple[
     return links
 
 
-def _docs(site: Path, assets: str) -> None:
+def _docs(site: Path, assets: str, card: str = "") -> None:
     """Publish and index the Markdown guides beside the playground."""
     pages = _doc_pages(site)
     rendered = {source: _doc_body(source, pages) for source in pages}
@@ -358,6 +366,7 @@ def _docs(site: Path, assets: str) -> None:
         if len(description) > 160:
             description = description[:157].rsplit(" ", 1)[0] + "…"
         canonical = "https://simonvanlierde.com/citesync/" + destination.parent.as_posix() + "/"
+        image = "https://simonvanlierde.com/citesync/og.png" + (f"?v={card}" if card else "")
         html = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -365,11 +374,22 @@ def _docs(site: Path, assets: str) -> None:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy"
 content="default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self';
-img-src 'self'; base-uri 'none'; form-action 'none'">
+img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
 <title>{escape(title)} — citesync documentation</title>
 <meta name="description"
 content="{escape(description)}">
 <link rel="canonical" href="{canonical}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="citesync">
+<meta property="og:title" content="{escape(title)} — citesync documentation">
+<meta property="og:description" content="{escape(description)}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:image" content="{image}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt"
+content="citesync converts package metadata into a CITATION.cff. simonvanlierde.com/citesync">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="{prefix}favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="{prefix}{assets}/style.css">
 <script type="module" src="{prefix}{assets}/docs-search.mjs"></script>
@@ -380,7 +400,9 @@ content="{escape(description)}">
 <header><a class="brand" href="{prefix}">citesync</a><p>Software citation metadata.</p>
 <nav class="site-nav" aria-label="Site"><a href="{prefix}">Playground</a>
 <a href="{prefix}docs/" aria-current="page">Documentation</a></nav></header>
-<section class="docs-search" aria-label="Search documentation" data-root="{prefix}docs/" hidden>
+<div class="docs-layout">
+<aside class="docs-sidebar" aria-label="Documentation tools">
+<section class="docs-search" aria-label="Search documentation" data-root="{prefix}docs/" data-state="loading" hidden>
 <label for="docs-search">Search documentation</label>
 <input id="docs-search" type="search" placeholder="Search guides, commands and fields"
 autocomplete="off" aria-describedby="docs-search-status">
@@ -389,16 +411,20 @@ autocomplete="off" aria-describedby="docs-search-status">
 <ol id="docs-search-results" aria-label="Search results" aria-describedby="docs-search-more" hidden></ol>
 <p id="docs-search-more" hidden></p>
 </section>
-<div class="docs-layout">
-<nav class="docs-sidebar" aria-label="Documentation pages"><details open><summary>Browse documentation</summary>
+<nav aria-label="Documentation pages"><div class="docs-nav-desktop">{links}</div>
+<details class="docs-guides"><summary>Browse documentation</summary>
 {links}</details></nav>
+</aside>
 <main id="doc-content" class="doc-content" tabindex="-1">
 {contents}<article>{body}</article>
 </main>
 </div>
-<footer><nav aria-label="Project links">
+<footer><p><strong>citesync</strong> · <a href="https://simonvanlierde.com/">Simon van Lierde</a> · 2026 ·
+<a href="https://doi.org/10.5281/zenodo.23779706">DOI: 10.5281/zenodo.23779706</a></p>
+<nav aria-label="Project links">
 <a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a> ·
 <a href="https://github.com/simonvanlierde/citesync">Source code</a>
+ · <a href="{prefix}docs/accessibility/">Accessibility</a>
 </nav></footer>
 </div>
 </body>

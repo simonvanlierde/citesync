@@ -1,6 +1,109 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+test("documentation code copies exact text with keyboard feedback and a blocked-copy fallback", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.copiedCode = null;
+    window.blockCopy = false;
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          if (window.blockCopy) throw new Error("Clipboard denied");
+          window.copiedCode = text;
+        },
+      },
+    });
+  });
+  const remote = [];
+  page.on("request", (request) => {
+    if (request.url().startsWith("https://")) remote.push(request.url());
+  });
+  await page.goto("docs/getting-started/");
+  const block = page.locator("article .code-block").first();
+  await expect(block).toHaveCount(1, { timeout: 2000 });
+  const expected = await page.locator("article pre code").first().textContent();
+  const copy = block.getByRole("button", { name: "Copy code", exact: true });
+  await copy.focus();
+  await page.keyboard.press("Enter");
+  await expect(block.locator(".copy-status")).toHaveText("Copied.");
+  expect(await page.evaluate(() => window.copiedCode)).toBe(expected);
+  await expect(copy).toBeFocused();
+  const box = await copy.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  await page.evaluate(() => {
+    window.blockCopy = true;
+  });
+  await copy.click();
+  await expect(block.locator(".copy-status")).toHaveText("Copy was blocked. Select the code and copy it manually.");
+  expect(remote).toEqual([]);
+});
+
+test("documentation keeps the article near the top and guides usable without JavaScript", async ({ browser }) => {
+  for (const javaScriptEnabled of [false, true]) {
+    const context = await browser.newContext({ javaScriptEnabled });
+    const page = await context.newPage();
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto("docs/config/");
+      const heading = page.getByRole("heading", { level: 1 });
+      expect((await heading.boundingBox()).y).toBeLessThanOrEqual(280);
+      const menu = page.getByRole("navigation", { name: "Documentation pages" });
+      const guide = menu.getByRole("link", { name: "Getting started", exact: true });
+      await expect(guide).toBeHidden();
+      const browse = menu.getByText("Browse documentation", { exact: true });
+      await browse.focus();
+      await page.keyboard.press("Enter");
+      await expect(guide).toBeVisible();
+      await guide.click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Getting started");
+      if (!javaScriptEnabled) await expect(page.getByRole("button", { name: "Copy code", exact: true })).toHaveCount(0);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("docs/config/");
+    await expect(
+      page
+        .getByRole("navigation", { name: "Documentation pages" })
+        .getByRole("link", { name: "Getting started", exact: true }),
+    ).toBeVisible();
+    if (javaScriptEnabled) {
+      const search = page.getByRole("searchbox", { name: "Search documentation" });
+      await expect(search).toBeVisible();
+      expect((await search.boundingBox()).x).toBeLessThan((await page.locator("article").boundingBox()).x);
+    }
+    await context.close();
+  }
+});
+
+test("both footers identify the project and link its accessibility statement", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const route of ["/", "/docs/accessibility/"]) {
+      await page.goto(route);
+      const footer = page.locator("footer");
+      await expect(footer).toContainText("citesync");
+      await expect(footer).toContainText("2026");
+      await expect(footer.getByRole("link", { name: "Simon van Lierde", exact: true })).toHaveAttribute(
+        "href",
+        "https://simonvanlierde.com/",
+      );
+      await expect(footer.getByRole("link", { name: "DOI: 10.5281/zenodo.23779706", exact: true })).toHaveAttribute(
+        "href",
+        "https://doi.org/10.5281/zenodo.23779706",
+      );
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      const surface = route === "/" ? "playground" : "documentation";
+      await footer.screenshot({ path: testInfo.outputPath(`${surface}-footer-${width}.png`) });
+      await footer.getByRole("link", { name: "Accessibility", exact: true }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Accessibility");
+    }
+  }
+  await context.close();
+});
+
 test("documentation and playground share one website without a browser runtime", async ({ browser }, testInfo) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
@@ -40,7 +143,14 @@ test("documentation and playground share one website without a browser runtime",
 
 test("format tables and nested decision guides retain links on narrow screens", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 });
-  for (const guide of ["config", "formats", "output", "decisions", "decisions/0002-vendored-mapping"]) {
+  for (const guide of [
+    "accessibility",
+    "config",
+    "formats",
+    "output",
+    "decisions",
+    "decisions/0002-vendored-mapping",
+  ]) {
     await page.goto(`docs/${guide}/`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -60,9 +170,9 @@ test("documentation navigation distinguishes commands and identifies the current
   for (const command of ["check", "init", "write"]) {
     await expect(menu.getByRole("link", { name: `How citesync ${command} works`, exact: true })).toBeVisible();
   }
-  await expect(menu.locator('[aria-current="page"]')).toHaveText("How citesync check works");
+  await expect(menu.locator('[aria-current="page"]:visible')).toHaveText("How citesync check works");
   await page.goto("docs/decisions/0002-vendored-mapping/");
-  await expect(menu.locator('[aria-current="location"]')).toHaveText("Design decisions");
+  await expect(menu.locator('[aria-current="location"]:visible')).toHaveText("Design decisions");
 });
 
 test("mobile reference tables preserve filenames and scroll with the keyboard", async ({ page }) => {

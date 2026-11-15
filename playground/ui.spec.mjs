@@ -2,6 +2,45 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const syntaxMessage = /line|expected|parse/i;
+
+function documentBox(locator) {
+  return locator.evaluate((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return { x: x + window.scrollX, y: y + window.scrollY, width, height };
+  });
+}
+
+test("format selection shows its chevron without image policy violations", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.imagePolicyViolations = [];
+    document.addEventListener("securitypolicyviolation", (event) => {
+      if (event.effectiveDirective === "img-src") {
+        window.imagePolicyViolations.push({
+          blockedURI: event.blockedURI,
+          sourceFile: event.sourceFile,
+          line: event.lineNumber,
+        });
+      }
+    });
+  });
+  await page.route("https://cdn.jsdelivr.net/**", (route) => route.abort());
+  await page.goto("/");
+  const input = page.locator("#source-format-search");
+  expect(
+    await input.evaluate((element) => {
+      const arrow = getComputedStyle(element.parentElement, "::after");
+      return arrow.content !== "none" && Number.parseFloat(arrow.width) > 0 && Number.parseFloat(arrow.height) > 0;
+    }),
+  ).toBe(true);
+  await input.click();
+  await input.fill("pyproject");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("pyproject.toml");
+  await expect(page.locator("#source-format")).toHaveValue("pyproject.toml");
+  expect(await page.evaluate(() => window.imagePolicyViolations)).toEqual([]);
+});
+
 async function choose(page, id, value) {
   await page.locator(`#${id}-search`).click();
   await page.locator(`#${id}-list [role="option"][data-value="${value}"]`).click();
@@ -163,9 +202,22 @@ test("examples follow the selected format and name editing stays optional", asyn
     }
   }
   await expect(page.locator("#copy")).toBeEnabled();
-  await page.locator("#name-review summary").click();
-  await expect(page.locator("#review-0-given")).toBeHidden();
-  await page.locator("#name-review summary").click();
+  for (const width of [1440, 1024, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const preview = await documentBox(page.locator("#output"));
+    const copy = await documentBox(page.locator("#copy"));
+    const download = await documentBox(page.locator("#download"));
+    expect(copy.y + copy.height).toBeLessThanOrEqual(preview.y);
+    expect(download.y + download.height).toBeLessThanOrEqual(preview.y);
+    await page.locator("#name-review summary").click();
+    await expect(page.locator("#review-0-given")).toBeHidden();
+    expect((await documentBox(page.locator("#output"))).y).toBeCloseTo(preview.y, 0);
+    expect((await documentBox(page.locator("#copy"))).y).toBeCloseTo(copy.y, 0);
+    await page.locator("#name-review summary").click();
+    await expect(page.locator("#review-0-given")).toBeVisible();
+    expect((await documentBox(page.locator("#output"))).y).toBeCloseTo(preview.y, 0);
+    expect((await documentBox(page.locator("#copy"))).y).toBeCloseTo(copy.y, 0);
+  }
   await page.locator("#review-0-family").fill("van Leeuwenhoek");
   await expect(page.locator("#output")).toContainText("van Leeuwenhoek");
   await expect(page.locator("#copy")).toBeEnabled();
@@ -234,21 +286,34 @@ test("invalid input clears progress", async ({ page }) => {
 
 test("selecting an output keeps the preview and copy action in place", async ({ page }) => {
   await page.goto("/");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const entry = await page.getByRole("tab", { name: "Use a file", exact: true }).boundingBox();
+  const title = await page.locator("#result-title").boundingBox();
+  expect(title.y + title.height / 2).toBeCloseTo(entry.y + entry.height / 2, 0);
+  await page.locator("#example").click();
+  await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
+  for (const width of [1440, 1024]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect((await documentBox(page.locator("#output"))).y).toBeCloseTo(
+      (await documentBox(page.locator("#input"))).y,
+      0,
+    );
+  }
   await page.getByRole("tab", { name: "Enter details" }).click();
   await page.locator("#title").fill("lensgrind");
   await page.locator('#authors [data-part="family"]').fill("Curie");
   await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });
-  for (const width of [1440, 320]) {
+  for (const width of [1440, 1024, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await choose(page, "output-file", "CITATION.cff");
-    const preview = await page.locator("#output").boundingBox();
-    const copy = await page.locator("#copy").boundingBox();
+    const preview = await documentBox(page.locator("#output"));
+    const copy = await documentBox(page.locator("#copy"));
     for (const filename of ["citation.bib", "package.json", "Cargo.toml", "pyproject.toml", "codemeta.json"]) {
       await choose(page, "output-file", filename);
-      const next = await page.locator("#output").boundingBox();
+      const next = await documentBox(page.locator("#output"));
       expect(next.y).toBeCloseTo(preview.y, 0);
       expect(next.height).toBeCloseTo(preview.height, 0);
-      expect((await page.locator("#copy").boundingBox()).y).toBeCloseTo(copy.y, 0);
+      expect((await documentBox(page.locator("#copy"))).y).toBeCloseTo(copy.y, 0);
     }
     await accessible(page);
   }
@@ -329,7 +394,7 @@ test("form validation uses the note colours and technical hints stay visible", a
   await page.locator("#title").fill("lensgrind");
   await expect(page.locator("#message")).toHaveAttribute("data-notice", "true");
   expect(await page.locator("#message").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(
-    "rgb(248, 238, 219)",
+    "rgb(255, 241, 210)",
   );
   await page.locator('#authors [data-part="family"]').fill("Curie");
   await expect(page.locator("#copy")).toBeEnabled({ timeout: 90000 });

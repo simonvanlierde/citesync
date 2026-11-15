@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <title>citesync — software citation file generator</title>
 <meta name="description" content="Generate CITATION.cff, CodeMeta, BibTeX, CSL-JSON, APA, JSON-LD, DataCite XML, RIS and EndNote from package metadata or project details. Files are processed locally in your browser.">
 <link rel="canonical" href="https://simonvanlierde.com/citesync/">
@@ -17,8 +17,8 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="citesync turns the name, version and license in a pyproject.toml into the title, version and license of a CITATION.cff. simonvanlierde.com/citesync">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#192229" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef5f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101e1a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <script type="module" src="main.mjs"></script>
@@ -31,17 +31,17 @@
 <main id="workspace" tabindex="-1">
 <div class="workspace">
 <section aria-label="Your project">
-<div class="tabs" id="entry-tabs" role="tablist" aria-label="How to start"><button type="button" id="file-tab" role="tab" aria-selected="true" aria-controls="file-panel">Use a file</button><button type="button" id="form-tab" role="tab" aria-selected="false" aria-controls="form-panel" tabindex="-1">Enter details</button></div>
+<div class="workspace-heading"><div class="tabs" id="entry-tabs" role="tablist" aria-label="How to start"><button type="button" id="file-tab" role="tab" aria-selected="true" aria-controls="file-panel">Use a file</button><button type="button" id="form-tab" role="tab" aria-selected="false" aria-controls="form-panel" tabindex="-1">Enter details</button></div></div>
 <div id="file-panel" role="tabpanel" aria-labelledby="file-tab">
 <div class="panehead"><h2><label for="input">Project metadata</label></h2><label for="source-format" class="sr-only">Input filename</label><select id="source-format"><option value="auto">Detect automatically</option><optgroup label="Citation files"><option>CITATION.cff</option><option>codemeta.json</option><option>.zenodo.json</option></optgroup><optgroup label="JavaScript"><option>package.json</option></optgroup><optgroup label="Julia"><option>JuliaProject.toml</option><option>Project.toml</option></optgroup><optgroup label="Python"><option>METADATA</option><option>PKG-INFO</option><option>pyproject.toml</option></optgroup><optgroup label="R"><option>DESCRIPTION</option></optgroup><optgroup label="Rust"><option>Cargo.toml</option></optgroup></select></div>
+<div class="file-tools"><button type="button" id="open">Open a file</button><button type="button" class="link" id="example">Try an example</button><input type="file" id="file-picker" hidden></div>
 <textarea id="input" wrap="off" spellcheck="false" aria-describedby="input-hint message"></textarea>
 <p class="hint" id="detected-format" role="status"></p>
 <p class="hint" id="input-hint">Paste or drop a file, up to 1 MB.</p>
-<div class="file-tools"><button type="button" id="open">Open a file</button><button type="button" class="link" id="example">Try an example</button><input type="file" id="file-picker" hidden></div>
 </div>
 <form class="form" novalidate id="form-panel" role="tabpanel" aria-labelledby="form-tab" aria-describedby="message form-hint" hidden>
 <div class="panehead"><h2>Project details</h2></div>
-<p class="hint" id="form-hint">Edits transfer to a CodeMeta file. Extra CodeMeta fields are kept.</p>
+<p class="hint" id="form-hint">Enter your project details to preview citation files. Extra metadata from an imported CodeMeta file is kept.</p>
 <label for="title">Software title</label><p class="hint field-hint" id="title-hint">Use the name people should cite</p><input id="title" name="title" required maxlength="500" autocomplete="off" aria-describedby="title-hint">
 <label for="description">Short description <span class="hint">(optional)</span></label><p class="hint field-hint" id="description-hint">One sentence about what the software does</p><input id="description" name="description" maxlength="5000" aria-describedby="description-hint">
 <div id="authors"></div>
@@ -52,15 +52,18 @@
 <div id="message" role="status" tabindex="-1"></div><button type="button" id="retry" hidden>Retry conversion</button>
 </section>
 <section aria-label="Generated citation files">
-<h2 id="result-title" tabindex="-1">Your files</h2>
-<div id="empty-result"><p>Your files will appear here.</p></div>
-<div id="output-choice" hidden><label for="output-file">Output file</label><select id="output-file"></select></div>
-<details class="review" id="name-review" hidden><summary id="review-title">Author names</summary><p>Names were split automatically. You can correct them here.</p><div id="review-fields"></div><button type="button" id="names-right">Names look right</button></details>
-<div id="output-panel" hidden><pre tabindex="0" id="output" aria-label="Generated file"></pre></div>
-<div class="controls" id="exports" hidden><button type="button" class="primary" id="copy" disabled>Copy this file</button><button type="button" id="download" disabled>Download this file</button><button type="button" class="link" id="zip" disabled>All citation files (.zip)</button></div>
+<div class="workspace-heading"><h2 id="result-title" tabindex="-1">Your files</h2></div>
+<div id="empty-result"><h3>Preview your citation files</h3><p>Paste or open a metadata file, or enter your project details. You can also choose Try an example to see how it works.</p><p>Review the generated file here, then copy or download it.</p></div>
+<div class="panehead" id="output-choice" hidden><label for="output-file">Output file</label><select id="output-file"></select></div>
+<div class="output-toolbar">
+<div class="controls" id="exports" hidden><button type="button" class="primary" id="copy" disabled>Copy file</button><button type="button" id="download" disabled>Download file</button><button type="button" class="link" id="zip" disabled>All citation files (.zip)</button></div>
 <p class="status" id="status"></p>
+
+</div>
+<div id="output-panel" hidden><pre tabindex="0" id="output" aria-label="Generated file"></pre></div>
 <p class="hint" id="filename-note" hidden>Save this file as .zenodo.json, including the first dot. Some browsers remove it; the ZIP keeps the exact filenames.</p>
 <div id="template-warning" hidden><p class="hint">Metadata only. Add build settings and dependencies before use.</p><ul id="template-notes"></ul></div>
+<details class="review" id="name-review" hidden><summary id="review-title">Author names</summary><p>Names were split automatically. You can correct them here.</p><div id="review-fields"></div><button type="button" id="names-right">Names look right</button></details>
 <details id="details-notes" hidden><summary>What changed or could not be converted</summary><ul id="notes"></ul></details>
 </section>
 </div>
@@ -99,7 +102,7 @@ uvx citesync check   # check that the files agree</pre></div></div>
 <a class="usage-docs" href="https://simonvanlierde.com/citesync/docs/">Setup and configuration</a>
 </section>
 </main>
-<footer aria-label="About citesync"><p>Your files are processed in this browser and are not uploaded or saved between visits. Loading the converter requires a network connection.</p><div class="colophon"><div class="colophon-meta"><strong>citesync</strong><span id="version-label"></span><a href="https://github.com/simonvanlierde/citesync/blob/main/LICENSE">Apache-2.0 licence</a></div><nav aria-label="Project links"><a href="https://github.com/simonvanlierde/citesync">GitHub</a><a href="https://simonvanlierde.com/citesync/docs/">Docs</a><a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a></nav></div></footer>
+<footer aria-label="About citesync"><p>Your files are processed in this browser and are not uploaded or saved between visits. Loading the converter requires a network connection.</p><div class="colophon"><div class="colophon-meta"><strong>citesync</strong><span id="version-label"></span><a href="https://simonvanlierde.com/">Simon van Lierde</a><span>2026</span><a href="https://doi.org/10.5281/zenodo.23779706">DOI: 10.5281/zenodo.23779706</a><a href="https://github.com/simonvanlierde/citesync/blob/main/LICENSE">Apache-2.0 licence</a></div><nav aria-label="Project links"><a href="https://github.com/simonvanlierde/citesync">GitHub</a><a href="https://simonvanlierde.com/citesync/docs/">Docs</a><a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a><a href="https://simonvanlierde.com/citesync/docs/accessibility/">Accessibility</a></nav></div></footer>
 <noscript>This playground needs JavaScript and WebAssembly. You can also run citesync from the command line.</noscript>
 </div>
 </body>

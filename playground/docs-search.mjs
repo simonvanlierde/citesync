@@ -63,6 +63,33 @@ function highlight(element, text, query) {
 }
 
 if (typeof document !== "undefined") {
+  for (const code of document.querySelectorAll("article pre > code")) {
+    const pre = code.parentElement;
+    const block = document.createElement("div");
+    block.className = "code-block";
+    pre.before(block);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "code-copy";
+    button.setAttribute("aria-label", "Copy code");
+    button.title = "Copy code";
+    button.innerHTML =
+      '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg>';
+    const feedback = document.createElement("p");
+    feedback.className = "copy-status";
+    feedback.setAttribute("aria-live", "polite");
+    feedback.setAttribute("aria-atomic", "true");
+    button.addEventListener("click", async () => {
+      feedback.textContent = "";
+      try {
+        await navigator.clipboard.writeText(code.textContent);
+        feedback.textContent = "Copied.";
+      } catch {
+        feedback.textContent = "Copy was blocked. Select the code and copy it manually.";
+      }
+    });
+    block.append(button, pre, feedback);
+  }
   const search = document.querySelector(".docs-search");
   const input = document.querySelector("#docs-search");
   const status = document.querySelector("#docs-search-status");
@@ -80,14 +107,17 @@ if (typeof document !== "undefined") {
     more.hidden = true;
     const query = input.value.trim();
     if (!index) {
+      search.dataset.state = failed ? "error" : "loading";
       status.textContent = failed ? "Search could not load. Retry, or browse the guides below." : "Loading search…";
       return;
     }
     if (!query) {
+      search.dataset.state = "idle";
       status.textContent = "Search all guides. Your search stays in this browser.";
       return;
     }
     const matches = searchSections(index, query);
+    search.dataset.state = "results";
     status.textContent = matches.length
       ? `${matches.length} matching section${matches.length === 1 ? "" : "s"}.`
       : "No matching sections. Try a command, file name or shorter phrase.";
@@ -132,12 +162,5 @@ if (typeof document !== "undefined") {
     }
   });
   retry.addEventListener("click", load);
-  const navigation = document.querySelector(".docs-sidebar details");
-  const narrow = window.matchMedia("(max-width: 800px)");
-  function adaptNavigation() {
-    navigation.open = !narrow.matches;
-  }
-  narrow.addEventListener("change", adaptNavigation);
-  adaptNavigation();
   load();
 }

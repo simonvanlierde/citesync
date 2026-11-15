@@ -24,10 +24,16 @@ class Links(HTMLParser):
         self.links: list[str] = []
         self.ids: set[str] = set()
         self.description: str | None = None
+        self.meta: dict[str, str | None] = {}
+        self.canonical: str | None = None
         self.feed(text)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
+        if tag == "meta" and (key := values.get("property") or values.get("name")):
+            self.meta[key] = values.get("content")
+        if tag == "link" and values.get("rel") == "canonical":
+            self.canonical = values.get("href")
         if tag == "meta" and values.get("name") == "description":
             self.description = values.get("content")
         if ident := values.get("id"):
@@ -42,6 +48,12 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     output.mkdir(parents=True)
     for name in (
         "style.css",
+        "fonts/plex-sans-latin.woff2",
+        "fonts/plex-sans-latin-ext.woff2",
+        "fonts/plex-sans-vietnamese.woff2",
+        "fonts/plex-sans-greek.woff2",
+        "fonts/plex-sans-cyrillic.woff2",
+        "fonts/plex-sans-cyrillic-ext.woff2",
         "docs-search.mjs",
         "main.mjs",
         "detect.mjs",
@@ -53,10 +65,12 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
         "favicon.svg",
         "og.png",
     ):
+        (output / name).parent.mkdir(parents=True, exist_ok=True)
         (output / name).write_text("asset")
     (output / "index.html").write_text(
         '<link href="style.css"><script src="main.mjs"></script>'
         '<a href="https://simonvanlierde.com/citesync/docs/">Documentation</a>'
+        '<a href="https://simonvanlierde.com/citesync/docs/accessibility/">Accessibility</a>'
     )
     wheels = output / "wheels"
     wheels.mkdir()
@@ -77,6 +91,7 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     monkeypatch.setattr(builder, "WHEELS", wheels)
     builder._site({"version": "0.5.0", "wheels": []})
     assert 'href="docs/"' in (root / "site/index.html").read_text()
+    assert 'href="docs/accessibility/"' in (root / "site/index.html").read_text()
     landing = (root / "site/docs/index.html").read_text()
     guide = (root / "site/docs/guide/index.html").read_text()
     assert 'href="guide/#same-heading"' in landing
@@ -94,6 +109,7 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     assert "&lt;not-markup&gt;" in guide
     assert "<not-markup>" not in guide
     assert 'href="../../"' in guide
+    assert "https://simonvanlierde.com/citesync/og.png?v=" in guide
 
 
 def test_all_documentation_links_and_anchors_resolve(tmp_path: Path):
@@ -127,6 +143,24 @@ def test_documentation_titles_and_anchors_preserve_inline_commands(tmp_path: Pat
         assert f"<title>{title} — citesync documentation</title>" in guide
         assert f'id="how-citesync-{command}-works"' in guide
         assert f"<code>citesync {command}</code>" in guide
+
+
+def test_every_documentation_page_has_its_own_share_metadata(tmp_path: Path):
+    builder._docs(tmp_path, "assets/test")
+    for path in (tmp_path / "docs").rglob("*.html"):
+        parsed = Links(path.read_text())
+        canonical = "https://simonvanlierde.com/citesync/" + path.parent.relative_to(tmp_path).as_posix() + "/"
+        assert parsed.canonical == canonical
+        assert parsed.meta.get("og:url") == canonical, path
+        assert parsed.meta.get("og:type") == "website", path
+        assert parsed.meta.get("og:title"), path
+        assert parsed.meta.get("og:description") == parsed.description, path
+        image = urlsplit(parsed.meta.get("og:image") or "")
+        assert image.scheme == "https", path
+        assert image.netloc == "simonvanlierde.com", path
+        assert image.path == "/citesync/og.png", path
+        assert parsed.meta.get("og:image:alt"), path
+        assert parsed.meta.get("twitter:card") == "summary_large_image", path
 
 
 def test_missing_documentation_link_stops_the_build(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
