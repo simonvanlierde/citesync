@@ -2,6 +2,26 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const syntaxMessage = /line|expected|parse/i;
+
+test("format selection works without Content Security Policy violations", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.policyViolations = [];
+    document.addEventListener("securitypolicyviolation", (event) => {
+      window.policyViolations.push(`${event.effectiveDirective}: ${event.blockedURI}`);
+    });
+  });
+  await page.route("https://cdn.jsdelivr.net/**", (route) => route.abort());
+  await page.goto("/");
+  const input = page.locator("#source-format-search");
+  await input.click();
+  await input.fill("pyproject");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("pyproject.toml");
+  await expect(page.locator("#source-format")).toHaveValue("pyproject.toml");
+  expect(await page.evaluate(() => window.policyViolations)).toEqual([]);
+});
+
 async function choose(page, id, value) {
   await page.locator(`#${id}-search`).click();
   await page.locator(`#${id}-list [role="option"][data-value="${value}"]`).click();

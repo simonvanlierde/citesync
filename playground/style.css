@@ -593,11 +593,21 @@ textarea[aria-invalid="true"] {
 .picker input {
   width: auto;
   max-width: 100%;
-  background: var(--paper)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2353616c' stroke-width='1.5'/%3E%3C/svg%3E")
-    no-repeat right 10px center;
+  background: var(--paper);
   padding-right: 30px;
   cursor: pointer;
+}
+.picker::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
 }
 .picker ul {
   list-style: none;

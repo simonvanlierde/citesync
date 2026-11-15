@@ -1,6 +1,34 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+test("both footers identify the project and link its accessibility statement", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const route of ["/", "/docs/accessibility/"]) {
+      await page.goto(route);
+      const footer = page.locator("footer");
+      await expect(footer).toContainText("citesync");
+      await expect(footer).toContainText("2026");
+      await expect(footer.getByRole("link", { name: "Simon van Lierde", exact: true })).toHaveAttribute(
+        "href",
+        "https://simonvanlierde.com/",
+      );
+      await expect(footer.getByRole("link", { name: "DOI: 10.5281/zenodo.23779706", exact: true })).toHaveAttribute(
+        "href",
+        "https://doi.org/10.5281/zenodo.23779706",
+      );
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      const surface = route === "/" ? "playground" : "documentation";
+      await footer.screenshot({ path: testInfo.outputPath(`${surface}-footer-${width}.png`) });
+      await footer.getByRole("link", { name: "Accessibility", exact: true }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Accessibility");
+    }
+  }
+  await context.close();
+});
+
 test("documentation and playground share one website without a browser runtime", async ({ browser }, testInfo) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
@@ -40,7 +68,14 @@ test("documentation and playground share one website without a browser runtime",
 
 test("format tables and nested decision guides retain links on narrow screens", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 });
-  for (const guide of ["config", "formats", "output", "decisions", "decisions/0002-vendored-mapping"]) {
+  for (const guide of [
+    "accessibility",
+    "config",
+    "formats",
+    "output",
+    "decisions",
+    "decisions/0002-vendored-mapping",
+  ]) {
     await page.goto(`docs/${guide}/`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -33,3 +33,4 @@ citesync keeps software citation files in step with the metadata in your reposit
 - [Tests on real repositories](tested-repositories.md).
 - [Design decisions](decisions/index.md).
 - [Contributing](../.github/CONTRIBUTING.md).
+- [Accessibility](accessibility.md).

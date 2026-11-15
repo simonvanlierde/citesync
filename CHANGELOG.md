@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The website publishes an [accessibility statement](docs/accessibility.md), with keyboard instructions and testing limitations. Documentation links include page-specific social previews.
+
+### Fixed
+
+- Playground file selectors display their dropdown arrows under the website's Content Security Policy.
+
 ## [0.6.0] - 2026-11-14
 
 ### Added
