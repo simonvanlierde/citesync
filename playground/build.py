@@ -83,6 +83,12 @@ def main() -> None:
 def _site(manifest: dict[str, object]) -> None:
     assets = (
         "style.css",
+        "fonts/plex-sans-latin.woff2",
+        "fonts/plex-sans-latin-ext.woff2",
+        "fonts/plex-sans-vietnamese.woff2",
+        "fonts/plex-sans-greek.woff2",
+        "fonts/plex-sans-cyrillic.woff2",
+        "fonts/plex-sans-cyrillic-ext.woff2",
         "docs-search.mjs",
         "main.mjs",
         "detect.mjs",
@@ -102,6 +108,7 @@ def _site(manifest: dict[str, object]) -> None:
     target = site / folder
     target.mkdir(parents=True)
     for name in assets:
+        (target / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(OUTPUT / name, target / name)
     shutil.copytree(WHEELS, target / "wheels")
     html = (OUTPUT / "index.html").read_text()
@@ -367,7 +374,7 @@ def _docs(site: Path, assets: str, card: str = "") -> None:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy"
 content="default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self';
-img-src 'self'; base-uri 'none'; form-action 'none'">
+img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
 <title>{escape(title)} — citesync documentation</title>
 <meta name="description"
 content="{escape(description)}">
@@ -393,7 +400,9 @@ content="citesync converts package metadata into a CITATION.cff. simonvanlierde.
 <header><a class="brand" href="{prefix}">citesync</a><p>Software citation metadata.</p>
 <nav class="site-nav" aria-label="Site"><a href="{prefix}">Playground</a>
 <a href="{prefix}docs/" aria-current="page">Documentation</a></nav></header>
-<section class="docs-search" aria-label="Search documentation" data-root="{prefix}docs/" hidden>
+<div class="docs-layout">
+<aside class="docs-sidebar" aria-label="Documentation tools">
+<section class="docs-search" aria-label="Search documentation" data-root="{prefix}docs/" data-state="loading" hidden>
 <label for="docs-search">Search documentation</label>
 <input id="docs-search" type="search" placeholder="Search guides, commands and fields"
 autocomplete="off" aria-describedby="docs-search-status">
@@ -402,9 +411,10 @@ autocomplete="off" aria-describedby="docs-search-status">
 <ol id="docs-search-results" aria-label="Search results" aria-describedby="docs-search-more" hidden></ol>
 <p id="docs-search-more" hidden></p>
 </section>
-<div class="docs-layout">
-<nav class="docs-sidebar" aria-label="Documentation pages"><details open><summary>Browse documentation</summary>
+<nav aria-label="Documentation pages"><div class="docs-nav-desktop">{links}</div>
+<details class="docs-guides"><summary>Browse documentation</summary>
 {links}</details></nav>
+</aside>
 <main id="doc-content" class="doc-content" tabindex="-1">
 {contents}<article>{body}</article>
 </main>

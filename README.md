@@ -71,6 +71,8 @@ repos:
 
 The `citesync` hook runs when a commit changes a supported metadata file, a citesync config or a file with an export suffix (`.bib`, `.csl.json`, `.apa.txt`, `.jsonld`, `.datacite.xml`, `.ris`, `.enw`), at any depth. It checks every file, not only the staged ones, and fails the commit on an error finding (exit 1) or when citesync can't run (exit 3), such as on a bad config. The [exit codes](https://simonvanlierde.com/citesync/docs/check/#findings-and-exit-codes) are the same as on the command line. The `citesync-write` hook runs only when you ask for it: `prek run citesync-write --stage manual --all-files`. Both hooks need Python 3.13 or newer.
 
+For a dataset file with a custom name, set `always_run: true` on each citesync hook. This checks all configured paths on every commit or manual run, even when the default filename filter would skip the changed file.
+
 ## Social card
 
 [`playground/og.png`](playground/og.png) is the 1200x630 card shown when the link is shared. It is rendered from
@@ -81,9 +83,7 @@ pnpm exec playwright screenshot --browser=chromium --viewport-size=1200,630 \
   file://$PWD/docs/og-card.html playground/og.png
 ```
 
-`playground/build.py` copies the card into the built site; the tags are in `playground/index.html`.
-
-For a dataset file with a custom name, set `always_run: true` on each citesync hook. This checks all configured paths on every commit or manual run, even when the default filename filter would skip the changed file.
+`playground/build.py` copies the card into the built site and adds its hash to the image URL. The playground and every documentation page include sharing tags.
 
 ## Development
 

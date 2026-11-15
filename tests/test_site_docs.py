@@ -48,6 +48,12 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     output.mkdir(parents=True)
     for name in (
         "style.css",
+        "fonts/plex-sans-latin.woff2",
+        "fonts/plex-sans-latin-ext.woff2",
+        "fonts/plex-sans-vietnamese.woff2",
+        "fonts/plex-sans-greek.woff2",
+        "fonts/plex-sans-cyrillic.woff2",
+        "fonts/plex-sans-cyrillic-ext.woff2",
         "docs-search.mjs",
         "main.mjs",
         "detect.mjs",
@@ -59,6 +65,7 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
         "favicon.svg",
         "og.png",
     ):
+        (output / name).parent.mkdir(parents=True, exist_ok=True)
         (output / name).write_text("asset")
     (output / "index.html").write_text(
         '<link href="style.css"><script src="main.mjs"></script>'

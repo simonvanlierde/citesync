@@ -9,7 +9,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Documentation code examples have keyboard-accessible copy buttons and feedback when copying is blocked.
 - The website publishes an [accessibility statement](docs/accessibility.md), with keyboard instructions and testing limitations. Documentation links include page-specific social previews.
+
+### Changed
+
+- The playground and documentation use a shared green design with local IBM Plex Sans fonts. File actions sit above the preview; documentation search sits beside the article on desktop, with compact navigation on phones ([playground guide](playground/README.md)).
 
 ### Fixed
 

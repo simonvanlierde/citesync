@@ -5,22 +5,27 @@
 <title>citesync social card</title>
 <!-- Source of playground/og.png. Render: see README.md, "Social card". -->
 <style>
+  @font-face {
+    font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400 600;
+    src: url("../playground/fonts/plex-sans-latin.woff2") format("woff2");
+  }
   :root {
-    --paper: #fbfaf7; --ink: #243442; --muted: #53616c; --line: #c4c9cc; --accent: #294f80; --wash: #edf1f4;
-    --serif: Georgia, Charter, "Bitstream Charter", "Sitka Text", Cambria, "Liberation Serif", serif;
+    --ground: #eef5f0; --paper: #ffffff; --ink: #18372f; --muted: #526b60; --line: #c7d8ce; --accent: #176149; --wash: #e7f1eb;
+    --sans: "IBM Plex Sans", Arial, sans-serif;
     --mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   }
   * { box-sizing: border-box; margin: 0; }
-  html, body { width: 1200px; height: 630px; background: var(--paper); color: var(--ink); overflow: hidden; }
+  html, body { width: 1200px; height: 630px; background: var(--ground); color: var(--ink); overflow: hidden; }
   /* Everything that carries meaning sits in the centred 630 px column. */
-  main { position: absolute; left: 285px; top: 0; width: 630px; height: 630px; padding-top: 34px; }
-  h1 { font: 700 108px/1 var(--serif); letter-spacing: -0.02em; color: var(--accent); }
-  .job { margin-top: 6px; font: 400 36px/1.2 var(--serif); color: var(--muted); white-space: nowrap; }
-  pre { margin-top: 22px; padding: 12px 22px; font: 400 36px/42px var(--mono); background: var(--wash); border: 1px solid var(--line); border-radius: 8px; }
-  pre.out { margin-top: 0; background: var(--paper); border: 2px solid var(--accent); }
+  main { position: absolute; left: 285px; top: 0; width: 630px; height: 630px; padding-top: 24px; }
+  h1 { font: 600 84px/1 var(--sans); letter-spacing: -0.02em; color: var(--accent); }
+  .job { margin-top: 8px; font: 400 36px/1.2 var(--sans); color: var(--muted); white-space: nowrap; }
+  pre { margin-top: 14px; padding: 8px 20px; font: 400 36px/38px var(--mono); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; }
+  pre.out { margin-top: 0; background: var(--wash); border: 2px solid var(--accent); }
   .out b { font-weight: 400; color: var(--accent); }
-  svg { display: block; margin: 4px 0 4px 22px; }
-  .url { position: absolute; left: 0; bottom: 24px; font: 400 32px/1 var(--mono); color: var(--muted); }
+  svg { display: block; margin: 4px 0 4px 20px; }
+  .signature { position: absolute; left: 0; bottom: 16px; font: 400 36px/1.08 var(--sans); color: var(--muted); }
+  .url { font-size: 36px; color: var(--accent); }
 </style>
 </head>
 <body>
@@ -30,11 +35,15 @@
 <pre>name = "synthagree"
 version = "1.2.3"
 license = "Apache-2.0"</pre>
-  <svg width="38" height="32" viewBox="0 0 30 26" fill="none" stroke="#294f80" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3v19M6 14l9 9 9-9"/></svg>
+  <svg width="32" height="26" viewBox="0 0 30 26" fill="none" stroke="#176149" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3v19M6 14l9 9 9-9"/></svg>
 <pre class="out">title: synthagree
 version: 1.2.3
 license: Apache-2.0</pre>
-  <p class="url">simonvanlierde.com/citesync</p>
+  <footer class="signature">
+    <p>Simon van Lierde · 2026</p>
+    <p>DOI: 10.5281/zenodo.23779706</p>
+    <p class="url">simonvanlierde.com/citesync</p>
+  </footer>
 </main>
 </body>
 </html>
