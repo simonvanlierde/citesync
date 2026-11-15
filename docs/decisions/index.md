@@ -7,3 +7,4 @@ These records explain choices that shape citesync, their reasons and their conse
 - [Write changes only the manifest fields you select](0003-manifests-opt-in.md).
 - [Use Python 3.13 and ruamel.yaml](0004-python-and-ruamel.md).
 - [Keep contribution roles intact without interpreting them](0005-vocabulary-blind-roles.md).
+- [Take field conversions from codemeta-drift and emit CodeMeta 3.0](0006-field-conversions-from-codemeta-drift-and-codemeta-3.md).
