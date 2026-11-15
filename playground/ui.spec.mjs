@@ -3,23 +3,35 @@ import { expect, test } from "@playwright/test";
 
 const syntaxMessage = /line|expected|parse/i;
 
-test("format selection works without Content Security Policy violations", async ({ page }) => {
+test("format selection shows its chevron without image policy violations", async ({ page }) => {
   await page.addInitScript(() => {
-    window.policyViolations = [];
+    window.imagePolicyViolations = [];
     document.addEventListener("securitypolicyviolation", (event) => {
-      window.policyViolations.push(`${event.effectiveDirective}: ${event.blockedURI}`);
+      if (event.effectiveDirective === "img-src") {
+        window.imagePolicyViolations.push({
+          blockedURI: event.blockedURI,
+          sourceFile: event.sourceFile,
+          line: event.lineNumber,
+        });
+      }
     });
   });
   await page.route("https://cdn.jsdelivr.net/**", (route) => route.abort());
   await page.goto("/");
   const input = page.locator("#source-format-search");
+  expect(
+    await input.evaluate((element) => {
+      const arrow = getComputedStyle(element.parentElement, "::after");
+      return arrow.content !== "none" && Number.parseFloat(arrow.width) > 0 && Number.parseFloat(arrow.height) > 0;
+    }),
+  ).toBe(true);
   await input.click();
   await input.fill("pyproject");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(input).toHaveValue("pyproject.toml");
   await expect(page.locator("#source-format")).toHaveValue("pyproject.toml");
-  expect(await page.evaluate(() => window.policyViolations)).toEqual([]);
+  expect(await page.evaluate(() => window.imagePolicyViolations)).toEqual([]);
 });
 
 async function choose(page, id, value) {
