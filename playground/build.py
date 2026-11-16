@@ -181,15 +181,28 @@ def _without_badges(tokens: list[Token]) -> list[Token]:
     return tokens
 
 
+def _doc_html(_renderer: object, tokens: list[Token], index: int, *_args: object) -> str:
+    """Hide author comments; render all other raw HTML as literal text."""
+    content = tokens[index].content
+    if content.lstrip().startswith("<!--"):
+        content = re.sub(r"<!--.*?(?:-->|$)", "", content, flags=re.DOTALL)
+    return escape(content)
+
+
 def _doc_body(source: Path, pages: dict[Path, Path]) -> tuple[str, str]:
     """Render Markdown tokens with stable heading anchors and site-relative links."""
-    markdown = MarkdownIt("commonmark", {"html": False}).enable(["table", "strikethrough"])
+    markdown = MarkdownIt("commonmark", {"html": True}).enable(["table", "strikethrough"])
     markdown.add_render_rule(
         "table_open",
         lambda *_: '<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>\n',
     )
     markdown.add_render_rule("table_close", lambda *_: "</table></div>\n")
+    markdown.add_render_rule("html_block", _doc_html)
+    markdown.add_render_rule("html_inline", _doc_html)
     tokens = markdown.parse(source.read_text())
+    if not any(token.type == "heading_open" and token.tag == "h1" for token in tokens):
+        heading = source.stem.replace("_", " ").replace("-", " ")
+        tokens = markdown.parse(f"# {heading[:1].upper() + heading[1:]}\n\n") + tokens
     if source == ROOT / "README.md":
         tokens = _without_badges(tokens)
     title = source.stem

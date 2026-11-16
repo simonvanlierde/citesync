@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "citesync",
   "version": "0.6.0",
-  "datePublished": "2026-11-14",
+  "datePublished": "2026-11-16",
   "url": "https://simonvanlierde.com/citesync/",
   "description": "citesync generates and synchronizes citation metadata across CITATION.cff, CodeMeta, Zenodo and package files using CodeMeta crosswalks. Use the CLI or pre-commit hook to keep repository metadata consistent, or generate citation files in the browser playground. Imports include Python, Rust, npm, R, Julia, Typst and Quarto metadata, with citation exports for reference managers and publishing tools. Dataset CodeMeta files have their own resource type and licence, separate from the software; citesync also checks RO-Crate and Croissant descriptions. Opt-in required-field checks report missing files and values, and CodeMeta vocabulary checks flag unknown terms. The website includes searchable documentation and a field lookup across six metadata formats.",
   "author": [

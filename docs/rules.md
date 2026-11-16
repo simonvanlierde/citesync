@@ -114,7 +114,7 @@ To fix: Add the keyword to the citation file, or remove it from the manifest.
 
 The dataset CodeMeta file does not declare the Dataset type. Severity: error.
 
-The configured or discovered dataset CodeMeta file must declare Dataset in its JSON-LD type. The type alias, schema:Dataset, full schema.org IRIs and lists containing Dataset also pass.
+The configured or discovered dataset CodeMeta file must declare Dataset in its JSON-LD type. Full schema.org Dataset IRIs pass. Compact names such as schema:Dataset or Dataset pass only when their active supported CodeMeta and inline contexts expand to schema.org Dataset. Lists may contain other types.
 
 To fix: Run citesync write to set the dataset resource type.
 

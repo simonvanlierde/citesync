@@ -222,3 +222,47 @@ def test_documentation_descriptions_follow_the_page_and_escape_markup(tmp_path: 
     builder._docs(root / "site", "assets/test")
     html = (root / "site/docs/index.html").read_text()
     assert 'content="Alpha &amp; &quot;Beta&quot;. Use &lt;literal&gt; &amp; &quot;quoted&quot; values."' in html
+
+
+def test_author_comments_stay_out_of_guides_metadata_and_search(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    root = tmp_path / "repo"
+    (root / "docs").mkdir(parents=True)
+    (root / "docs/README.md").write_text(
+        "# Guide\n\n<!-- author-only\nsetup note --><!-- adjacent-only -->\n\nUseful introduction.\n\n"
+        "Visible <!-- inline-only --> prose.\n\n## HTML examples\n\n"
+        "```html\n<!-- keep code comment -->\n<script>literal()</script>\n```\n\n"
+        "Inline `<!-- keep inline code -->`.\n\n<script>untrusted()</script>\n"
+    )
+    monkeypatch.setattr(builder, "ROOT", root)
+    builder._docs(root / "site", "assets/test")
+    html = (root / "site/docs/index.html").read_text()
+    index = (root / "site/docs/search-index.json").read_text()
+    assert "author-only" not in html
+    assert "inline-only" not in html
+    assert "author-only" not in index
+    assert "adjacent-only" not in html
+    assert "adjacent-only" not in index
+    assert "inline-only" not in index
+    assert "keep code comment" in html
+    assert "keep inline code" in html
+    assert "keep code comment" in index
+    assert "<script>untrusted()" not in html
+    assert "&lt;script&gt;untrusted()&lt;/script&gt;" in html
+    description = Links(html).description
+    assert description is not None
+    assert description.startswith("Guide. Useful introduction.")
+
+
+def test_linked_markdown_without_heading_gets_a_readable_title(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    root = tmp_path / "repo"
+    (root / "docs").mkdir(parents=True)
+    (root / ".github").mkdir()
+    (root / "docs/README.md").write_text("# Guide\n\n[PR template](../.github/pull_request_template.md)\n")
+    (root / ".github/pull_request_template.md").write_text("<!-- author note -->\n\nDescribe the change.\n")
+    monkeypatch.setattr(builder, "ROOT", root)
+    builder._docs(root / "site", "assets/test")
+    html = (root / "site/docs/reference/.github/pull_request_template/index.html").read_text()
+    assert "<title>Pull request template — citesync documentation</title>" in html
+    assert html.count("<h1 ") == 1
+    assert '<h1 id="pull-request-template">Pull request template</h1>' in html
+    assert Links(html).description == "Pull request template. Describe the change."

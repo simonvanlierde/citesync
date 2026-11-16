@@ -18,8 +18,7 @@ gh issue create --title "First release" --body-file .github/first-release.md
   `just citation`.
 - [ ] **Software Heritage**, after the release: ask it to archive the repo at
   <https://archive.softwareheritage.org/save/>, with origin type `git` and
-  `https://github.com/simonvanlierde/citesync`. When the visit is done, the archive badge in the README
-  turns from "not found" to "archived". Open it and copy the release's SWHID into
+  `https://github.com/simonvanlierde/citesync`. When the visit is done, open it in Software Heritage and copy the release's revision SWHID into
   `CITATION.cff` under `identifiers` (`type: swh`).
 - [ ] **Research Software Directory**: add the project at
   <https://research-software-directory.org> ("+", then "New Software"). Give it the

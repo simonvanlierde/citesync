@@ -7,21 +7,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- Documentation code examples have keyboard-accessible copy buttons and feedback when copying is blocked.
-- The website publishes an [accessibility statement](docs/accessibility.md), with keyboard instructions and testing limitations. Documentation links include page-specific social previews.
-
-### Changed
-
-- The playground and documentation share a compact footer with a sun/moon theme toggle that remembers your choice.
-- The playground and documentation use a shared green design with local IBM Plex Sans fonts. File actions sit above the preview; documentation search sits beside the article on desktop, with compact navigation on phones ([playground guide](playground/README.md)).
-
-### Fixed
-
-- Playground file selectors display their dropdown arrows under the website's Content Security Policy.
-
-## [0.6.0] - 2026-11-14
+## [0.6.0] - 2026-11-16
 
 ### Added
 
@@ -29,25 +15,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The playground's **Field lookup** searches the pinned CodeMeta mappings across six metadata formats, including fields those formats cannot represent ([playground](playground/README.md)).
 - Shared website links show a social card with an example of package metadata converted to CITATION.cff.
 - Opt-in [`required-fields`](docs/config.md#require-values-in-selected-files) checks report missing values in selected metadata files as `required-field-missing` errors. Missing files and values fail even when the source lacks the facts. Default omission handling and write behavior stay the same.
-- `dataset-codemeta` and `dataset-license` (plus `--dataset-codemeta` and `--dataset-license`) write and check a dataset CodeMeta file (`@type: Dataset`, defaulting to `dataset.codemeta.json`) for `sourceledger release --codemeta`, keeping code and dataset licences separate, including RO-Crate and Croissant checks and optional required-field checks ([configuration](docs/config.md)).
+- `dataset-codemeta` and `dataset-license` (plus `--dataset-codemeta` and `--dataset-license`) write and check a dataset CodeMeta file (`@type: https://schema.org/Dataset`, defaulting to `dataset.codemeta.json`) for `sourceledger release --codemeta`, keeping code and dataset licences separate, including RO-Crate and Croissant checks and optional required-field checks ([configuration](docs/config.md)).
+- Documentation code examples have keyboard-accessible copy buttons and feedback when copying is blocked.
+- The website publishes an [accessibility statement](docs/accessibility.md), with keyboard instructions and testing limitations. Documentation links include page-specific social previews.
 
 ### Changed
 
-- On the same v0.5.0 metadata, `check` averaged 60.2 ms versus 61.5 ms in 0.5.0 (about 2% lower). Both used Python 3.14.4 with JIT disabled and 30 runs after three warm-ups; shared-host variation exceeds the difference.
+- On the same v0.5.0 metadata, `check` averaged 59.2 ± 3.3 ms versus 55.9 ± 1.7 ms in 0.5.0 (about 6% higher). Both used Python 3.14.4 with JIT disabled on the same pinned CPU, with 30 runs after three warm-ups. Shared-host variation is comparable to the difference.
+- The playground and documentation share a compact footer with a sun/moon theme toggle that remembers your choice.
+- The playground and documentation use a shared green design with local IBM Plex Sans fonts. File actions sit above the preview; documentation search sits beside the article on desktop, with compact navigation on phones ([playground guide](playground/README.md)).
 
 ### Fixed
 
+- Conversion problems that block playground exports are announced to assistive technology.
+- Documentation omits author comments from guides, search results and share previews, and gives linked pages without headings a readable title.
+- The CFF export guide saves previews to a separate file, avoiding shell truncation of an existing source. JSON output documentation includes the `@type` keyword used by dataset type findings.
 - Both pre-commit hooks now recognize `dataset.codemeta.json`, including nested paths. For custom names, use `always_run: true` ([hook setup](README.md#usage)).
-
 - CLI help and finding links open the on-site documentation.
-
-- Existing dataset CodeMeta files now have their Dataset resource type checked and repaired by `write` ([configuration](docs/config.md)).
-
+- Dataset CodeMeta uses the full `https://schema.org/Dataset` resource type. `check` respects inline JSON-LD name overrides, and `write` repairs missing or incorrect types ([configuration](docs/config.md)).
+- Invalid dataset destination paths return a configuration error before filesystem access.
 - Software citation exports no longer inherit a dataset's licence or other fields when the software source lacks them. [Dataset files](docs/formats.md#dataset-files) supply export values only when explicitly selected as the source.
-
 - Choosing an output format stays selected while the preview updates.
-
 - Documentation navigation preserves command names and marks the current guide or section. Reference tables scroll on narrow screens without splitting filenames; field lookup starts with a search prompt.
+- Playground file selectors display their dropdown arrows under the website's Content Security Policy.
 
 ## [0.5.0] - 2026-11-10
 

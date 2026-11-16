@@ -100,7 +100,7 @@ release version:
     # changelog bigger than the pipe buffer.
     if git show origin/main:CHANGELOG.md | grep "^## \[$version\] - " >/dev/null; then
         .github/scripts/tag-release.sh "$version"
-        echo "Archive it in Software Heritage: https://archive.softwareheritage.org/save/ (git, $repo). The README badge then links to the SWHID."
+        echo "Archive it in Software Heritage: https://archive.softwareheritage.org/save/ (git, $repo). Copy the release revision's SWHID from the completed archive visit."
         exit 0
     fi
     prev=$(sed -n 's/^## \[\([0-9][0-9.]*\)\].*/\1/p' CHANGELOG.md | head -1)
