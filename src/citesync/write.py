@@ -121,7 +121,7 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
             and (doc.is_citation or t in config.write_manifests)
         ]
         context = config.codemeta_version if (doc.path, "@context") in fix else None
-        resource_type = "Dataset" if (doc.path, "@type") in fix else None
+        resource_type = "https://schema.org/Dataset" if (doc.path, "@type") in fix else None
         if not terms and not context and not resource_type:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
@@ -144,7 +144,7 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
             continue
         if fmt == "codemeta":
             ref = ds_source if rel == ds_path else source
-            rtype = "Dataset" if rel == ds_path else "SoftwareSourceCode"
+            rtype = "https://schema.org/Dataset" if rel == ds_path else "SoftwareSourceCode"
             texts[rel], reasons = _new_codemeta(rel, ref, version, mapping, key, resource_type=rtype)
         else:
             texts[rel], reasons = _new_zenodo(rel, source, mapping, key, config.zenodo_contributor_type)

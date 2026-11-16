@@ -696,3 +696,21 @@ test("name corrections survive a source edit, and a refresh keeps a typed search
   await expect(output).toHaveValue("bib");
   await expect(page.locator('#output-file-list [role="option"]:visible')).toHaveText(["citation.bib — BibTeX"]);
 });
+
+test("conversion problems announce why exports are blocked", async ({ page }) => {
+  await page.goto("/");
+  await page.locator("#input").fill(
+    JSON.stringify({
+      "@context": "https://w3id.org/codemeta/3.0",
+      "@type": "SoftwareSourceCode",
+      name: "lensgrind",
+      author: [{ "@type": "Person", familyName: "Leeuwenhoek" }],
+      custom: "unsupported",
+    }),
+  );
+  const status = page.locator("#status");
+  await expect(status).toHaveText("Resolve the conversion problems before exporting.", { timeout: 90000 });
+  await expect(status).toHaveAttribute("role", "status");
+  await expect(page.locator("#copy")).toBeDisabled();
+  await expect(page.locator("#input")).toBeFocused();
+});

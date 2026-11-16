@@ -27,7 +27,7 @@ The preview exits 1 when it would change files. Review its output, then write an
 citesync write && citesync check
 ```
 
-citesync creates the dataset file with `@type: Dataset`. It takes shared fields from the software source and uses `dataset-license` for the dataset licence. Other citation files keep the software licence. The dataset path must be distinct from every software input and export.
+citesync creates the dataset file with `@type: https://schema.org/Dataset`. It takes shared fields from the software source and uses `dataset-license` for the dataset licence. Other citation files keep the software licence. The dataset path must be distinct from every software input and export.
 
 When only `dataset-license` is set, the dataset path defaults to `dataset.codemeta.json`. An existing file with that name is discovered automatically. When `dataset-license` is absent, the dataset uses the source licence; use an explicit setting whenever the rights differ.
 

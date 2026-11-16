@@ -177,12 +177,7 @@ def read_doc(
     if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
         raise UnreadableError(rel, "resolves outside the repo root")
     data = load(root / rel, rel)
-    types = data.get(codemeta_type_key(data))
-    is_dataset = fmt == "codemeta" and any(
-        isinstance(kind, str)
-        and kind in {"Dataset", "schema:Dataset", "http://schema.org/Dataset", "https://schema.org/Dataset"}
-        for kind in (types if isinstance(types, list) else [types])
-    )
+    is_dataset = fmt == "codemeta" and codemeta_is_dataset(data)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
     stray = stray_terms(data, version) if fmt == "codemeta" and version else ()
@@ -236,6 +231,54 @@ def codemeta_type_key(data: dict[str, Any]) -> str:
     if isinstance(alias, dict):
         alias = alias.get("@id")
     return "type" if "@type" not in data and "type" in data and alias == "@type" else "@type"
+
+
+def codemeta_is_dataset(data: dict[str, Any]) -> bool:  # noqa: C901 - ordered context definitions and null resets
+    """Whether a root type expands to schema.org Dataset in the supported contexts.
+
+    Only CodeMeta contexts and inline Dataset, schema and @vocab definitions are
+    resolved. Unknown remote contexts cannot establish a compact Dataset type.
+    Full schema.org Dataset IRIs need no context resolution.
+    """
+    schema: str | None = None
+    vocab: str | None = None
+    term: str | None = None
+    has_term = False
+
+    def iri(value: object) -> str | None:
+        if isinstance(value, dict):
+            value = value.get("@id")
+        if not isinstance(value, str):
+            return None
+        return schema + value[7:] if value.startswith("schema:") and schema else value
+
+    context = data.get("@context")
+    for item in context if isinstance(context, list) else [context]:
+        if version := codemeta_version(item):
+            schema = "https://schema.org/" if version == "4.0" else "http://schema.org/"
+        elif isinstance(item, dict):
+            if "schema" in item:
+                definition = item["schema"]
+                schema = iri(definition)
+                if isinstance(definition, dict) and definition.get("@prefix") is not True:
+                    schema = None
+            if "@vocab" in item:
+                vocab = iri(item["@vocab"])
+            if "Dataset" in item:
+                has_term = True
+                term = iri(item["Dataset"])
+        else:
+            schema = vocab = term = None
+            has_term = False
+    types = data.get(codemeta_type_key(data))
+    dataset_iris = {"http://schema.org/Dataset", "https://schema.org/Dataset"}
+    for kind in types if isinstance(types, list) else [types]:
+        if not isinstance(kind, str):
+            continue
+        expanded = term if has_term else vocab + "Dataset" if vocab else None
+        if (expanded if kind == "Dataset" else iri(kind)) in dataset_iris:
+            return True
+    return False
 
 
 def zenodo_gaps(cff: dict[str, Any]) -> tuple[tuple[str, str], ...]:

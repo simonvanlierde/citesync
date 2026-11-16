@@ -305,8 +305,8 @@ def _ignore(value: object, origin: str) -> tuple[str, ...]:
 
 
 def _dataset_codemeta(value: object, origin: str) -> str:
-    if not isinstance(value, str) or not value.endswith(".json"):
-        msg = f"{origin}: dataset-codemeta must be a relative .json path, got {value!r}"
+    if not isinstance(value, str) or not value.isprintable() or not value.endswith(".json"):
+        msg = f"{origin}: dataset-codemeta must be a printable relative .json path, got {value!r}"
         raise CheckError(msg)
     rel = _relative(value, origin, "dataset-codemeta")
     if PurePosixPath(rel).name in FORMAT_OF:

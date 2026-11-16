@@ -50,7 +50,7 @@ def test_write_and_check_dataset_codemeta_with_separate_licence(tmp_path: Path) 
     dataset = json.loads((tmp_path / "dataset.codemeta.json").read_text(encoding="utf-8"))
     assert software["@type"] == "SoftwareSourceCode"
     assert software["license"] == "https://spdx.org/licenses/MIT"
-    assert dataset["@type"] == "Dataset"
+    assert dataset["@type"] == "https://schema.org/Dataset"
     assert dataset["license"] == "LicenseRef-CML-IA-no-licence-stated"
     assert dataset["name"] == "cml-ia-factors"
     assert dataset["version"] == "0.1.0"
@@ -84,7 +84,7 @@ def test_rewrite_dataset_codemeta_on_licence_mismatch(tmp_path: Path, licence: s
         json.dumps(
             {
                 "@context": "https://w3id.org/codemeta/3.0",
-                "@type": "Dataset",
+                "@type": "https://schema.org/Dataset",
                 "name": "cml-ia-factors",
                 "version": "0.1.0",
                 "license": "https://spdx.org/licenses/MIT",
@@ -222,6 +222,23 @@ def test_invalid_dataset_codemeta_config(tmp_path: Path, toml: str) -> None:
         load_config(tmp_path)
 
 
+@pytest.mark.parametrize("rel", ["bad\x00.json", "bad\n.json", "bad\u202e.json"])
+@pytest.mark.parametrize("override", [False, True], ids=["config", "cli"])
+def test_nonprintable_dataset_path_is_a_config_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], rel: str, *, override: bool
+) -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    args = ["check", "--root", str(tmp_path), "--json"]
+    if override:
+        args.extend(["--dataset-codemeta", rel])
+    else:
+        (tmp_path / "citesync.toml").write_text(f"dataset-codemeta = {json.dumps(rel)}\n", encoding="utf-8")
+    assert cli.main(args) == 3
+    report = json.loads(capsys.readouterr().out)
+    assert "dataset-codemeta must be a printable relative .json path" in report["errors"][0]["message"]
+    assert "unexpected error" not in report["errors"][0]["message"]
+
+
 @pytest.mark.parametrize(
     "rel",
     ["metadata/croissant.json", "metadata/ro-crate-metadata.json", "metadata/codemeta.json", "metadata/package.json"],
@@ -297,7 +314,9 @@ def test_required_default_dataset_is_read_with_custom_dataset_configured(tmp_pat
         encoding="utf-8",
     )
     (tmp_path / "dataset.codemeta.json").write_text(
-        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "@type": "Dataset", "name": "Example"}),
+        json.dumps(
+            {"@context": "https://w3id.org/codemeta/3.0", "@type": "https://schema.org/Dataset", "name": "Example"}
+        ),
         encoding="utf-8",
     )
     found, _, _ = check(tmp_path, load_config(tmp_path))
@@ -355,7 +374,9 @@ def test_dataset_and_export_cannot_share_a_destination(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     path = tmp_path / "citation.csl.json"
-    original = json.dumps({"@context": "https://w3id.org/codemeta/3.0", "@type": "Dataset", "license": "MIT"})
+    original = json.dumps(
+        {"@context": "https://w3id.org/codemeta/3.0", "@type": "https://schema.org/Dataset", "license": "MIT"}
+    )
     path.write_text(original, encoding="utf-8")
     with pytest.raises(CheckError, match="same file"):
         write(tmp_path, load_config(tmp_path))
@@ -394,11 +415,13 @@ def test_autodiscovered_dataset_keeps_its_licence_separate_during_check_and_repa
     dataset = tmp_path / "dataset.codemeta.json"
     common = {"@context": "https://w3id.org/codemeta/3.0", "name": "cml-ia-factors", "version": "0.1.0"}
     software.write_text(json.dumps(common | {"license": "MIT"}), encoding="utf-8")
-    dataset.write_text(json.dumps(common | {"@type": "Dataset", "license": "CC0-1.0"}), encoding="utf-8")
+    dataset.write_text(
+        json.dumps(common | {"@type": "https://schema.org/Dataset", "license": "CC0-1.0"}), encoding="utf-8"
+    )
     cfg = Config(dataset_license="CC0-1.0")
     assert not [finding for finding in check(tmp_path, cfg)[0] if finding.severity == "error"]
     software.write_text(json.dumps(common | {"license": "Apache-2.0"}), encoding="utf-8")
-    dataset.write_text(json.dumps(common | {"@type": "Dataset", "license": "MIT"}), encoding="utf-8")
+    dataset.write_text(json.dumps(common | {"@type": "https://schema.org/Dataset", "license": "MIT"}), encoding="utf-8")
     write(tmp_path, cfg)
     assert json.loads(software.read_text(encoding="utf-8"))["license"] == "MIT"
     assert json.loads(dataset.read_text(encoding="utf-8"))["license"] == "CC0-1.0"
@@ -407,7 +430,7 @@ def test_autodiscovered_dataset_keeps_its_licence_separate_during_check_and_repa
 def test_init_does_not_inherit_values_only_present_in_dataset_metadata(tmp_path: Path) -> None:
     software = {"@context": "https://w3id.org/codemeta/3.0", "name": "Tidepool", "author": [{"familyName": "Curie"}]}
     (tmp_path / "codemeta.json").write_text(json.dumps(software), encoding="utf-8")
-    dataset = software | {"@type": "Dataset", "license": "CC0-1.0", "keywords": ["dataset-only"]}
+    dataset = software | {"@type": "https://schema.org/Dataset", "license": "CC0-1.0", "keywords": ["dataset-only"]}
     (tmp_path / "dataset.codemeta.json").write_text(json.dumps(dataset), encoding="utf-8")
     text, _, _, _ = init(tmp_path, Config(), dry_run=True)
     assert "license:" not in text
@@ -437,7 +460,7 @@ def test_written_export_uses_software_fallback_and_excludes_discovered_dataset(
     if software_fallback:
         (tmp_path / "codemeta.json").write_text(json.dumps(common | {"license": "MIT"}), encoding="utf-8")
     (tmp_path / "dataset.codemeta.json").write_text(
-        json.dumps(common | {"@type": "Dataset", "license": "CC0-1.0"}), encoding="utf-8"
+        json.dumps(common | {"@type": "https://schema.org/Dataset", "license": "CC0-1.0"}), encoding="utf-8"
     )
     write(tmp_path, Config(exports=("schema.jsonld",)))
     licence = json.loads((tmp_path / "schema.jsonld").read_text(encoding="utf-8")).get("license")
