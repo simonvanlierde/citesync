@@ -29,7 +29,7 @@ repos:
 
   # Commit messages follow committed.toml: Conventional Commits, imperative, no period.
   - repo: https://github.com/crate-ci/committed
-    rev: faeed42f2e10c244533a01525f13c4d8b6ce383f # frozen: v1.1.11
+    rev: 02af07ed1d11ad69a96ab75f08c9831a4e2c00da # frozen: v1.1.12
     hooks:
       - id: committed
         # git writes a merge commit's message itself, so skip the check during a merge.
@@ -47,7 +47,7 @@ repos:
 
   # Every file has a copyright and license, from REUSE.toml or its own header.
   - repo: https://github.com/fsfe/reuse-tool
-    rev: a1bb792acda6fd0724936b4ebbdbc8eceb9c0459 # frozen: v6.2.0
+    rev: ea739bff9c6daa1c4c8a5c5dfd069f3fb0374728 # frozen: v6.3.0
     hooks:
       - id: reuse
 
@@ -79,7 +79,7 @@ repos:
 
   # gitleaks' successor from the same authors. gitleaks takes security fixes only.
   - repo: https://github.com/betterleaks/betterleaks
-    rev: 81aff7a638638aae3a659845d089043e1d8fe9ac # frozen: v1.9.0
+    rev: 8d77e1712fb06fd14444cc648686f1d5655e28a8 # frozen: v1.10.0
     hooks:
       - id: betterleaks
 
@@ -95,7 +95,7 @@ repos:
   # and shellcheck over every `run:` when shellcheck is on PATH. jactionlint is a
   # maintained fork of actionlint that adds release, cache and concurrency checks.
   - repo: https://github.com/jdx/jactionlint
-    rev: baa8d685e2b27ff5821558c9eeabb2051c1da61b # frozen: v2.4.0
+    rev: 9e87e8f34edfc00b849a27807e26eff9d00b936d # frozen: v2.5.0
     hooks:
       - id: jactionlint
 
