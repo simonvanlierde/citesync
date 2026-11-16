@@ -113,7 +113,7 @@ Keep repository-use instructions visible with command-line, pre-commit and CI ta
 
 Documentation renders existing Markdown and linked repository guides into local pages. Search links directly to sections and works without the converter. Keep article and guide navigation usable without JavaScript. Wrap long code examples. Place narrow-screen tables in labelled, keyboard-scrollable regions.
 
-Keep accurate privacy copy and project/source/docs/accessibility/issues/licence links in the colophon. Preserve the project, linked author, first-publication year and DOI signature. [PRODUCT.md](PRODUCT.md) owns the browser-only processing and network constraints.
+The playground and documentation use one shared colophon. Keep its signature, links and 44px sun/moon theme button on one desktop row where space allows; let groups wrap on narrower screens. The theme button names the destination theme, shows its icon, remembers an explicit choice and otherwise follows the system. Hide it without JavaScript and retain the system colour scheme. Keep accurate privacy copy and project/source/docs/accessibility/issues/licence links in the colophon. Preserve the project, linked author, first-publication year and DOI signature. [PRODUCT.md](PRODUCT.md) owns the browser-only processing and network constraints.
 
 ## Do's and Don'ts
 
