@@ -14,6 +14,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The playground and documentation share a compact footer with a sun/moon theme toggle that remembers your choice.
 - The playground and documentation use a shared green design with local IBM Plex Sans fonts. File actions sit above the preview; documentation search sits beside the article on desktop, with compact navigation on phones ([playground guide](playground/README.md)).
 
 ### Fixed

@@ -95,6 +95,13 @@ test("both footers identify the project and link its accessibility statement", a
         "https://doi.org/10.5281/zenodo.23779706",
       );
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await expect(footer.getByRole("link", { name: "Apache-2.0 licence", exact: true })).toBeVisible();
+      await expect(footer.locator(".theme-toggle")).toBeHidden();
+      if (width === 1440) {
+        const author = await footer.getByRole("link", { name: "Simon van Lierde", exact: true }).boundingBox();
+        const accessibility = await footer.getByRole("link", { name: "Accessibility", exact: true }).boundingBox();
+        expect(Math.abs(author.y - accessibility.y)).toBeLessThan(2);
+      }
       const surface = route === "/" ? "playground" : "documentation";
       await footer.screenshot({ path: testInfo.outputPath(`${surface}-footer-${width}.png`) });
       await footer.getByRole("link", { name: "Accessibility", exact: true }).click();

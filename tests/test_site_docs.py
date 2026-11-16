@@ -55,6 +55,7 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
         "fonts/plex-sans-cyrillic.woff2",
         "fonts/plex-sans-cyrillic-ext.woff2",
         "docs-search.mjs",
+        "theme.mjs",
         "main.mjs",
         "detect.mjs",
         "picker.mjs",
@@ -67,6 +68,7 @@ def test_site_build_includes_docs_and_rewrites_links(tmp_path: Path, monkeypatch
     ):
         (output / name).parent.mkdir(parents=True, exist_ok=True)
         (output / name).write_text("asset")
+    (output / "footer.html").write_text((ROOT / "playground/footer.html").read_text())
     (output / "index.html").write_text(
         '<link href="style.css"><script src="main.mjs"></script>'
         '<a href="https://simonvanlierde.com/citesync/docs/">Documentation</a>'

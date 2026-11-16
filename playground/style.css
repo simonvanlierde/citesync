@@ -81,7 +81,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ground: #101e1a;
     --paper: #172b24;
     --ink: #e3efe8;
@@ -95,6 +95,20 @@
     --note-wash: #49371a;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --ground: #101e1a;
+  --paper: #172b24;
+  --ink: #e3efe8;
+  --muted: #b1c8ba;
+  --line: #3b5849;
+  --accent: #a5dbc0;
+  --wash: #243f32;
+  --brand: #0b3026;
+  --brand-muted: #c6e0d2;
+  --note: #ffe0a0;
+  --note-wash: #49371a;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.55 var(--font-body); }
@@ -202,8 +216,10 @@ details p { color: var(--muted); max-width: 70ch; }
 footer { margin-top: 32px; border-top: 1px solid var(--line); padding: 20px 0 8px; color: var(--muted); font-size: 14px; }
 footer p { max-width: 75ch; margin: 0 0 8px; }
 footer a { display: inline-flex; align-items: center; min-height: 44px; }
-.colophon { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
-.colophon-meta, .colophon nav { display: flex; align-items: center; flex-wrap: wrap; gap: 0 16px; }
+.colophon { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; }
+.colophon-meta, .colophon nav { display: flex; align-items: center; flex-wrap: wrap; gap: 0 12px; }
+.colophon-meta > *, .colophon nav > a { white-space: nowrap; }
+.theme-toggle { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 10px; flex-shrink: 0; }
 .colophon strong { color: var(--ink); font-weight: 600; }
 .picker { position: relative; min-width: 0; max-width: 100%; }
 .picker input { width: auto; max-width: 100%; padding-right: 30px; font-size: 14px; cursor: pointer; }

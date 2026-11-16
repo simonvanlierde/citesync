@@ -90,6 +90,7 @@ def _site(manifest: dict[str, object]) -> None:
         "fonts/plex-sans-cyrillic.woff2",
         "fonts/plex-sans-cyrillic-ext.woff2",
         "docs-search.mjs",
+        "theme.mjs",
         "main.mjs",
         "detect.mjs",
         "picker.mjs",
@@ -111,8 +112,9 @@ def _site(manifest: dict[str, object]) -> None:
         (target / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(OUTPUT / name, target / name)
     shutil.copytree(WHEELS, target / "wheels")
-    html = (OUTPUT / "index.html").read_text()
+    html = (OUTPUT / "index.html").read_text().replace("<!-- footer -->", _footer("./", str(manifest["version"])))
     html = html.replace('"main.mjs"', f'"{folder}/main.mjs"').replace('"style.css"', f'"{folder}/style.css"')
+    html = html.replace('"theme.mjs"', f'"{folder}/theme.mjs"')
     html = html.replace('href="https://simonvanlierde.com/citesync/docs/', 'href="docs/')
     # Platforms cache a link preview by image URL, so the card URL carries the PNG's hash.
     card = hashlib.sha256((OUTPUT / "og.png").read_bytes()).hexdigest()[:8]
@@ -120,7 +122,16 @@ def _site(manifest: dict[str, object]) -> None:
     (site / "index.html").write_text(html)
     for name in ("favicon.svg", "og.png"):
         shutil.copyfile(OUTPUT / name, site / name)
-    _docs(site, folder, card)
+    _docs(site, folder, card, str(manifest["version"]))
+
+
+def _footer(prefix: str, version: str) -> str:
+    return (
+        (OUTPUT / "footer.html")
+        .read_text()
+        .replace("https://simonvanlierde.com/citesync/", prefix)
+        .replace("{version}", escape(version))
+    )
 
 
 def _doc_target(source: Path, link: str) -> Path | None:
@@ -332,7 +343,7 @@ def _doc_menu(source: Path, pages: dict[Path, Path], rendered: dict[Path, tuple[
     return links
 
 
-def _docs(site: Path, assets: str, card: str = "") -> None:
+def _docs(site: Path, assets: str, card: str = "", version: str = "") -> None:
     """Publish and index the Markdown guides beside the playground."""
     pages = _doc_pages(site)
     rendered = {source: _doc_body(source, pages) for source in pages}
@@ -391,6 +402,7 @@ content="{escape(description)}">
 content="citesync converts package metadata into a CITATION.cff. simonvanlierde.com/citesync">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="{prefix}favicon.svg" type="image/svg+xml">
+<script src="{prefix}{assets}/theme.mjs"></script>
 <link rel="stylesheet" href="{prefix}{assets}/style.css">
 <script type="module" src="{prefix}{assets}/docs-search.mjs"></script>
 </head>
@@ -419,13 +431,7 @@ autocomplete="off" aria-describedby="docs-search-status">
 {contents}<article>{body}</article>
 </main>
 </div>
-<footer><p><strong>citesync</strong> · <a href="https://simonvanlierde.com/">Simon van Lierde</a> · 2026 ·
-<a href="https://doi.org/10.5281/zenodo.23779706">DOI: 10.5281/zenodo.23779706</a></p>
-<nav aria-label="Project links">
-<a href="https://github.com/simonvanlierde/citesync/issues">Report an issue</a> ·
-<a href="https://github.com/simonvanlierde/citesync">Source code</a>
- · <a href="{prefix}docs/accessibility/">Accessibility</a>
-</nav></footer>
+<footer aria-label="About citesync">{_footer(prefix, version)}</footer>
 </div>
 </body>
 </html>

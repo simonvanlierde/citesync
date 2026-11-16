@@ -2,7 +2,7 @@
 
 Last reviewed: 15 November 2026. Review this statement annually and before each release.
 
-The playground and documentation support keyboard navigation, visible focus, labelled controls and the browser's light or dark theme.
+The playground and documentation support keyboard navigation, visible focus and labelled controls. They follow your system's light or dark theme until you choose one with the sun/moon button in the footer. The button's label names the theme it will switch to. Your choice is remembered when browser storage is available; without JavaScript, the site follows your system theme.
 Use the skip link at the start of each page to reach its main content.
 
 ## Use the playground
