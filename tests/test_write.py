@@ -912,7 +912,7 @@ def test_diff_takes_no_format(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["write", "--diff", "--format", "json"])
     assert exc.value.code == 2
-    assert "--diff" in capsys.readouterr().err
+    assert "--diff" in capsys.readouterr().out  # a usage error under --format json is a JSON report
 
 
 def _with_organization(root: Path) -> None:

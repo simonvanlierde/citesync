@@ -919,6 +919,10 @@ exit codes:
   3  citesync couldn't run: a bad config, a missing source file
   130  interrupted with Ctrl-C
 
+examples:
+  citesync check --json        one JSON report: findings, summary, errors
+  citesync explain version-mismatch --json
+
 config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
 [workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
 
