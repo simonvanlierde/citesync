@@ -20,13 +20,13 @@ from citesync.check import Finding, compare
 from citesync.cli import _sarif, main
 from citesync.formats import Doc
 from citesync.mapping import TERMS
+from tests.conftest import OUTPUT_SCHEMA
 
 if TYPE_CHECKING:
     from tests.conftest import Run
 
 FIXTURES = Path(__file__).parent / "fixtures"
 FIX = "Make the file agree with the source, or the other way round if the source is wrong."
-OUTPUT_SCHEMA = json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8"))
 CASES = [
     (repo.name, case)
     for repo in sorted(FIXTURES.glob("*/"))
@@ -962,8 +962,8 @@ options:
             ["check", "--help"],
             """\
 usage: citesync check [-h] [--root ROOT] [--source SOURCE] [--dataset-codemeta DATASET_CODEMETA]
-                      [--dataset-license DATASET_LICENSE] [--format {text,json,github,sarif}]
-                      [--json] [--color {auto,always,never}] [-v | -q]
+                      [--dataset-license DATASET_LICENSE] [--json]
+                      [--format {text,json,github,sarif}] [--color {auto,always,never}] [-v | -q]
 
 Report disagreements with the source and missing configured required-fields.
 
@@ -976,9 +976,9 @@ options:
                         path to the dataset CodeMeta file; overrides config
   --dataset-license DATASET_LICENSE
                         dataset licence (SPDX id, expression, or URL); overrides config
+  --json                print JSON
   --format {text,json,github,sarif}
                         output format (default: text)
-  --json                alias of --format json
   --color {auto,always,never}
                         colour the text output (default: auto, on a terminal unless NO_COLOR or
                         FORCE_COLOR say otherwise)
