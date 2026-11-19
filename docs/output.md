@@ -1,6 +1,6 @@
 # Output formats
 
-`citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format. `citesync config`, `init` and `explain` take `--json` too, and `rules` takes `--format json`.
+`citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format. `citesync config`, `init`, `explain` and `rules` take `--json` too; `rules` prints a bare list of rules, with no report around it.
 
 ## JSON
 
@@ -38,7 +38,7 @@
 }
 ```
 
-A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and `see `citesync --help`` as `help`, and stderr stays empty. Without them it prints the usage on stderr. citesync reads the flag from the arguments, so a usage error in a command line that also holds `--json` is always JSON.
+A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is ``use `citesync rules` to list them``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. citesync reads the flag from the arguments, so a usage error in a command line that also holds `--json` is always JSON.
 
 ### config, init and explain
 

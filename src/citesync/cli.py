@@ -105,6 +105,7 @@ class _Parser(argparse.ArgumentParser):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         kwargs.setdefault("formatter_class", _Formatter)
+        kwargs.setdefault("allow_abbrev", False)  # --jso must not slip past the raw-argument scan for --json
         if sys.version_info >= (3, 14):
             kwargs.setdefault("suggest_on_error", True)
         super().__init__(*args, **kwargs)
@@ -205,6 +206,7 @@ def _parser() -> argparse.ArgumentParser:
     config.add_argument("--json", action="store_const", const="json", dest="format", help="print the config as JSON")
     config.set_defaults(format="text")
     rules = sub.add_parser("rules", help="list the rules")
+    rules.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
     explain_ = sub.add_parser("explain", help="print a rule's documentation")
     explain_.add_argument("rule", help="a rule id")
@@ -246,12 +248,12 @@ def entry() -> NoReturn:
     sys.exit(code)
 
 
-def _failed(args: argparse.Namespace, message: str, code: int) -> int:
+def _failed(args: argparse.Namespace, message: str, code: int, help_: str | None = None) -> int:
     """Report a run that couldn't finish: ``citesync: <message>`` on stderr, or with JSON a report of the error."""
     if getattr(args, "format", None) == "json":
-        print(_envelope(errors=[{"message": message, "help": None}]))
+        print(_envelope(errors=[{"message": message, "help": help_}]))
     else:
-        print(f"citesync: {message}", file=sys.stderr)
+        print(f"citesync: {message}{f'; {help_}' if help_ else ''}", file=sys.stderr)
     return code
 
 
@@ -336,7 +338,7 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
         parser.print_help(sys.stderr)
         parser.exit(2)
     if getattr(args, "diff", False) and getattr(args, "format", "text") != "text":
-        parser.error("--diff prints a unified diff; it takes no --format")
+        parser.error(f"--diff prints a unified diff; it takes no {'--json' if args.command == 'init' else '--format'}")
     return args
 
 
@@ -574,7 +576,8 @@ def _rules(args: argparse.Namespace) -> int:
     if args.command == "explain":
         if args.rule not in RULES:
             hint = did_you_mean(args.rule, RULES)
-            return _failed(args, f"unknown rule {args.rule!r}; `citesync rules` lists them{hint}", 2)
+            help_ = f"`citesync rules` lists them{hint}"  # hint is "" or "; did you mean 'x'?"
+            return _failed(args, f"unknown rule {args.rule!r}", 2, help_)
         if args.format == "json":
             r = RULES[args.rule]
             rule = {"rule": args.rule, "severity": r.severity, "summary": r.summary, "details": r.details}

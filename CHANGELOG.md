@@ -10,8 +10,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `citesync config`, `init` and `explain` take `--json`, and print the same `schema_version`, `tool` and `errors` report as `check`, with the config, what `init` wrote and left out, or the rule ([output](docs/output.md#config-init-and-explain)). `tests/output.schema.json` covers them.
-- A usage error under `--json` or `--format json` is an error report on stdout, not the usage on stderr. The exit code stays 2.
 - `--help` ends with two `--json` examples.
+- `rules` takes `--json`, as an alias of `--format json`.
+
+### Changed
+
+- A usage error under `--json` or `--format json` is an error report on stdout, not the usage on stderr. The exit code stays 2, but stdout is no longer empty.
+- Options no longer match by abbreviation: `--jso` is a usage error, not `--json`.
 
 ## [0.6.0] - 2026-11-16
 

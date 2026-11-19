@@ -370,9 +370,14 @@ def test_init_json_matches_the_schema(tmp_path: Path, run: "Run") -> None:
         '[project]\nname = "r"\nversion = "1"\nauthors = [{ name = "Marie Curie" }]\nlicense = "MIT AND Apache-2.0"\n'
     )
     (tmp_path / "pyproject.toml").write_text(pyproject, encoding="utf-8")
+    (tmp_path / "package.json").write_text('{"name": "r", "version": "1", "private": true}', encoding="utf-8")
     code, out, err = run("init", "--json", "--root", str(tmp_path))
     report = _validated(out)
     assert (code, err, report["written"]) == (0, "", "CITATION.cff")
+    assert report["skipped"] == [{"term": "license", "reason": "a licence list can only say OR, not AND or WITH"}]
+    assert report["notes"] == [
+        'package.json: skipped, "private": true, so it is never published; list it under manifests to read it'
+    ]
     assert report["name_splits"] == [{"name": "Marie Curie", "given": "Marie", "family": "Curie"}]
     assert (tmp_path / "CITATION.cff").exists()
 
@@ -387,7 +392,7 @@ def test_explain_json_reports_an_unknown_rule(run: "Run") -> None:
     code, out, err = run("explain", "nope", "--json")
     report = _validated(out)
     assert (code, err) == (2, "")
-    assert "unknown rule 'nope'" in report["errors"][0]["message"]
+    assert report["errors"] == [{"message": "unknown rule 'nope'", "help": "`citesync rules` lists them"}]
 
 
 @pytest.mark.parametrize(
@@ -414,3 +419,16 @@ def test_usage_error_stays_text_without_json(capsys: pytest.CaptureFixture[str])
         main(["check", "--nope"])
     out, err = capsys.readouterr()
     assert (out, "usage: citesync" in err) == ("", True)
+
+
+def test_rules_takes_json(run: "Run") -> None:
+    assert run("rules", "--json") == run("rules", "--format", "json")
+
+
+@pytest.mark.parametrize("args", [["check", "--jso"], ["check", "--form", "json"]])
+def test_abbreviated_options_are_usage_errors(args: list[str], capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(args)
+    out, err = capsys.readouterr()
+    assert (exc.value.code, out) == (2, "")
+    assert "unrecognized arguments" in err
