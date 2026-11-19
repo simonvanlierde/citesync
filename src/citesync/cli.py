@@ -14,11 +14,12 @@ import os
 import re
 import sys
 from dataclasses import replace
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, NoReturn
 
 from citesync.check import Finding, check
-from citesync.config import Config, find_root, git_top, load_config, render
+from citesync.config import Config, as_dict, find_root, git_top, load_config, render
 from citesync.errors import CheckError, did_you_mean
 from citesync.rules import DOCS_URL, RULES, explain, url
 
@@ -86,9 +87,25 @@ class _Formatter(argparse.RawDescriptionHelpFormatter):
         super().__init__(prog, indent_increment, max_help_position, width)
 
 
+_JSON_ARGV = False  # set by main from the raw arguments: argparse errors before the format is parsed
+
+
+def _json_requested(argv: list[str]) -> bool:
+    pairs = pairwise(argv)
+    return "--json" in argv or "--format=json" in argv or any(a == "--format" and b == "json" for a, b in pairs)
+
+
 class _Parser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        """A usage error: the usage on stderr, or under ``--json`` an error report on stdout; exit 2."""
+        if _JSON_ARGV:
+            print(_envelope(errors=[{"message": message, "help": f"see `{self.prog} --help`"}]))
+            self.exit(2)
+        super().error(message)
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         kwargs.setdefault("formatter_class", _Formatter)
+        kwargs.setdefault("allow_abbrev", False)  # --jso must not slip past the raw-argument scan for --json
         if sys.version_info >= (3, 14):
             kwargs.setdefault("suggest_on_error", True)
         super().__init__(*args, **kwargs)
@@ -111,6 +128,10 @@ _EPILOG = f"""exit codes:
   2  usage error: an unknown command, option or rule
   3  citesync couldn't run: a bad config, a missing source file
   130  interrupted with Ctrl-C
+
+examples:
+  citesync check --json        one JSON report: findings, summary, errors
+  citesync explain version-mismatch --json
 
 config: the first of citesync.toml, .citesync.toml, [tool.citesync] in pyproject.toml,
 [workspace.metadata.citesync] or [package.metadata.citesync] in Cargo.toml, or "citesync" in package.json
@@ -167,6 +188,8 @@ def _parser() -> argparse.ArgumentParser:
         description=f"W{init[1:]}, when the repo has none.\nEach field comes from the first file that"
         " holds it: --source, then the files in the order above.",
     )
+    init_.add_argument("--json", action="store_const", const="json", dest="format", help="print a JSON report")
+    init_.set_defaults(format="text")
     init_.add_argument("--diff", action="store_true", help="print the new file as a unified diff and write nothing")
     export = "print a citation or citation file made from the source, writing nothing"
     export_ = sub.add_parser(
@@ -179,16 +202,24 @@ def _parser() -> argparse.ArgumentParser:
     export_.add_argument(
         "--format", choices=_EXPORT_FORMATS + _CITATION_FILES, required=True, help="the citation format"
     )
-    sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
+    config = sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
+    config.add_argument("--json", action="store_const", const="json", dest="format", help="print the config as JSON")
+    config.set_defaults(format="text")
     rules = sub.add_parser("rules", help="list the rules")
+    rules.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
-    sub.add_parser("explain", help="print a rule's documentation").add_argument("rule", help="a rule id")
+    explain_ = sub.add_parser("explain", help="print a rule's documentation")
+    explain_.add_argument("rule", help="a rule id")
+    explain_.add_argument("--json", action="store_const", const="json", dest="format", help="print the rule as JSON")
+    explain_.set_defaults(format="text")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the command line and return its exit code."""
+    global _JSON_ARGV  # noqa: PLW0603
     _utf8_streams()
+    _JSON_ARGV = _json_requested(sys.argv[1:] if argv is None else argv)
     args = _parse(argv)
     try:
         return _run(args)
@@ -217,14 +248,19 @@ def entry() -> NoReturn:
     sys.exit(code)
 
 
-def _failed(args: argparse.Namespace, message: str, code: int) -> int:
+def _failed(args: argparse.Namespace, message: str, code: int, help_: str | None = None) -> int:
     """Report a run that couldn't finish: ``citesync: <message>`` on stderr, or with JSON a report of the error."""
     if getattr(args, "format", None) == "json":
-        errors = [{"message": message, "help": None}]
-        print(json.dumps({"schema_version": JSON_SCHEMA_VERSION, "tool": _tool(), "errors": errors}, indent=2))
+        print(_envelope(errors=[{"message": message, "help": help_}]))
     else:
-        print(f"citesync: {message}", file=sys.stderr)
+        print(f"citesync: {message}{f'; {help_}' if help_ else ''}", file=sys.stderr)
     return code
+
+
+def _envelope(**body: Any) -> str:  # noqa: ANN401
+    """One JSON report: the envelope every ``--json`` output shares, then ``body``."""
+    errors = body.pop("errors", [])
+    return json.dumps({"schema_version": JSON_SCHEMA_VERSION, "tool": _tool(), **body, "errors": errors}, indent=2)
 
 
 def _tool() -> dict[str, str]:
@@ -243,10 +279,9 @@ def _run(args: argparse.Namespace) -> int:
         dataset_license=args.dataset_license,
     )
     if args.command == "config":
-        print(f"# root: {args.root}\n{render(config)}")
-        return 0
+        return _config(args, config)
     if args.command == "init":
-        return _init(args.root, config, diff=args.diff)
+        return _init(args.root, config, diff=args.diff, as_json=args.format == "json")
     if args.command == "export":
         return _export(args.root, config, args.format)
     if getattr(args, "diff", False):
@@ -263,6 +298,14 @@ def _run(args: argparse.Namespace) -> int:
         findings = _written(findings, written, skipped, config, args)
     _report(findings, files, args, None if fixed is None else len(fixed))
     return 1 if failed else 0
+
+
+def _config(args: argparse.Namespace, config: Config) -> int:
+    if args.format == "json":
+        print(_envelope(root=str(args.root), origin=config.origin, config=as_dict(config)))
+    else:
+        print(f"# root: {args.root}\n{render(config)}")
+    return 0
 
 
 def _written(
@@ -295,7 +338,7 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
         parser.print_help(sys.stderr)
         parser.exit(2)
     if getattr(args, "diff", False) and getattr(args, "format", "text") != "text":
-        parser.error("--diff prints a unified diff; it takes no --format")
+        parser.error(f"--diff prints a unified diff; it takes no {'--json' if args.command == 'init' else '--format'}")
     return args
 
 
@@ -366,11 +409,21 @@ def _export(root: Path, config: Config, fmt: str) -> int:
     return 0
 
 
-def _init(root: Path, config: Config, *, diff: bool) -> int:
+def _init(root: Path, config: Config, *, diff: bool, as_json: bool = False) -> int:
     """Write a new CITATION.cff, or with ``diff`` print it as a diff from nothing."""
     from citesync.write import init  # noqa: PLC0415
 
     text, skipped, splits, left_out = init(root, config, dry_run=diff)
+    if as_json:
+        print(
+            _envelope(
+                written="CITATION.cff",
+                skipped=[{"term": term, "reason": why} for term, why in skipped.items()],
+                name_splits=[{"name": n, "given": g, "family": f} for n, g, f in splits],
+                notes=left_out,
+            )
+        )
+        return 0
     left = "; ".join(f"{term}: {why}" for term, why in skipped.items())
     notes = [
         f"check the name split: {name!r} became given {given!r}, family {family!r}" for name, given, family in splits
@@ -523,8 +576,13 @@ def _rules(args: argparse.Namespace) -> int:
     if args.command == "explain":
         if args.rule not in RULES:
             hint = did_you_mean(args.rule, RULES)
-            print(f"citesync: unknown rule {args.rule!r}; `citesync rules` lists them{hint}", file=sys.stderr)
-            return 2
+            help_ = f"`citesync rules` lists them{hint}"  # hint is "" or "; did you mean 'x'?"
+            return _failed(args, f"unknown rule {args.rule!r}", 2, help_)
+        if args.format == "json":
+            r = RULES[args.rule]
+            rule = {"rule": args.rule, "severity": r.severity, "summary": r.summary, "details": r.details}
+            print(_envelope(rule=rule | {"help": r.help, "url": url(args.rule)}))
+            return 0
         print(explain(args.rule), end="")
         return 0
     if args.format == "json":

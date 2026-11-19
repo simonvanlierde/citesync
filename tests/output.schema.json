@@ -1,11 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "citesync check --format json",
-  "description": "Output of `citesync check --format json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `schema_version`, in a major release. A run that couldn't finish (exit 3 or 130) has `errors` and no `summary` or `findings`.",
+  "title": "citesync --json",
+  "description": "Output of `citesync check|write|config|init|explain --json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `schema_version`, in a major release. A run that couldn't finish (exit 2, 3 or 130) has `errors` and no other body.",
   "type": "object",
   "required": ["schema_version", "tool", "errors"],
   "if": { "properties": { "errors": { "maxItems": 0 } } },
-  "then": { "required": ["summary", "findings"] },
+  "then": {
+    "anyOf": [
+      { "required": ["summary", "findings"] },
+      { "required": ["root", "origin", "config"] },
+      { "required": ["written", "skipped", "name_splits", "notes"] },
+      { "required": ["rule"] }
+    ]
+  },
   "properties": {
     "schema_version": { "const": 1 },
     "errors": {
@@ -37,6 +44,46 @@
         "errors": { "type": "integer", "minimum": 0 },
         "warnings": { "type": "integer", "minimum": 0 },
         "info": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "root": { "type": "string", "description": "`config`: the repo root in use." },
+    "origin": { "type": "string", "description": "`config`: where the settings came from, a file or `defaults`." },
+    "config": {
+      "description": "`config`: the settings under their config keys, null where unset.",
+      "type": "object",
+      "required": ["source", "write-manifests", "exports", "required-fields", "ignore"]
+    },
+    "written": { "const": "CITATION.cff", "description": "`init`: the file it wrote." },
+    "skipped": {
+      "description": "`init`: each term left out, with the reason.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["term", "reason"],
+        "properties": { "term": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "name_splits": {
+      "description": "`init`: each one-string author name it split into given and family names, to check.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "given", "family"],
+        "properties": { "name": { "type": "string" }, "given": { "type": "string" }, "family": { "type": "string" } }
+      }
+    },
+    "notes": { "description": "`init`: other things to check.", "type": "array", "items": { "type": "string" } },
+    "rule": {
+      "description": "`explain`: one rule.",
+      "type": "object",
+      "required": ["rule", "severity", "summary", "details", "help", "url"],
+      "properties": {
+        "rule": { "type": "string" },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "summary": { "type": "string" },
+        "details": { "type": "string" },
+        "help": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
       }
     },
     "findings": {

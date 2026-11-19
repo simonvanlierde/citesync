@@ -1,6 +1,6 @@
 # Output formats
 
-`citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format.
+`citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format. `citesync config`, `init`, `explain` and `rules` take `--json` too; `rules` prints a bare list of rules, with no report around it.
 
 ## JSON
 
@@ -38,7 +38,17 @@
 }
 ```
 
-A usage error (exit 2) is found before the run starts, so it prints the usage on stderr even with `--json`.
+A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is ``use `citesync rules` to list them``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. citesync reads the flag from the arguments, so a usage error in a command line that also holds `--json` is always JSON.
+
+### config, init and explain
+
+These add one key beside `schema_version`, `tool` and `errors`:
+
+- `citesync config --json` adds `root`, `origin` (the file the settings came from, or `defaults`) and `config`: every setting under its config key, `null` where unset, and `required-fields` as an object from file to terms.
+- `citesync init --json` writes CITATION.cff as usual and adds `written`, `skipped` (`term` and `reason` for each term left out), `name_splits` (`name`, `given`, `family`) and `notes`. It takes no `--diff`.
+- `citesync explain <rule> --json` adds `rule`: `rule`, `severity`, `summary`, `details`, `help` and `url`. An unknown rule is a usage error.
+
+`export` prints the citation itself, so it has no `--json`.
 
 Findings are sorted by file, rule and field. `line` and `column` count from 1. For a finding on a field they point at the field's key, or at the table or object above it when the key isn't there under the name the mapping gives. For `unreadable` they point where the parser stopped, when it says. They are null where there is nothing to point at, such as a finding on no file, `file-missing`, `manifest-skipped` and `export-stale`. A list's key stands for the whole list, so an author finding points at `authors`, not at one author. A column counts characters, not bytes. `file` is null for a field no file holds. `term` names a CodeMeta term or the JSON-LD keyword `@context` or `@type`. It is null for `unreadable`, `file-missing`, `manifest-skipped` and `export-stale`. For `unknown-term` and `foreign-term` it is the file's own key path, such as `author.nick`, which is not a CodeMeta term. In the message, a value longer than 80 characters is cut short with `...`. JSON always lists every finding: `-q` and `-v` change only the text, GitHub and SARIF output.
 

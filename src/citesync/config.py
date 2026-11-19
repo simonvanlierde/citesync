@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -338,6 +338,13 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "keywords-ignore-separators": lambda value, origin: _bool(value, origin, "keywords-ignore-separators"),
     "ignore": _ignore,
 }
+
+
+def as_dict(config: Config) -> dict[str, Any]:
+    """The settings under their config keys, ``None`` where unset (``citesync config --json``)."""
+    out = {k.replace("_", "-"): v for k, v in asdict(config).items() if k != "origin"}
+    out["required-fields"] = {path: list(terms) for path, terms in config.required_fields}
+    return out
 
 
 def render(config: Config) -> str:
