@@ -99,8 +99,7 @@ class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         """A usage error: the usage on stderr, or under ``--json`` an error report on stdout; exit 2."""
         if _JSON_ARGV:
-            print(_envelope(errors=[{"message": message, "help": f"see `{self.prog} --help`"}]))
-            self.exit(2)
+            self.exit(_failed(message, 2, as_json=True, help_=f"see `{self.prog} --help`"))
         super().error(message)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
@@ -152,11 +151,13 @@ def _parser() -> argparse.ArgumentParser:
     root.add_argument("--source", help="the file the others must agree with; overrides config")
     root.add_argument("--dataset-codemeta", help="path to the dataset CodeMeta file; overrides config")
     root.add_argument("--dataset-license", help="dataset licence (SPDX id, expression, or URL); overrides config")
-    report = _Parser(add_help=False, parents=[root])
+    json_ = _Parser(add_help=False)
+    json_.add_argument("--json", action="store_const", const="json", dest="format", help="print JSON")
+    json_.set_defaults(format="text")
+    report = _Parser(add_help=False, parents=[root, json_])
     report.add_argument(
         "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
     )
-    report.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
     report.add_argument(
         "--color",
         choices=("auto", "always", "never"),
@@ -183,13 +184,11 @@ def _parser() -> argparse.ArgumentParser:
     init = "write a CITATION.cff from codemeta.json, .zenodo.json and the manifests"
     init_ = sub.add_parser(
         "init",
-        parents=[root],
+        parents=[root, json_],
         help=init,
         description=f"W{init[1:]}, when the repo has none.\nEach field comes from the first file that"
         " holds it: --source, then the files in the order above.",
     )
-    init_.add_argument("--json", action="store_const", const="json", dest="format", help="print a JSON report")
-    init_.set_defaults(format="text")
     init_.add_argument("--diff", action="store_true", help="print the new file as a unified diff and write nothing")
     export = "print a citation or citation file made from the source, writing nothing"
     export_ = sub.add_parser(
@@ -202,16 +201,12 @@ def _parser() -> argparse.ArgumentParser:
     export_.add_argument(
         "--format", choices=_EXPORT_FORMATS + _CITATION_FILES, required=True, help="the citation format"
     )
-    config = sub.add_parser("config", parents=[root], help="print the config in use and where it came from")
-    config.add_argument("--json", action="store_const", const="json", dest="format", help="print the config as JSON")
-    config.set_defaults(format="text")
-    rules = sub.add_parser("rules", help="list the rules")
-    rules.add_argument("--json", action="store_const", const="json", dest="format", help="alias of --format json")
+    sub.add_parser("config", parents=[root, json_], help="print the config in use and where it came from")
+    rules = sub.add_parser("rules", parents=[json_], help="list the rules")
     rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
-    explain_ = sub.add_parser("explain", help="print a rule's documentation")
-    explain_.add_argument("rule", help="a rule id")
-    explain_.add_argument("--json", action="store_const", const="json", dest="format", help="print the rule as JSON")
-    explain_.set_defaults(format="text")
+    sub.add_parser("explain", parents=[json_], help="print a rule's documentation").add_argument(
+        "rule", help="a rule id"
+    )
     return parser
 
 
@@ -221,15 +216,16 @@ def main(argv: list[str] | None = None) -> int:
     _utf8_streams()
     _JSON_ARGV = _json_requested(sys.argv[1:] if argv is None else argv)
     args = _parse(argv)
+    as_json = getattr(args, "format", None) == "json"
     try:
         return _run(args)
     except CheckError as err:
-        return _failed(args, str(err), EXIT_COULD_NOT_RUN)
+        return _failed(str(err), EXIT_COULD_NOT_RUN, as_json=as_json)
     except KeyboardInterrupt:
-        return _failed(args, "interrupted", EXIT_INTERRUPTED)
+        return _failed("interrupted", EXIT_INTERRUPTED, as_json=as_json)
     except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
         where = f"{args.root}: " if getattr(args, "root", None) else ""
-        return _failed(args, f"{where}unexpected error: {type(err).__name__}: {err}", EXIT_COULD_NOT_RUN)
+        return _failed(f"{where}unexpected error: {type(err).__name__}: {err}", EXIT_COULD_NOT_RUN, as_json=as_json)
 
 
 def entry() -> NoReturn:
@@ -248,9 +244,9 @@ def entry() -> NoReturn:
     sys.exit(code)
 
 
-def _failed(args: argparse.Namespace, message: str, code: int, help_: str | None = None) -> int:
+def _failed(message: str, code: int, *, as_json: bool, help_: str | None = None) -> int:
     """Report a run that couldn't finish: ``citesync: <message>`` on stderr, or with JSON a report of the error."""
-    if getattr(args, "format", None) == "json":
+    if as_json:
         print(_envelope(errors=[{"message": message, "help": help_}]))
     else:
         print(f"citesync: {message}{f'; {help_}' if help_ else ''}", file=sys.stderr)
@@ -409,7 +405,7 @@ def _export(root: Path, config: Config, fmt: str) -> int:
     return 0
 
 
-def _init(root: Path, config: Config, *, diff: bool, as_json: bool = False) -> int:
+def _init(root: Path, config: Config, *, diff: bool, as_json: bool) -> int:
     """Write a new CITATION.cff, or with ``diff`` print it as a diff from nothing."""
     from citesync.write import init  # noqa: PLC0415
 
@@ -447,14 +443,7 @@ def _report(findings: list[Finding], files: int, args: argparse.Namespace, fixed
     counts = {s: sum(f.severity == s for f in findings) for s in ("error", "warning", "info")}
     if args.format == "json":
         summary = {"files": files, "errors": counts["error"], "warnings": counts["warning"], "info": counts["info"]}
-        report = {
-            "schema_version": JSON_SCHEMA_VERSION,
-            "tool": _tool(),
-            "summary": summary,
-            "findings": [f.as_dict() for f in findings],
-            "errors": [],
-        }
-        print(json.dumps(report, indent=2))
+        print(_envelope(summary=summary, findings=[f.as_dict() for f in findings]))
         return
     if args.quiet:
         findings = [f for f in findings if f.severity == "error"]
@@ -571,24 +560,25 @@ def _colour(when: str) -> bool:
     return sys.stdout.isatty()
 
 
+def _rule_json(rule: str) -> dict[str, str]:
+    return {"rule": rule, "severity": RULES[rule].severity, "summary": RULES[rule].summary, "url": url(rule)}
+
+
 def _rules(args: argparse.Namespace) -> int:
     """``citesync rules`` and ``citesync explain``."""
     if args.command == "explain":
         if args.rule not in RULES:
             hint = did_you_mean(args.rule, RULES)
             help_ = f"`citesync rules` lists them{hint}"  # hint is "" or "; did you mean 'x'?"
-            return _failed(args, f"unknown rule {args.rule!r}", 2, help_)
+            return _failed(f"unknown rule {args.rule!r}", 2, as_json=args.format == "json", help_=help_)
         if args.format == "json":
             r = RULES[args.rule]
-            rule = {"rule": args.rule, "severity": r.severity, "summary": r.summary, "details": r.details}
-            print(_envelope(rule=rule | {"help": r.help, "url": url(args.rule)}))
+            print(_envelope(rule=_rule_json(args.rule) | {"details": r.details, "help": r.help}))
             return 0
         print(explain(args.rule), end="")
         return 0
     if args.format == "json":
-        rules = [
-            {"rule": rule, "severity": r.severity, "summary": r.summary, "url": url(rule)} for rule, r in RULES.items()
-        ]
+        rules = [_rule_json(rule) for rule in RULES]
         print(json.dumps(rules, indent=2))
         return 0
     width = max(map(len, RULES))

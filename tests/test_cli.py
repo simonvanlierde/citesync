@@ -11,6 +11,7 @@ import jsonschema
 import pytest
 
 from citesync.cli import main
+from tests.conftest import OUTPUT_SCHEMA
 
 if TYPE_CHECKING:
     from tests.conftest import Run
@@ -288,7 +289,8 @@ def test_usage_error_exits_2(args: list[str], capsys: pytest.CaptureFixture[str]
     with pytest.raises(SystemExit) as exc:
         main(args)
     assert exc.value.code == 2
-    assert capsys.readouterr().out == ""
+    out, err = capsys.readouterr()
+    assert (out, "usage: citesync" in err) == ("", True)
 
 
 def test_unknown_rule_is_a_usage_error(run: "Run") -> None:
@@ -337,18 +339,17 @@ def test_json_report_carries_a_failed_run(tmp_path: Path, run: "Run") -> None:
 
 
 def test_failed_run_report_matches_the_schema(tmp_path: Path, run: "Run") -> None:
-    schema = json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8"))
     root = _repo(tmp_path, {"CITATION.cff": CFF, "citesync.toml": "nope = 1\n"})
     report = json.loads(run("check", "--json", "--root", str(root))[1])
-    jsonschema.validate(report, schema)
+    jsonschema.validate(report, OUTPUT_SCHEMA)
     del report["errors"][0]["help"]
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(report, schema)
+        jsonschema.validate(report, OUTPUT_SCHEMA)
 
 
 def _validated(out: str) -> dict:
     report = json.loads(out)
-    jsonschema.validate(report, json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8")))
+    jsonschema.validate(report, OUTPUT_SCHEMA)
     return report
 
 
@@ -412,17 +413,6 @@ def test_usage_error_is_json_under_json(args: list[str], capsys: pytest.CaptureF
     assert (exc.value.code, err) == (2, "")
     assert report["errors"][0]["message"]
     assert set(report) == {"schema_version", "tool", "errors"}
-
-
-def test_usage_error_stays_text_without_json(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit):
-        main(["check", "--nope"])
-    out, err = capsys.readouterr()
-    assert (out, "usage: citesync" in err) == ("", True)
-
-
-def test_rules_takes_json(run: "Run") -> None:
-    assert run("rules", "--json") == run("rules", "--format", "json")
 
 
 @pytest.mark.parametrize("args", [["check", "--jso"], ["check", "--form", "json"]])

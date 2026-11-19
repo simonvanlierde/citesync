@@ -8,6 +8,7 @@ import pytest
 
 from citesync.cli import main
 
+OUTPUT_SCHEMA = json.loads((Path(__file__).parent / "output.schema.json").read_text(encoding="utf-8"))
 Edit = Callable[[dict], None]
 Run = Callable[..., tuple[int, str, str]]
 _UPDATES: dict[Path, list[Edit]] = {}
