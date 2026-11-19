@@ -578,8 +578,7 @@ def _rules(args: argparse.Namespace) -> int:
         print(explain(args.rule), end="")
         return 0
     if args.format == "json":
-        rules = [_rule_json(rule) for rule in RULES]
-        print(json.dumps(rules, indent=2))
+        print(_envelope(rules=[_rule_json(rule) for rule in RULES]))
         return 0
     width = max(map(len, RULES))
     for rule, r in RULES.items():
