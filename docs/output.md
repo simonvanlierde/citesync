@@ -1,6 +1,6 @@
 # Output formats
 
-`citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format. `citesync config`, `init`, `explain` and `rules` take `--json` too; `rules` prints a bare list of rules, with no report around it.
+`citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format. `citesync config`, `init`, `explain` and `rules` take `--json` too.
 
 ## JSON
 
@@ -40,13 +40,14 @@
 
 A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is ``use `citesync rules` to list them``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. citesync reads the flag from the arguments, so a usage error in a command line that also holds `--json` is always JSON.
 
-### config, init and explain
+### config, init, explain and rules
 
 These add one key beside `schema_version`, `tool` and `errors`:
 
 - `citesync config --json` adds `root`, `origin` (the file the settings came from, or `defaults`) and `config`: every setting under its config key, `null` where unset, and `required-fields` as an object from file to terms.
 - `citesync init --json` writes CITATION.cff as usual and adds `written`, `skipped` (`term` and `reason` for each term left out), `name_splits` (`name`, `given`, `family`) and `notes`. It takes no `--diff`.
 - `citesync explain <rule> --json` adds `rule`: `rule`, `severity`, `summary`, `details`, `help` and `url`. An unknown rule is a usage error.
+- `citesync rules --json` adds `rules`: a list of `rule`, `severity`, `summary` and `url`, one per rule.
 
 `export` prints the citation itself, so it has no `--json`.
 

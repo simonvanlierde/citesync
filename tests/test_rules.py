@@ -6,10 +6,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import jsonschema
 import pytest
 
 from citesync.cli import main
 from citesync.rules import RULES, markdown
+from tests.conftest import OUTPUT_SCHEMA
 
 ROOT = Path(__file__).parent.parent
 
@@ -32,7 +34,10 @@ def test_rules_lists_every_rule(capsys: pytest.CaptureFixture[str]) -> None:
         [rule, r.severity] for rule, r in RULES.items()
     ]
     assert main(["rules", "--format", "json"]) == 0
-    rules = json.loads(capsys.readouterr().out)
+    report = json.loads(capsys.readouterr().out)
+    jsonschema.validate(report, OUTPUT_SCHEMA)
+    assert (report["errors"], report["schema_version"]) == ([], 1)
+    rules = report["rules"]
     assert [r["rule"] for r in rules] == list(RULES)
     assert rules[-1]["url"].endswith("docs/rules/#not-checked")
 
