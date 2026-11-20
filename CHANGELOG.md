@@ -7,17 +7,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- `citesync config`, `init` and `explain` take `--json`, and print the same `schema_version`, `tool` and `errors` report as `check`, with the config, what `init` wrote and left out, or the rule ([output](docs/output.md#config-init-explain-and-rules)). `tests/output.schema.json` covers them.
-- `--help` ends with two `--json` examples.
-- `rules` takes `--json`, as an alias of `--format json`.
+## [0.7.0] - 2026-11-20
 
 ### Changed
 
-- `rules --format json` now returns the `schema_version`, `tool` and `errors` report with the list under `rules`, not a bare list. `schema_version` stays 1.
-- A usage error under `--json` or `--format json` is an error report on stdout, not the usage on stderr. The exit code stays 2, but stdout is no longer empty.
-- Options no longer match by abbreviation: `--jso` is a usage error, not `--json`.
+- **Breaking:** Update scripts reading `rules --format json` to read the list from `.rules`. The list now sits inside the shared JSON envelope; `schema_version` stays 1 ([output](docs/output.md#config-init-explain-and-rules)).
+- **Breaking:** Read usage errors from stdout when requesting JSON output. They now return an error report with exit code 2 and empty stderr ([exit codes](docs/check.md#findings-and-exit-codes)).
+- **Breaking:** Use full option names in scripts. Abbreviations such as `--jso` now return a usage error ([commands](docs/check.md)).
+- `check` averaged 96.6 ± 8.56 ms versus 93.0 ± 9.25 ms in 0.6.0 (+4%, within the observed variation); median peak memory was 18.2 MiB for both. Measurements used the same repository files, Python 3.14 and one pinned CPU on a shared Linux host: 30 runs after three warm-ups, with five fresh processes for memory ([benchmark](.github/CONTRIBUTING.md#profile)).
+
+### Added
+
+- `citesync config`, `init` and `explain` accept `--json`. Their reports include the active configuration, initialization results or rule details ([output](docs/output.md#config-init-explain-and-rules)).
+- `rules --json` is an alias of `rules --format json` ([output](docs/output.md#config-init-explain-and-rules)).
+- `--help` includes two JSON command examples.
 
 ## [0.6.0] - 2026-11-16
 
@@ -223,7 +226,8 @@ To upgrade from 0.1.0:
 - `citesync write`: rewrites the citation files that disagree with the source, and the manifest fields listed in `write-manifests`, keeping comments, key order, formatting and CRLF line ends, and writing through symlinks. Fields a file leaves out stay out. A value a file can't hold without losing something is left for you, with the reason: a compound licence in .zenodo.json, an `AND` licence in CITATION.cff or codemeta.json, a version semver can't spell in Cargo.toml or package.json, a version that isn't PEP 440 in pyproject.toml, or a renamed author whose old entry holds an email or affiliation. It reports the findings left as `check` does, each saying what to do, and never writes an ignored finding or an unreadable file. Exit 0 when the files agree afterwards, 1 when an error finding remains, 2 when it couldn't run and wrote nothing.
 - `citesync write --diff` prints the edits write would make as a unified diff and writes nothing. Exit 0 when there is nothing to change, 1 when there is or when a file can't be read (listed on stderr), as `ruff format --diff` does.
 
-[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/simonvanlierde/citesync/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/simonvanlierde/citesync/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/simonvanlierde/citesync/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/simonvanlierde/citesync/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/simonvanlierde/citesync/compare/v0.3.0...v0.4.0
