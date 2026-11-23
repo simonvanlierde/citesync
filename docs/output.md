@@ -9,7 +9,7 @@
 ```json
 {
   "schema_version": 1,
-  "tool": { "name": "citesync", "version": "0.6.0" },
+  "tool": { "name": "citesync", "version": "0.7.0" },
   "summary": { "files": 3, "errors": 1, "warnings": 0, "info": 0 },
   "findings": [
     {
@@ -33,16 +33,16 @@
 ```json
 {
   "schema_version": 1,
-  "tool": { "name": "citesync", "version": "0.6.0" },
+  "tool": { "name": "citesync", "version": "0.7.0" },
   "errors": [{ "message": "CITATION.cff: the source file is missing from /home/ada/radium; name another with --source, or the repo with --root", "help": null }]
 }
 ```
 
-A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is ``use `citesync rules` to list them``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. citesync reads the flag from the arguments, so a usage error in a command line that also holds `--json` is always JSON.
+A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is `` `citesync rules` lists them ``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. For a usage error, the last report format supported by the command before a standalone `--` decides whether the error is JSON.
 
 ### config, init, explain and rules
 
-These add one key beside `schema_version`, `tool` and `errors`:
+These add command-specific keys beside `schema_version`, `tool` and `errors`:
 
 - `citesync config --json` adds `root`, `origin` (the file the settings came from, or `defaults`) and `config`: every setting under its config key, `null` where unset, and `required-fields` as an object from file to terms.
 - `citesync init --json` writes CITATION.cff as usual and adds `written`, `skipped` (`term` and `reason` for each term left out), `name_splits` (`name`, `given`, `family`) and `notes`. It takes no `--diff`.
@@ -53,7 +53,7 @@ These add one key beside `schema_version`, `tool` and `errors`:
 
 Findings are sorted by file, rule and field. `line` and `column` count from 1. For a finding on a field they point at the field's key, or at the table or object above it when the key isn't there under the name the mapping gives. For `unreadable` they point where the parser stopped, when it says. They are null where there is nothing to point at, such as a finding on no file, `file-missing`, `manifest-skipped` and `export-stale`. A list's key stands for the whole list, so an author finding points at `authors`, not at one author. A column counts characters, not bytes. `file` is null for a field no file holds. `term` names a CodeMeta term or the JSON-LD keyword `@context` or `@type`. It is null for `unreadable`, `file-missing`, `manifest-skipped` and `export-stale`. For `unknown-term` and `foreign-term` it is the file's own key path, such as `author.nick`, which is not a CodeMeta term. In the message, a value longer than 80 characters is cut short with `...`. JSON always lists every finding: `-q` and `-v` change only the text, GitHub and SARIF output.
 
-[tests/output.schema.json](../tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields, so ignore what you don't know. Only a major release removes or retypes a field, and it bumps `schema_version`.
+[tests/output.schema.json](../tests/output.schema.json) is the JSON Schema. A minor release may add rule ids and optional fields, so ignore what you don't know. Removing or retyping a field in a versioned report bumps `schema_version` and requires a **Breaking** changelog entry. Before 1.0, breaking changes require a minor release; from 1.0, they require a major release. The rules list before 0.7.0 had no versioned envelope; its new envelope uses version 1.
 
 ## GitHub
 

@@ -33,7 +33,11 @@ def test_rules_lists_every_rule(capsys: pytest.CaptureFixture[str]) -> None:
     assert [line.split()[:2] for line in capsys.readouterr().out.splitlines()] == [
         [rule, r.severity] for rule, r in RULES.items()
     ]
-    assert main(["rules", "--format", "json"]) == 0
+
+
+@pytest.mark.parametrize("args", [["--format", "json"], ["--json"]])
+def test_rules_lists_every_rule_in_json(args: list[str], capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["rules", *args]) == 0
     report = json.loads(capsys.readouterr().out)
     jsonschema.validate(report, OUTPUT_SCHEMA)
     assert (report["errors"], report["schema_version"]) == ([], 1)

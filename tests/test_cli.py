@@ -401,6 +401,12 @@ def test_explain_json_reports_an_unknown_rule(run: "Run") -> None:
     [
         ["check", "--nope", "--json"],
         ["check", "--format", "json", "--bogus"],
+        ["check", "--format=text", "--json", "--bogus"],
+        ["check", "--format=text", "--format=json", "--bogus"],
+        ["check", "--json", "--bogus", "--", "--format=text"],
+        ["rules", "--json", "--format=sarif"],
+        ["check", "--json", "--format=unknown"],
+        ["config", "--json", "--format=text"],
         ["write", "--diff", "--json"],
         ["--json"],
     ],
@@ -413,6 +419,26 @@ def test_usage_error_is_json_under_json(args: list[str], capsys: pytest.CaptureF
     assert (exc.value.code, err) == (2, "")
     assert report["errors"][0]["message"]
     assert set(report) == {"schema_version", "tool", "errors"}
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["check", "--json", "--format", "text", "--bogus"],
+        ["check", "--json", "--format=github", "--bogus"],
+        ["check", "--format=json", "--format=sarif", "--bogus"],
+        ["check", "--", "--json"],
+        ["export", "--format=bibtex", "--json"],
+    ],
+)
+def test_usage_error_stays_text_without_an_effective_json_option(
+    args: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(args)
+    out, err = capsys.readouterr()
+    assert (exc.value.code, out) == (2, "")
+    assert "unrecognized arguments" in err
 
 
 @pytest.mark.parametrize("args", [["check", "--jso"], ["check", "--form", "json"]])

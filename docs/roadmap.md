@@ -1,11 +1,12 @@
 # Roadmap
 
-Last reviewed: 2026-11-14
+Last reviewed: 2026-11-20
 
-## Before 0.6
+## Current release
 
-- Finish the release review and checks for dataset CodeMeta, required fields, playground form mode and field lookup.
-- Complete physical-device, screen-reader and reference-manager checks before publication.
+Version 0.6.0 was published on 2026-11-16. Version 0.7.0 adds JSON output for more CLI commands and breaking changes to rules output and usage-error reporting.
+
+Physical-device, Safari, real screen-reader and reference-manager checks remain unverified. Publication does not establish that these checks passed.
 
 Dataset metadata and required-field checks are implemented, and the consuming repositories have adopted them. The playground includes form mode and field lookup. Documentation is searchable, and installation, playground and reference guides stay on this website. See the [release notes](../CHANGELOG.md) for the changes.
 

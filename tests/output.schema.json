@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "citesync --json",
-  "description": "Output of `citesync check|write|config|init|explain|rules --json`. A minor release may add rule ids and optional fields; removing or retyping a field bumps `schema_version`, in a major release. A run that couldn't finish (exit 2, 3 or 130) has `errors` and no other body.",
+  "description": "Output of `citesync check|write|config|init|explain|rules --json`. A minor release may add rule ids and optional fields; removing or retyping a field in a versioned report bumps `schema_version` and requires a Breaking entry, in a minor release before 1.0 and a major release from 1.0. A run that couldn't finish (exit 2, 3 or 130) has `errors` and no other body.",
   "type": "object",
   "required": ["schema_version", "tool", "errors"],
   "if": { "properties": { "errors": { "maxItems": 0 } } },
