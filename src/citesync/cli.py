@@ -28,6 +28,8 @@ EXIT_COULD_NOT_RUN = 3
 EXIT_INTERRUPTED = 130
 # the keys of citesync.export._WRITERS, spelled out so the parser needs no import of that module
 _EXPORT_FORMATS = ("bibtex", "csl-json", "apa", "jsonld", "datacite", "ris", "endnote")
+_RULES_FORMATS = ("text", "json")
+_REPORT_FORMATS = (*_RULES_FORMATS, "github", "sarif")
 _CITATION_FILES = ("cff", "codemeta", "zenodo")  # made by write's builders, so never under exports
 _ANSI = {"error": "1;31", "warning": "1;33", "info": "1;34"}
 _GITHUB_LEVEL = {"error": "error", "warning": "warning", "info": "notice"}
@@ -91,8 +93,24 @@ _JSON_ARGV = False  # set by main from the raw arguments: argparse errors before
 
 
 def _json_requested(argv: list[str]) -> bool:
-    pairs = pairwise(argv)
-    return "--json" in argv or "--format=json" in argv or any(a == "--format" and b == "json" for a, b in pairs)
+    """Use the last recognized report format before the option terminator."""
+    command = argv[0] if argv else ""
+    formats: tuple[str, ...] = ()
+    if command in {"check", "write"}:
+        formats = _REPORT_FORMATS
+    elif command == "rules":
+        formats = _RULES_FORMATS
+    output_format = "text"
+    for arg, following in pairwise((*argv, "--")):
+        if arg == "--":
+            break
+        if arg == "--json":
+            output_format = "json"
+        elif arg == "--format" or arg.startswith("--format="):
+            value = following if arg == "--format" else arg.removeprefix("--format=")
+            if value in formats:
+                output_format = value
+    return output_format == "json"
 
 
 class _Parser(argparse.ArgumentParser):
@@ -155,9 +173,7 @@ def _parser() -> argparse.ArgumentParser:
     json_.add_argument("--json", action="store_const", const="json", dest="format", help="print JSON")
     json_.set_defaults(format="text")
     report = _Parser(add_help=False, parents=[root, json_])
-    report.add_argument(
-        "--format", choices=("text", "json", "github", "sarif"), default="text", help="output format (default: text)"
-    )
+    report.add_argument("--format", choices=_REPORT_FORMATS, default="text", help="output format (default: text)")
     report.add_argument(
         "--color",
         choices=("auto", "always", "never"),
@@ -203,7 +219,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     sub.add_parser("config", parents=[root, json_], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", parents=[json_], help="list the rules")
-    rules.add_argument("--format", choices=("text", "json"), default="text", help="output format (default: text)")
+    rules.add_argument("--format", choices=_RULES_FORMATS, default="text", help="output format (default: text)")
     sub.add_parser("explain", parents=[json_], help="print a rule's documentation").add_argument(
         "rule", help="a rule id"
     )

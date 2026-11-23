@@ -38,7 +38,7 @@
 }
 ```
 
-A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is `` `citesync rules` lists them ``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. citesync reads the flag from the arguments, so a usage error in a command line that also holds `--json` is always JSON.
+A usage error (exit 2) under `--json` or `--format json` prints the same report on stdout, with the problem as `message` and ``see `citesync <command> --help` `` as `help`. For an unknown rule given to `explain`, `help` is `` `citesync rules` lists them ``, with a suggestion when one is close. Stderr stays empty. Without them it prints the usage on stderr. For a usage error, the last report format supported by the command before a standalone `--` decides whether the error is JSON.
 
 ### config, init, explain and rules
 
