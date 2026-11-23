@@ -428,6 +428,7 @@ def test_usage_error_is_json_under_json(args: list[str], capsys: pytest.CaptureF
         ["check", "--json", "--format=github", "--bogus"],
         ["check", "--format=json", "--format=sarif", "--bogus"],
         ["check", "--", "--json"],
+        ["export", "--format=bibtex", "--json"],
     ],
 )
 def test_usage_error_stays_text_without_an_effective_json_option(

@@ -95,6 +95,8 @@ _JSON_ARGV = False  # set by main from the raw arguments: argparse errors before
 def _json_requested(argv: list[str]) -> bool:
     """Use the last recognized report format before the option terminator."""
     command = argv[0] if argv else ""
+    if command == "export":  # Its format selects a citation type. It takes no report options.
+        return False
     formats: tuple[str, ...] = ()
     if command in {"check", "write"}:
         formats = _REPORT_FORMATS
