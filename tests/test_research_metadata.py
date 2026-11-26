@@ -144,6 +144,10 @@ def test_composer_proprietary_license_is_omitted_from_cff(tmp_path: Path):
     assert "license" not in json.loads(result["files"][".zenodo.json"])
     assert any("cff-1.2.0 needs a specific licence" in note for note in result["notes"])
 
+    write(tmp_path, Config(source="composer.json", files=(".zenodo.json",)))
+    zenodo = json.loads((tmp_path / ".zenodo.json").read_text(encoding="utf-8"))
+    assert "license" not in zenodo
+
 
 @pytest.mark.parametrize(
     ("value", "message"),
