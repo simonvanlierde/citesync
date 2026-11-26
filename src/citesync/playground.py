@@ -5,6 +5,7 @@ import io
 import json
 import tempfile
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -64,9 +65,6 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
             return _partial_details(source, text, mapping)
         msg = "Add a software title and at least one author."
         raise CheckError(msg)
-    if source.format in {"r-description", "julia"}:
-        document = _new_codemeta("codemeta.json", source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config()))[0]
-        (root / "codemeta.json").write_text(document, encoding="utf-8")
     if filename == "CITATION.cff":
         skipped, splits = {}, []
     else:
@@ -74,6 +72,15 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
     review = [{"original": name, "given": given, "family": family} for name, given, family in splits]
     if "names" in payload:
         _correct_names(root, payload["names"], splits, source.record["author"])
+    if source.format in {"r-description", "julia", "composer"}:
+        metadata_source = source
+        if "names" in payload:
+            authors = read_doc(root, "CITATION.cff", mapping).record["author"]
+            metadata_source = replace(source, record=source.record | {"author": authors})
+        document = _new_codemeta(
+            "codemeta.json", metadata_source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config())
+        )[0]
+        (root / "codemeta.json").write_text(document, encoding="utf-8")
     config = Config(files=("codemeta.json", ".zenodo.json"), manifests=())
     _, omitted, unreadable, _ = write(root, config, mapping)
     if unreadable:

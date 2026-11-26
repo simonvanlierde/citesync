@@ -233,6 +233,7 @@ def _new_cff(root: Path, source: Doc, config: Config, mapping: Mapping) -> tuple
             ("type", "software"),
         ]
     )
+    license_path = mapping[cff.format, "license"] or "license"
     blank = {  # the CFF key, and a blank whose shape picks the form, as in _new_codemeta
         "name": ("title", ""),
         "description": ("abstract", ""),
@@ -241,7 +242,7 @@ def _new_cff(root: Path, source: Doc, config: Config, mapping: Mapping) -> tuple
         "author": ("authors", []),
         "identifier": ("doi", ""),
         "codeRepository": ("repository-code", ""),
-        "license": ("license", ""),
+        "license": (_cff_license_field(license_path, record.get("license", "")), ""),
         "keywords": ("keywords", []),
     }
     values, skipped = _encode_terms(
@@ -523,7 +524,7 @@ def _yaml(text: str) -> YAML:
     return yaml
 
 
-def _apply(
+def _apply(  # noqa: C901 - retains format-specific field shapes
     doc: Doc,
     source: Doc,
     terms: list[str],
@@ -553,6 +554,11 @@ def _apply(
             continue
         container, key = slot
         old = container[key]
+        if doc.format == "cff-1.2.0" and term == "license" and " | " in path:
+            target = _cff_license_field(path, source.record[term])
+            if key != target:
+                skipped[term] = f"move the licence to {target}"
+                continue
         if isinstance(old, dict) and old.get("workspace") is True:
             skipped[term] = "inherited from [workspace.package] in the workspace's Cargo.toml"
             continue
@@ -648,6 +654,13 @@ def _doi_form(doi: str, old: Any) -> str:  # noqa: ANN401
     return codecs.doi_encode(doi, form)
 
 
+def _cff_license_field(path: str, value: str) -> str:
+    spdx_key, _, url_key = path.partition(" | ")
+    if url_key and re.fullmatch(r"(?:https?|s?ftp)://\S+", value.lower()):
+        return url_key
+    return spdx_key
+
+
 def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
     """CFF and codemeta write ``A OR B`` as a list, codemeta as SPDX URLs where the file does.
 
@@ -655,10 +668,14 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
         CannotWrite: for any compound expression in Zenodo, and ``AND`` or ``WITH`` in CFF and codemeta.
     """
     operators = set(spdx.split()) & {"AND", "OR", "WITH"}
-    if fmt == "zenodo" and operators:
-        msg = "Zenodo takes one licence id"
-        raise CannotWrite(msg)
     if fmt == "zenodo":
+        if (
+            operators
+            or spdx.casefold() == "proprietary"
+            or spdx.lower().startswith(("https://", "http://", "ftp://", "sftp://"))
+        ):
+            msg = "Zenodo takes one licence id"
+            raise CannotWrite(msg)
         return codecs.license_encode(spdx, "zenodo")
     if isinstance(old, dict) and "text" in old:  # PEP 621's legacy {text = ...}
         old["text"] = spdx
@@ -672,9 +689,15 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
     form = "spdx-url" if isinstance(first, str) and first.startswith("http") else "spdx"
     ids = []
     for item in spdx.split(" OR "):
-        is_url = item.lower().startswith(("http://", "https://"))
-        value = item if is_url else item.replace("(", "").replace(")", "")
-        ids.append(codecs.license_encode(value, "spdx" if is_url or value.startswith("LicenseRef-") else form))
+        is_url = item.lower().startswith(("http://", "https://", "ftp://", "sftp://"))
+        value = item if is_url else item.replace("(", "").replace(")", "").strip()
+        proprietary = value.casefold() == "proprietary"
+        if proprietary and fmt == "cff-1.2.0":
+            msg = "cff-1.2.0 needs a specific licence"
+            raise CannotWrite(msg)
+        ids.append(
+            codecs.license_encode(value, "spdx" if is_url or proprietary or value.startswith("LicenseRef-") else form)
+        )
     return ids if len(ids) > 1 or isinstance(old, list) else ids[0]
 
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+from ruamel.yaml import YAML
 
 from citesync.errors import CheckError
 from citesync.formats import FORMAT_OF
@@ -144,6 +145,81 @@ def test_a_plus_path_in_a_written_format_is_refused() -> None:
             row["path"] = "author + contributors[]"
     with pytest.raises(CheckError, match="npm author reads parts with \\+"):
         check_mapping(data, "mapping-local.json")
+
+
+@pytest.mark.parametrize(
+    ("license_field", "value", "replacement", "expected"),
+    [
+        ("license-url", "https://example.org/old", "https://example.org/new", "https://example.org/new"),
+        ("license-url", "https://example.org/old", "MIT OR Apache-2.0", "https://example.org/old"),
+        ("license", "MIT", "HTTPS://example.org/new", "MIT"),
+        ("license", "MIT", "Apache-2.0", "Apache-2.0"),
+    ],
+)
+def test_cff_license_write_keeps_the_field_type(
+    tmp_path: Path, license_field: str, value: str, replacement: str, expected: str
+) -> None:
+    from citesync.config import Config  # noqa: PLC0415
+    from citesync.formats import read_doc  # noqa: PLC0415
+    from citesync.write import write  # noqa: PLC0415
+
+    (tmp_path / "codemeta.json").write_text(
+        json.dumps(
+            {
+                "@context": "https://w3id.org/codemeta/3.1",
+                "name": "Example",
+                "license": replacement,
+                "keywords": ["after"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    cff = tmp_path / "CITATION.cff"
+    cff.write_text(
+        f"cff-version: 1.2.0\ntitle: Example\n{license_field}: {value}\nkeywords: [before]\n", encoding="utf-8"
+    )
+    mapping = load_mapping()
+    assert read_doc(tmp_path, cff.name, mapping).record["license"] == value
+    _, skipped, _, _ = write(tmp_path, Config(source="codemeta.json"), mapping)
+    record = read_doc(tmp_path, cff.name, mapping).record
+    assert record["license"] == expected
+    assert record["keywords"] == ("after",)
+    other_field = "license" if license_field == "license-url" else "license-url"
+    data = YAML(typ="safe").load(cff)
+    assert data[license_field] == expected
+    assert other_field not in data
+    if replacement != expected:
+        assert skipped["CITATION.cff", "license"] == f"move the licence to {other_field}"
+    else:
+        assert ("CITATION.cff", "license") not in skipped
+
+
+@pytest.mark.parametrize("scheme", ["http", "https", "ftp", "sftp"])
+def test_cff_license_url_preserves_case_without_writing_a_zenodo_id(scheme: str):
+    from citesync.playground import generate  # noqa: PLC0415
+
+    text = "cff-version: 1.2.0\ntitle: Example\nauthors: [{family-names: Example}]\n"
+    url = f"{scheme}://example.org/CustomLicence"
+    result = generate({"filename": "CITATION.cff", "text": text + f"license-url: {url}\n"})
+    assert json.loads(result["files"]["codemeta.json"])["license"] == url
+    assert "license" not in json.loads(result["files"][".zenodo.json"])
+    assert any("Zenodo takes one licence id" in note for note in result["notes"])
+
+
+@pytest.mark.parametrize("scheme", ["http", "https", "ftp", "sftp"])
+def test_export_cff_keeps_custom_license_url(tmp_path: Path, capsys: pytest.CaptureFixture[str], scheme: str):
+    from citesync.cli import main  # noqa: PLC0415
+
+    url = f"{scheme}://example.org/CustomLicence"
+    (tmp_path / "CITATION.cff").write_text(
+        f"cff-version: 1.2.0\nmessage: Cite this software.\ntitle: Example\n"
+        f"authors: [{{family-names: Example}}]\nlicense-url: {url}\n",
+        encoding="utf-8",
+    )
+    assert main(["export", "--format", "cff", "--root", str(tmp_path)]) == 0
+    output = YAML(typ="safe").load(capsys.readouterr().out)
+    assert output["license-url"] == url
+    assert "license" not in output
 
 
 def test_publisher_is_read_for_the_exports_only(tmp_path) -> None:  # noqa: ANN001

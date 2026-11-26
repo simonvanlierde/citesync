@@ -40,6 +40,7 @@ const filenames = [
   "pyproject.toml",
   "Cargo.toml",
   "package.json",
+  "composer.json",
   "PKG-INFO",
   "METADATA",
   "DESCRIPTION",
@@ -72,6 +73,11 @@ const examples = {
     '[project]\nname = "lensgrind"\nversion = "1.4.0"\ndescription = "Measure microscope optics."\nauthors = [{name = "Antonie van Leeuwenhoek"}]\nlicense = "Apache-2.0"\n',
   "Cargo.toml":
     '[package]\nname = "lensgrind"\nversion = "1.4.0"\ndescription = "Measure microscope optics."\nauthors = ["Antonie van Leeuwenhoek"]\nlicense = "Apache-2.0"\n',
+  "composer.json": JSON.stringify(
+    { name: "optics/lensgrind", authors: [{ name: "Antonie van Leeuwenhoek" }], license: "MIT" },
+    null,
+    2,
+  ),
   "package.json": JSON.stringify(
     {
       name: "lensgrind",

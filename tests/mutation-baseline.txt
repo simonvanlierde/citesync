@@ -65,21 +65,25 @@ citesync.write.x__new_cff__mutmut_16  _encode reads only the stand-in Doc's form
 citesync.write.x__new_cff__mutmut_17  _encode reads only the stand-in Doc's format
 citesync.write.x__new_cff__mutmut_20  _encode reads only the stand-in Doc's format
 citesync.write.x__new_cff__mutmut_21  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_41  a blank's text is never read, only its type
-citesync.write.x__new_cff__mutmut_46  a blank's text is never read, only its type
-citesync.write.x__new_cff__mutmut_51  a blank's text is never read, only its type
-citesync.write.x__new_cff__mutmut_65  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x__new_cff__mutmut_71  a blank's text is never read: "XXXX" has no git+ or .git to keep
-citesync.write.x__new_cff__mutmut_76  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x__new_cff__mutmut_133  any width past the longest line keeps every line whole
-citesync.write.x__new_cff__mutmut_134  any width past the longest line keeps every line whole
-citesync.write.x__new_cff__mutmut_135  mapping=None keeps ruamel's default of 2
-citesync.write.x__new_cff__mutmut_138  mapping's default is 2
-citesync.write.x__new_cff__mutmut_141  init writes no mapping inside a mapping, the only place this indent shows
+citesync.write.x__new_cff__mutmut_40  the pinned CFF licence row always has a path, so the fallback is unused
+citesync.write.x__new_cff__mutmut_41  the pinned CFF licence row always has a path, so the fallback is unused
+citesync.write.x__new_cff__mutmut_47  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_52  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_57  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_71  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x__new_cff__mutmut_77  a blank's text is never read: "XXXX" has no git+ or .git to keep
+citesync.write.x__new_cff__mutmut_90  blank licence text selects the same field, and an absent licence is never written
+citesync.write.x__new_cff__mutmut_91  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x__new_cff__mutmut_148  any width past the longest line keeps every line whole
+citesync.write.x__new_cff__mutmut_149  any width past the longest line keeps every line whole
+citesync.write.x__new_cff__mutmut_150  mapping=None keeps ruamel's default of 2
+citesync.write.x__new_cff__mutmut_153  mapping's default is 2
+citesync.write.x__new_cff__mutmut_156  init writes no mapping inside a mapping, the only place this indent shows
 citesync.write.x__new_cff__mutmut_3  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.check.x_read_docs__mutmut_69  readable is only read as a truth value, and None is falsy like False
+citesync.write.x__cff_license_field__mutmut_3  the CFF licence path has one separator, so partition and rpartition agree
 citesync.write.x__apply__mutmut_42  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
-citesync.write.x__apply__mutmut_98  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__apply__mutmut_116  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__new_person__mutmut_48  a person with no name is rejected before reaching Cargo or npm
 citesync.write.x__new_person__mutmut_50  tomlkit writes a plain dict in an array as the same inline table
 citesync.write.x__new_person__mutmut_51  tomlkit writes a plain dict in an array as the same inline table

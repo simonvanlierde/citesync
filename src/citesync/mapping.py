@@ -16,7 +16,7 @@ from citesync.errors import CheckError
 SCHEMA_MAJOR = "1"
 FORMATS = ("cff-1.2.0", "codemeta", "zenodo", "pep621", "cargo", "npm", "typst", "quarto")
 """The formats citesync reads and writes."""
-IMPORTED = ("pkg-info", "r-description", "julia")
+IMPORTED = ("pkg-info", "r-description", "julia", "composer")
 """The formats citesync only reads, as a source."""
 DATASETS = ("ro-crate", "croissant")
 """Dataset descriptions citesync compares with the source and never writes: sourceledger's ``release`` makes them."""
@@ -115,7 +115,8 @@ def check_mapping(data: dict[str, Any], name: str) -> Mapping:  # noqa: C901 - o
                 msg = f"{name}: {fmt} {term} reads parts with +, which citesync can't write back"
                 raise CheckError(msg)
         parent = term.partition(".")[0]
-        if term in PERSON_TERMS and path is not None:
+        # Only these formats use CiteSync's person reader. Other rows may join multiple lists.
+        if fmt in (*FORMATS, *IMPORTED, *DATASETS, "datacite") and term in PERSON_TERMS and path is not None:
             if (parent_path := rows.get((fmt, parent))) is None:
                 msg = f"{name}: {fmt} {term} has a path but {fmt} {parent} has none"
                 raise CheckError(msg)

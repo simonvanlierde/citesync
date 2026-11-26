@@ -546,6 +546,34 @@ test("Python distribution metadata examples and uploads generate citation files"
   await accessible(page);
 });
 
+test("Composer example, pasted metadata and file upload generate citations", async ({ page }) => {
+  await page.goto("/");
+  await choose(page, "source-format", "composer.json");
+  await page.getByRole("button", { name: "Try an example" }).click();
+  await expect(page.locator("#output")).toContainText("optics/lensgrind", { timeout: 90000 });
+  await choose(page, "source-format", "auto");
+  const text = JSON.stringify({
+    name: "optics/measurement",
+    authors: [{ name: "Ada Example" }, { name: "Mira Example" }],
+    license: "MIT",
+  });
+  await page.locator("#input").fill(text);
+  await expect(page.locator("#detected-format")).toHaveText("Detected composer.json");
+  await expect(page.locator("#output")).toContainText("optics/measurement");
+  const upload = JSON.stringify({ authors: [{ name: "Mira Example" }], version: "2.3.4" });
+  await page.locator("#file-picker").setInputFiles({
+    name: "composer.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(upload),
+  });
+  await expect(page.locator("#input")).toHaveValue(upload);
+  await expect(page.locator("#detected-format")).toHaveText("Detected composer.json");
+  await page.getByRole("tab", { name: "Enter details" }).click();
+  await expect(page.locator("#title")).toHaveValue("");
+  await expect(page.locator('#authors [data-part="given"]')).toHaveValue("Mira");
+  await expect(page.locator('#authors [data-part="family"]')).toHaveValue("Example");
+});
+
 test("R and Julia examples follow the selected format and generate citations", async ({ page }) => {
   await page.goto("/");
   await choose(page, "source-format", "DESCRIPTION");
@@ -579,6 +607,7 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
     "Citation files",
     "JavaScript",
     "Julia",
+    "PHP",
     "Python",
     "R",
     "Rust",

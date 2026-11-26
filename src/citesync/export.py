@@ -56,7 +56,7 @@ _TEX = {
 _LATIN = str.maketrans(
     {"ł": "l", "ø": "o", "đ": "d", "ħ": "h", "\u0131": "i", "ß": "ss", "æ": "ae", "œ": "oe", "þ": "th"}
 )
-_SPDX_ID = re.compile(r"(?!LicenseRef-)[A-Za-z0-9.+-]+")  # one licence id; an expression or LicenseRef has no page
+_SPDX_ID = re.compile(r"(?!LicenseRef-|proprietary$)[A-Za-z0-9.+-]+", re.IGNORECASE)
 _URL = re.compile(r"https?://\S+")
 _SPDX_PAGES = "https://spdx.org/licenses/"
 

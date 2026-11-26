@@ -1,5 +1,4 @@
-# The documentation site: `just docs` builds the Markdown in docs/ into _docs/, and
-# docs.yml deploys it to GitHub Pages. Without a `nav`, the menu follows the files in docs/.
+# `just docs` builds the guides into site/docs/. The Pages workflow publishes them beside the playground.
 # Settings: https://zensical.org/docs/setup/basics/
 [project]
 site_name = "citesync"
