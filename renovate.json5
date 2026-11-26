@@ -47,8 +47,6 @@
   dockerfile: { enabled: false },
   'docker-compose': { enabled: false },
   packageRules: [
-    // Firefox in Playwright 1.65.0 crashes during the accessibility journeys.
-    { matchPackageNames: ['@playwright/test'], ignoreVersions: ['1.65.0'] },
     // Actions and hook revs are all CI and dev tooling: one PR for both.
     { matchManagers: ['github-actions', 'pre-commit'], groupName: 'actions and hooks' },
     // Dev tooling lands as one PR and runtime minor and patch bumps as another, so a
@@ -66,6 +64,25 @@
       matchDepTypes: ['dependency-groups', 'devDependencies', 'dev-dependencies'],
       matchUpdateTypes: ['minor', 'patch'],
       groupName: 'dev tooling',
+    },
+    // Firefox in Playwright 1.65.0 crashes during the accessibility journeys.
+    {
+      matchPackageNames: ['@playwright/test', 'mcr.microsoft.com/playwright'],
+      allowedVersions: '!/^v?1\\.65\\.0(-noble)?$/',
+    },
+    // Microsoft Container Registry has no release timestamps in Renovate.
+    // The matching npm release still has to clear the seven-day wait.
+    {
+      matchDatasources: ['docker'],
+      matchPackageNames: ['mcr.microsoft.com/playwright'],
+      minimumReleaseAgeBehaviour: 'timestamp-optional',
+    },
+    {
+      matchPackageNames: ['@playwright/test', 'mcr.microsoft.com/playwright'],
+      matchUpdateTypes: ['major', 'minor', 'patch'],
+      groupName: 'Playwright',
+      minimumGroupSize: 2,
+      automerge: false,
     },
     // Template releases, from .copier-answers.yml. Their tags carry no release date,
     // so the week's wait above would hold them back for good.
