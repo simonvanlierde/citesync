@@ -686,11 +686,7 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
     raw = slot[0][slot[1]] if slot else None
     if fmt == "maven":
         raw = (
-            [
-                value
-                for value in resolve(data, path)
-                if isinstance(value, str) and "${" not in value and re.fullmatch(r"(?:https?|s?ftp)://\S+", value)
-            ]
+            [value for value in resolve(data, path) if _maven_licence_url(value)]
             if term == "license"
             else _maven_literal(raw)
         )
@@ -717,6 +713,17 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
 def _maven_literal(value: object) -> object:
     """Omit values that need Maven's model interpolation."""
     return None if isinstance(value, str) and "${" in value else value
+
+
+def _maven_licence_url(value: object) -> bool:
+    from urllib.parse import urlsplit  # noqa: PLC0415 - only Maven licence fields need structural URL validation
+
+    if not isinstance(value, str) or "${" in value or not re.fullmatch(r"(?:https?|s?ftp)://\S+", value, re.IGNORECASE):
+        return False
+    try:
+        return bool(urlsplit(value).hostname)
+    except ValueError:
+        return False
 
 
 _DECODE = {

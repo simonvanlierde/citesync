@@ -60,3 +60,11 @@ test("recognises the legacy CodeMeta DOI context and avoids guessing unknown JSO
     [],
   );
 });
+
+test("detects a POM with tag whitespace or text resembling another metadata format", () => {
+  assert.deepEqual(detectFormats("<project><modelVersion >4.0.0</modelVersion ></project>"), ["pom.xml"]);
+  assert.deepEqual(
+    detectFormats("<project><modelVersion>4.0.0</modelVersion><description>\n[project]\n</description></project>"),
+    ["pom.xml"],
+  );
+});

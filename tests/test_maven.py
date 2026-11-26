@@ -54,7 +54,10 @@ def test_maven_cli_and_playground(tmp_path: Path, run: "Run"):
     citation = tmp_path / "CITATION.cff"
     citation.write_text(citation.read_text(encoding="utf-8").replace("2.3.4", "1.0.0"), encoding="utf-8")
     config = Config(manifests=("pom.xml",), write_manifests=("version", "author"))
-    assert any(finding.file == path.name and finding.term == "version" for finding in check(tmp_path, config)[0])
+    [finding] = [
+        finding for finding in check(tmp_path, config)[0] if finding.file == path.name and finding.term == "version"
+    ]
+    assert (finding.line, finding.column) == (3, 11)
     assert path.name not in write(tmp_path, config)[0]
     assert path.read_bytes() == original
     result = generate({"filename": path.name, "text": POM})
@@ -111,8 +114,30 @@ def test_maven_projected_developers_keep_their_order(names: list[str]):
     assert resolve(parse(text, "pom.xml", mapping), str(mapping["maven", "author.givenName"])) == names
 
 
-@pytest.mark.parametrize("url", ["LICENSE.txt", "file:///example/COPYING", "${project.url}/LICENSE"])
+@pytest.mark.parametrize(
+    "url", ["LICENSE.txt", "file:///example/COPYING", "${project.url}/LICENSE", "https:///License"]
+)
 def test_maven_licence_links_are_never_guessed_as_spdx_ids(url: str):
     result = generate({"filename": "pom.xml", "text": POM.replace("https://spdx.org/licenses/MIT", url)})
-    assert "license" not in YAML(typ="safe").load(result["files"]["CITATION.cff"])
+    cff = YAML(typ="safe").load(result["files"]["CITATION.cff"])
+    assert "license" not in cff
+    assert "license-url" not in cff
     assert "license" not in json.loads(result["files"]["codemeta.json"])
+
+
+def test_maven_preserves_a_valid_licence_url_with_an_uppercase_scheme():
+    url = "HTTPS://example.org/License"
+    result = generate({"filename": "pom.xml", "text": POM.replace("https://spdx.org/licenses/MIT", url)})
+    assert YAML(typ="safe").load(result["files"]["CITATION.cff"])["license-url"] == url
+
+
+@pytest.mark.parametrize("scheme", ["ftp", "sftp"])
+def test_maven_checks_licence_url_path_case(tmp_path: Path, run: "Run", scheme: str):
+    url = f"{scheme}://example.org/License"
+    (tmp_path / "pom.xml").write_text(POM.replace("https://spdx.org/licenses/MIT", url), encoding="utf-8")
+    code, output, err = run("init", "--source", "pom.xml", "--root", str(tmp_path))
+    assert (code, err) == (0, ""), output
+    citation = tmp_path / "CITATION.cff"
+    citation.write_text(citation.read_text(encoding="utf-8").replace("/License", "/license"), encoding="utf-8")
+    findings, _, _ = check(tmp_path, Config(manifests=("pom.xml",)))
+    assert any(f.file == "pom.xml" and f.term == "license" for f in findings)
