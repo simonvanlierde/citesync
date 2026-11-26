@@ -948,6 +948,7 @@ positional arguments:
     write        rewrite the files to agree with the source
     init         write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
     export       print a citation or citation file made from the source, writing nothing
+    cite         resolve a DOI, arXiv ID or GitHub URL and print a citation
     config       print the config in use and where it came from
     rules        list the rules
     explain      print a rule's documentation

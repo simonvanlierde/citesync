@@ -7,6 +7,8 @@ does. ``write`` then wrote nothing, unless moving a written file into place fail
 it stay written.
 """
 
+from __future__ import annotations
+
 import argparse
 import io
 import json
@@ -16,12 +18,15 @@ import sys
 from dataclasses import replace
 from itertools import pairwise
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from citesync.check import Finding, check
 from citesync.config import Config, as_dict, find_root, git_top, load_config, render
 from citesync.errors import CheckError, did_you_mean
 from citesync.rules import DOCS_URL, RULES, explain, url
+
+if TYPE_CHECKING:
+    from citesync.cite_sources import Identifier
 
 JSON_SCHEMA_VERSION = 1
 EXIT_COULD_NOT_RUN = 3
@@ -138,6 +143,24 @@ def _directory(value: str) -> Path:
     return path
 
 
+def _cite_identifier(value: str) -> Identifier:
+    from citesync.cite_sources import identifier  # noqa: PLC0415 - network command only
+
+    try:
+        return identifier(value)
+    except ValueError as err:
+        raise argparse.ArgumentTypeError(str(err)) from err
+
+
+def _openalex_work(value: str) -> str:
+    from citesync.cite_evidence import work_id  # noqa: PLC0415 - network command only
+
+    if not work_id(value):
+        msg = "use an OpenAlex work ID such as W1234 or https://openalex.org/W1234"
+        raise argparse.ArgumentTypeError(msg)
+    return value
+
+
 _DESCRIPTION = """Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests
 (pyproject.toml, Cargo.toml, package.json, typst.toml, _extension.yml) agree, and rewrite them
 to match one source file."""
@@ -219,6 +242,26 @@ def _parser() -> argparse.ArgumentParser:
     export_.add_argument(
         "--format", choices=_EXPORT_FORMATS + _CITATION_FILES, required=True, help="the citation format"
     )
+    cite = sub.add_parser("cite", parents=[json_], help="resolve a DOI, arXiv ID or GitHub URL and print a citation")
+    cite.add_argument(
+        "identifier", type=_cite_identifier, help="a DOI, arXiv ID, public GitHub URL or OpenAlex work ID"
+    )
+    cite.add_argument(
+        "--format",
+        dest="citation_format",
+        choices=("bibtex", "ris", "csl-json", "cff", "codemeta"),
+        default="bibtex",
+        help="citation format (default: bibtex)",
+    )
+    cite.add_argument("--preferred", action="store_true", help="cite the repository's preferred-citation")
+    cite.add_argument(
+        "--openalex", type=_openalex_work, metavar="WORK", help="include evidence for a matching work in JSON"
+    )
+    capture = cite.add_mutually_exclusive_group()
+    capture.add_argument(
+        "--save-responses", type=Path, metavar="DIR", help="save provider responses to a new directory"
+    )
+    capture.add_argument("--replay", type=_directory, metavar="DIR", help="read recorded responses without the network")
     sub.add_parser("config", parents=[root, json_], help="print the config in use and where it came from")
     rules = sub.add_parser("rules", parents=[json_], help="list the rules")
     rules.add_argument("--format", choices=_RULES_FORMATS, default="text", help="output format (default: text)")
@@ -236,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse(argv)
     as_json = getattr(args, "format", None) == "json"
     try:
-        return _run(args)
+        return _cite(args) if args.command == "cite" else _run(args)
     except CheckError as err:
         return _failed(str(err), EXIT_COULD_NOT_RUN, as_json=as_json)
     except KeyboardInterrupt:
@@ -353,6 +396,13 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
         parser.exit(2)
     if getattr(args, "diff", False) and getattr(args, "format", "text") != "text":
         parser.error(f"--diff prints a unified diff; it takes no {'--json' if args.command == 'init' else '--format'}")
+    if args.command == "cite":
+        if args.preferred and args.identifier.provider != "github":
+            parser.error("--preferred requires a GitHub repository URL")
+        if args.openalex and args.format != "json":
+            parser.error("--openalex requires --json to include its evidence")
+        if args.save_responses is not None and (args.save_responses.exists() or args.save_responses.is_symlink()):
+            parser.error("--save-responses requires a new directory")
     return args
 
 
@@ -420,6 +470,26 @@ def _export(root: Path, config: Config, fmt: str) -> int:
     sys.stdout.write(text)
     for note in notes:
         print(note, file=sys.stderr)
+    return 0
+
+
+def _cite(args: argparse.Namespace) -> int:
+    from citesync.cite import cite  # noqa: PLC0415 - network command only
+
+    text, notes, result = cite(
+        args.identifier,
+        args.citation_format,
+        preferred=args.preferred,
+        openalex=args.openalex,
+        replay=args.replay,
+        save_responses=args.save_responses,
+    )
+    if args.format == "json":
+        print(_envelope(**result))
+    else:
+        sys.stdout.write(text)
+        for note in notes:
+            print(_printable(note), file=sys.stderr)
     return 0
 
 

@@ -17,7 +17,7 @@ nav = [
     "getting-started.md",
     { "Browser playground" = "playground.md" },
   ] },
-  { "Use citesync" = ["init.md", "check.md", "write.md", "datasets.md", "export.md", "pandoc.md"] },
+  { "Use citesync" = ["init.md", "check.md", "write.md", "datasets.md", "export.md", "cite.md", "pandoc.md"] },
   { "Reference" = ["config.md", "formats.md", "rules.md", "output.md", "contributions.md"] },
   { "Project" = [
     "tested-repositories.md",

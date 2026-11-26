@@ -419,7 +419,7 @@ def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
-def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one branch per way a file fails
+def load(path: Path, rel: str) -> dict[str, Any]:
     """Parse metadata at ``path`` as TOML, JSON, YAML or distribution headers, named ``rel`` in errors.
 
     Raises:
@@ -433,8 +433,6 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
         raise UnreadableError(rel, f"cannot read: {err.strerror}") from err
     except UnicodeDecodeError as err:
         raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
-    if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
-        raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
     if path.name in IMPORTS and path.suffix != ".json":
         if IMPORTS[path.name] == "pkg-info":
             from citesync.core_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
@@ -442,6 +440,13 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
             from citesync.research_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
 
         return parse_import(text, rel)
+    return parse_data(text, path, rel)
+
+
+def parse_data(text: str, path: Path, rel: str) -> dict[str, Any]:  # noqa: C901 - one branch per parsing failure
+    """Parse TOML, JSON or YAML text using the format indicated by the filename."""
+    if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
+        raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
     try:
         if path.suffix == ".toml":
             data = tomllib.loads(text)
@@ -719,14 +724,15 @@ def person(  # noqa: C901 - one branch per format's person shape
     """
     if fmt == "julia" and isinstance(element, dict):  # an empty name or given-names counts as absent
         element = {k: v for k, v in element.items() if not (isinstance(v, str) and not v.strip())}
+    cff_shape = fmt in {"cff-1.2.0", "cff-preferred", "julia"}
     org = isinstance(element, dict) and (
         _ld(element, "type") == "Organization"
         if fmt in _JSONLD
-        else fmt in {"cff-1.2.0", "julia"} and "given-names" not in element and "name" in element
+        else cff_shape and "given-names" not in element and "name" in element
     )
     if fmt == "julia" and isinstance(element, str):  # Pkg writes "Name <email>"; a table is a CFF person or entity
         element = {"name": re.sub(r"\s*<[^<>]+>\s*$", "", element).strip()}
-    if fmt in {"cff-1.2.0", "julia"} and isinstance(element, dict):
+    if cff_shape and isinstance(element, dict):
         element = cff_person(element)
     elif fmt in _JSONLD:
         element = codemeta_person(element)
@@ -735,7 +741,7 @@ def person(  # noqa: C901 - one branch per format's person shape
     given_term, family_term, orcid_term = person_terms(term)
 
     def sub(term: str) -> object:
-        path = mapping[fmt, term]
+        path = mapping.get((fmt, term))
         if path is None:
             return None
         rel = relative(path, parent, alternative)
@@ -763,6 +769,8 @@ def person(  # noqa: C901 - one branch per format's person shape
     else:
         given, family = text(sub(given_term)), text(sub(family_term))
         name = codecs.display_name(given, family)
+    name = name or text(sub(f"{term}.name"))
+    org = org or sub(f"{term}.resourceType") == "Organizational"
     if name is None and orcid is None:
         return None
     return Person(name, given, family, orcid, organization=org)

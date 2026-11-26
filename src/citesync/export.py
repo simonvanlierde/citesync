@@ -90,11 +90,11 @@ def record(docs: list[Doc]) -> dict[str, Any]:
     return merged | {"_where": where}
 
 
-def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
+def render(fmt: str, rec: dict[str, Any], *, kind: str = "software") -> tuple[str, list[str]]:
     """The export's text in ``fmt``, and notes on what it left out. Never invents a release date.
 
     Raises:
-        CheckError: when the record has no title.
+        CheckError: when the record has no title or its citation kind cannot be rendered.
     """
     if not rec.get("name"):
         msg = "no file gives a title, which a citation needs"
@@ -105,7 +105,11 @@ def render(fmt: str, rec: dict[str, Any]) -> tuple[str, list[str]]:
             "BibTeX, CSL-JSON, APA, DataCite, RIS and EndNote: release date omitted because it is not a YYYY, YYYY-MM"
             " or YYYY-MM-DD date."
         )
-    return _WRITERS[fmt](rec, day), notes
+    renderer = _TYPED_WRITERS.get(fmt)
+    if kind not in _CITATION_KINDS or (renderer is None and kind != "software"):
+        msg = f"{fmt} does not support citation kind {kind!r}"
+        raise CheckError(msg)
+    return (renderer(rec, day, kind) if renderer else _WRITERS[fmt](rec, day)), notes
 
 
 def _date(value: str | None) -> tuple[int, ...] | None:
@@ -194,8 +198,8 @@ def writable(root: Path, path: str) -> bool:
     return not (root / path).exists() or (root / path).is_file()
 
 
-def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
-    """A biblatex-software ``@software`` entry, each field named as codemeta-drift's bibtex rows name it.
+def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None, kind: str) -> str:
+    """A BibLaTeX entry with metadata fields named by the bibtex mapping rows.
 
     A row with alternatives (``date | year``) writes each one, so plain BibTeX styles, which print an
     unknown type as ``@misc``, still find the field they read.
@@ -226,20 +230,55 @@ def _bibtex(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
         for name in names if value else ():
             text = value.replace("{", "%7B").replace("}", "%7D") if term in verbatim else value
             fields.setdefault(name, str(day[0]) if name == "year" and day else text)
-    return f"@software{{{key(rec)},\n" + "".join(f"  {k} = {{{v}}},\n" for k, v in fields.items()) + "}\n"
+    if kind != "software" and (publisher := rec.get("publisher")):
+        fields[str(rows["bibtex", "publisher"])] = tex(publisher)
+    fields.update(_bibtex_bibliography(rec, kind))
+    entry_type = {"conference": "inproceedings", "preprint": "misc"}.get(kind, kind)
+    return f"@{entry_type}{{{key(rec)},\n" + "".join(f"  {k} = {{{v}}},\n" for k, v in fields.items()) + "}\n"
 
 
-def _csl(rec: dict[str, Any], day: tuple[int, ...] | None) -> str:
+def _bibtex_bibliography(rec: dict[str, Any], kind: str) -> dict[str, str]:
+    """Journal and arXiv slots outside the pinned software crosswalk."""
+    venue = "booktitle" if kind == "conference" else "journal"
+    slots = (("containerTitle", venue), ("volume", "volume"), ("issue", "number"), ("pages", "pages"))
+    fields = {field: tex(value) for term, field in slots if (value := rec.get(term))}
+    if url := rec.get("url"):
+        fields["url"] = url.replace("{", "%7B").replace("}", "%7D")
+    if kind == "preprint" and (arxiv := rec.get("arxiv")):
+        fields.update(eprint=tex(arxiv), archivePrefix="arXiv")
+        if category := rec.get("primaryCategory"):
+            fields["primaryClass"] = tex(category)
+    return fields
+
+
+def _csl(rec: dict[str, Any], day: tuple[int, ...] | None, kind: str) -> str:
     authors = []
     for p in _people(rec):
         if p.organization or not p.family:
             authors.append({"literal": p.name})
         else:
             authors.append({"family": p.family} | ({"given": p.given} if p.given else {}))
-    csl: dict[str, Any] = {"id": key(rec), "type": "software", "title": rec["name"], "author": authors}
-    for term, field in (("identifier", "DOI"), ("codeRepository", "URL"), ("version", "version")):
-        if value := rec.get(term):
-            csl[field] = value
+    entry_type = {"article": "article-journal", "conference": "paper-conference", "preprint": "manuscript"}.get(
+        kind, kind
+    )
+    csl: dict[str, Any] = {"id": key(rec), "type": entry_type, "title": rec["name"], "author": authors}
+    slots = (
+        ("identifier", "DOI"),
+        ("codeRepository", "URL"),
+        ("version", "version"),
+        ("containerTitle", "container-title"),
+        ("volume", "volume"),
+        ("issue", "issue"),
+        ("pages", "page"),
+        ("url", "URL"),
+    )
+    csl.update((field, value) for term, field in slots if (value := rec.get(term)))
+    if kind != "software" and (publisher := rec.get("publisher")):
+        csl["publisher"] = publisher
+    if kind == "preprint":
+        csl["genre"] = "Preprint"
+        if arxiv := rec.get("arxiv"):
+            csl.update(archive="arXiv", archive_location=arxiv)
     if day:
         csl["issued"] = {"date-parts": [list(day)]}
     return json.dumps([csl], indent=2, ensure_ascii=False) + "\n"
@@ -497,21 +536,29 @@ def _xml(value: str) -> str:
     return " ".join(_XML_BAD.sub("", value).split())
 
 
-def _tagged(rec: dict[str, Any], day: tuple[int, ...] | None, fmt: str) -> str:
-    """A RIS or EndNote tagged record of type computer program, each tag where codemeta-drift's rows put it.
+def _tagged(rec: dict[str, Any], day: tuple[int, ...] | None, kind: str = "software", *, fmt: str) -> str:
+    """A RIS or EndNote record with the metadata tags named by the mapping rows.
 
     A row's first alternative is the tag written (``AU[] + A1[]`` writes ``AU``), and EndNote's ``_7`` is ``%7``.
     Each value is one line. RIS ``PY`` and EndNote ``%D`` hold the year. RIS ends with ``ER  -``, with no
     trailing space, which readers accept and a whitespace hook would otherwise strip.
     """
     rows = load_mapping()
-    line, kind, end = _TAGGED_SHAPES[fmt]
-    pairs = [("resourceType", kind), ("name", rec["name"]), ("version", rec.get("version"))]
+    line, entry_type, end = _TAGGED_SHAPES[fmt]
+    if fmt == "ris":
+        entry_type = {"article": "JOUR", "conference": "CPAPER", "dataset": "DATA", "preprint": "UNPB"}.get(
+            kind, entry_type
+        )
+    pairs = [("resourceType", entry_type), ("name", rec["name"]), ("version", rec.get("version"))]
     pairs += [
         ("author", p.name if p.organization or not p.family else f"{p.family}, {p.given}".removesuffix(", "))
         for p in _people(rec)
     ]
-    pairs += [(t, rec.get(t)) for t in ("identifier", "codeRepository", "description")]
+    pairs += [
+        ("identifier", rec.get("identifier")),
+        ("codeRepository", rec.get("url") or rec.get("codeRepository")),
+        ("description", rec.get("description")),
+    ]
     pairs += [("keywords", k) for k in rec.get("keywords") or ()]
     pairs += [("datePublished", day[0] if day else None), ("publisher", rec.get("publisher"))]
     lines = []
@@ -520,7 +567,23 @@ def _tagged(rec: dict[str, Any], day: tuple[int, ...] | None, fmt: str) -> str:
         if text:
             tag = str(rows[fmt, term]).split(" | ")[0].split(" + ")[0].removesuffix("[]").removeprefix("_")
             lines.append(line.format(tag=tag, value=text))
+    if fmt == "ris":
+        lines.extend(_ris_bibliography(rec, kind, line))
     return "\n".join([*lines, *end]) + "\n"
+
+
+def _ris_bibliography(rec: dict[str, Any], kind: str, line: str) -> list[str]:
+    """Journal and arXiv fields outside the pinned software crosswalk."""
+    venue = "T2" if kind == "conference" else "JF"
+    pairs = [(tag, rec.get(term)) for term, tag in (("containerTitle", venue), ("volume", "VL"), ("issue", "IS"))]
+    if pages := rec.get("pages"):
+        if span := re.fullmatch(r"([A-Za-z]*[0-9]+)\s*[-\u2013]\s*([A-Za-z]*[0-9]+)", pages.strip()):
+            pairs.extend(zip(("SP", "EP"), span.groups(), strict=True))
+        else:
+            pairs.append(("SP", pages))
+    if kind == "preprint" and (arxiv := rec.get("arxiv")):
+        pairs.append(("N1", f"arXiv:{arxiv}"))
+    return [line.format(tag=tag, value=text) for tag, value in pairs if value and (text := " ".join(value.split()))]
 
 
 # format: (line shape, the record type, the closing lines)
@@ -528,12 +591,15 @@ _TAGGED_SHAPES = {
     "ris": ("{tag}  - {value}", "COMP", ("ER  -",)),
     "endnote": ("%{tag} {value}", "Computer Program", ()),
 }
-_WRITERS = {
+_CITATION_KINDS = {"software", "article", "conference", "dataset", "preprint"}
+_TYPED_WRITERS = {
     "bibtex": _bibtex,
     "csl-json": _csl,
+    "ris": functools.partial(_tagged, fmt="ris"),
+}
+_WRITERS = {
     "apa": _apa,
     "jsonld": _jsonld,
     "datacite": _datacite,
-    "ris": functools.partial(_tagged, fmt="ris"),
     "endnote": functools.partial(_tagged, fmt="endnote"),
 }

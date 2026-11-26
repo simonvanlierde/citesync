@@ -1,5 +1,7 @@
 # Output formats
 
+The [citation lookup guide](cite.md) describes the JSON report for `citesync cite`.
+
 `citesync check` and `citesync write` print text by default, as [check.md](check.md#findings-and-exit-codes) shows. The exit codes are the same for every format. `citesync config`, `init`, `explain` and `rules` take `--json` too.
 
 ## JSON
