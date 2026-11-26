@@ -1,3 +1,17 @@
+html {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    color-scheme: dark;
+  }
+}
+
 /* docs-tokens.css holds the paper, ink, accent and fonts. The accent also keeps selected links
    readable over the theme's tinted background, and the dark one needs a lighter value for the
    same contrast. A project that kept its own zensical.toml adds docs-tokens.css to `extra_css`;
@@ -162,4 +176,20 @@
 
 .md-header .md-search__button {
   color: #fff;
+}
+
+.md-header .theme-toggle:not([hidden]) {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.md-header .theme-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
 }

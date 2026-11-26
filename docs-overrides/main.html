@@ -4,6 +4,7 @@
     `description:` front matter wins over the site's. Zensical has no page.is_homepage, so the
     homepage is the page whose canonical URL is the site URL. Undefined values fail the build. #}
 {% block extrahead %}
+  <script src="{{ 'assets/theme.mjs' | url }}"></script>
   {%- if page is defined and page.canonical_url is defined and page.canonical_url and config.extra.og_image is defined %}
   {#- canonical_url always ends in a slash; a hand-edited site_url may not. URLs stay unescaped: the
       escape filter writes / as &#x2f;, which some link-preview scrapers do not decode. #}

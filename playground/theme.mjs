@@ -12,6 +12,9 @@
   function apply() {
     const theme = preference || (system.matches ? "dark" : "light");
     root.dataset.theme = theme;
+    if (document.body?.hasAttribute("data-md-color-scheme")) {
+      document.body.dataset.mdColorScheme = theme === "dark" ? "slate" : "default";
+    }
     const toggle = document.querySelector(".theme-toggle");
     if (toggle) {
       const label = `Switch to ${theme === "dark" ? "light" : "dark"} theme`;
@@ -30,8 +33,10 @@
   apply();
   system.addEventListener("change", apply);
   document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.querySelector(".theme-toggle");
+    if (toggle) document.querySelector(".md-header__source")?.before(toggle);
     apply();
-    document.querySelector(".theme-toggle")?.addEventListener("click", () => {
+    toggle?.addEventListener("click", () => {
       preference = root.dataset.theme === "dark" ? "light" : "dark";
       try {
         localStorage.setItem("citesync-theme", preference);

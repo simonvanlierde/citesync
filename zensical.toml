@@ -38,22 +38,8 @@ custom_dir = "docs-overrides"
 favicon = "assets/favicon.svg"
 features = ["content.code.copy", "navigation.indexes"]
 
-[[project.theme.palette]]
-media = "(prefers-color-scheme)"
-toggle.icon = "lucide/sun-moon"
-toggle.name = "Switch to light mode"
-
-[[project.theme.palette]]
-media = "(prefers-color-scheme: light)"
+[project.theme.palette]
 scheme = "default"
-toggle.icon = "lucide/sun"
-toggle.name = "Switch to dark mode"
-
-[[project.theme.palette]]
-media = "(prefers-color-scheme: dark)"
-scheme = "slate"
-toggle.icon = "lucide/moon"
-toggle.name = "Follow system theme"
 
 # docs-overrides/main.html reads og_image for the link-preview tags. `just og-card` renders the
 # image and puts its hash in this URL, since link previews cache by URL.

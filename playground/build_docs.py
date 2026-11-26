@@ -142,7 +142,7 @@ def prepare() -> None:
     if SOURCE.exists():
         shutil.rmtree(SOURCE)
     shutil.copytree(ROOT / "docs", SOURCE, ignore=shutil.ignore_patterns("*.md", "og-card.html"))
-    for name in ("og.png", "favicon.svg"):
+    for name in ("og.png", "favicon.svg", "theme.mjs"):
         shutil.copyfile(ROOT / "playground" / name, SOURCE / "assets" / name)
     shutil.copytree(ROOT / "playground/fonts", SOURCE / "assets/fonts")
     for source in (ROOT / "docs").rglob("*.md"):
