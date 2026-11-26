@@ -17,7 +17,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      # Keep the image version equal to @playwright/test in package.json.
       image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
       # Firefox requires the process to own GitHub's home directory.
       options: --ipc=host --user 1001
@@ -34,6 +33,13 @@ jobs:
         with:
           runtime: node@26
           install: false
+      - name: Check Playwright image version
+        run: |
+          version=$(node -p 'require("./package.json").devDependencies["@playwright/test"]')
+          if ! grep -Fq "image: mcr.microsoft.com/playwright:v${version}-noble@sha256:" .github/workflows/pages.yml; then
+            echo "Playwright image must match @playwright/test ${version} in package.json" >&2
+            exit 1
+          fi
       - run: uv sync --locked
       - run: pnpm install --frozen-lockfile
       - run: uv run --frozen pytest tests/test_matrix_consumer.py
