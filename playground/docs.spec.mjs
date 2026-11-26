@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+test.use({ trace: "retain-on-failure" });
+
 test("documentation code copies exact text with keyboard feedback and a blocked-copy fallback", async ({ page }) => {
   await page.addInitScript(() => {
     window.copiedCode = null;
@@ -130,7 +132,28 @@ test("documentation and playground share one website without a browser runtime",
   await expect(page.locator("#require-values-in-selected-files")).toBeInViewport();
   await page.getByRole("link", { name: "required-field-missing", exact: true }).click();
   await expect(page).toHaveURL(/\/docs\/rules\/#required-field-missing$/);
-  await expect(page.locator("#required-field-missing")).toBeInViewport();
+  await expect(page.locator("#required-field-missing"))
+    .toBeInViewport()
+    .catch(async (error) => {
+      try {
+        const geometry = await page.evaluate(() => ({
+          url: location.href,
+          scrollY,
+          viewport: { width: innerWidth, height: innerHeight },
+          documentHeight: document.documentElement.scrollHeight,
+          target: document.getElementById("required-field-missing")?.getBoundingClientRect().toJSON() ?? null,
+          fonts: document.fonts.status,
+          readyState: document.readyState,
+        }));
+        await testInfo.attach("anchor-geometry", {
+          body: JSON.stringify(geometry, null, 2),
+          contentType: "application/json",
+        });
+      } catch {
+        // Preserve the viewport assertion if diagnostics cannot be collected.
+      }
+      throw error;
+    });
 
   for (const colorScheme of ["light", "dark"]) {
     await page.emulateMedia({ colorScheme });
