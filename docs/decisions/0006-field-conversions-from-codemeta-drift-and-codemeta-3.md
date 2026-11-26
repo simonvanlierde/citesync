@@ -11,7 +11,7 @@
 
 Every field conversion comes from a codemeta-drift row. A missing format or field is added to codemeta-drift first, then the pinned mapping here is updated. How a value is spelled stays in citesync.
 
-`write` emits CodeMeta 3.0 for a new `codemeta.json`. The version to emit is rechecked by 2027-04-28: does the Software Heritage indexer read the 4.0 context? On 2026-11-01 it still read only 2.0 and 3.0.
+`write` emits CodeMeta 3.0 for a new `codemeta.json` by default. Test CodeMeta 4.0 ingestion in Software Heritage during the [release pilot](0007-check-release-metadata.md). Confirm that the archive indexes the record and preserves the fields the pilot needs. On 2026-11-01 the indexer read only the 2.0 and 3.0 contexts.
 
 ## Consequences
 

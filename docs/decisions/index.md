@@ -8,3 +8,4 @@ These records explain choices that shape citesync, their reasons and their conse
 - [Use Python 3.13 and ruamel.yaml](0004-python-and-ruamel.md).
 - [Keep contribution roles intact without interpreting them](0005-vocabulary-blind-roles.md).
 - [Take field conversions from codemeta-drift and emit CodeMeta 3.0](0006-field-conversions-from-codemeta-drift-and-codemeta-3.md).
+- [Check the metadata that ships with a release](0007-check-release-metadata.md).

@@ -26,6 +26,7 @@ nav = [
       "decisions/0003-manifests-opt-in.md", "decisions/0004-python-and-ruamel.md",
       "decisions/0005-vocabulary-blind-roles.md",
       "decisions/0006-field-conversions-from-codemeta-drift-and-codemeta-3.md",
+      "decisions/0007-check-release-metadata.md",
     ] },
     "contributing.md", "changelog.md", "roadmap.md", "accessibility.md",
   ] },

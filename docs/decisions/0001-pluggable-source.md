@@ -18,3 +18,4 @@ When the source has no slot for a field, the other files that hold it must agree
 - One tool serves repos with and without a CITATION.cff.
 - The source can be a file citesync has to write to, not only read. That is why [0004](0004-python-and-ruamel.md) needs a YAML writer that keeps comments.
 - The rules for a missing slot live in [How check works](../check.md); keep them there.
+- [The release pilot](0007-check-release-metadata.md) uses one source. Revisit field ownership when a release shows which facts still need to be copied by hand.
