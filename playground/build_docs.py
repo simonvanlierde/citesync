@@ -83,8 +83,14 @@ def _changelog_anchor(text: str, headings: set[str]) -> str:
     return anchor
 
 
-def _strip_comment(source: Path, html: str) -> None:
-    if not re.fullmatch(r"(?:\s*<!--.*?-->\s*)+", html, re.DOTALL):
+def _require_comments(source: Path, html: str) -> None:
+    remainder = html.strip()
+    while remainder.startswith("<!--"):
+        _, end, following = remainder.partition("-->")
+        if not end:
+            break
+        remainder = following.lstrip()
+    if remainder:
         msg = f"{source.relative_to(ROOT)} contains raw HTML"
         raise ValueError(msg)
 
@@ -103,7 +109,7 @@ def _stage_guide(source: Path, destination: Path) -> None:
         if token.type in {"fence", "code_block"}:
             protected.update(range(start, stop))
         elif token.type == "html_block":
-            _strip_comment(source, token.content)
+            _require_comments(source, token.content)
             lines[start:stop] = [""] * (stop - start)
         elif any(child.type == "html_inline" for child in token.children or []):
             msg = f"{source.relative_to(ROOT)} contains raw inline HTML"

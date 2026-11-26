@@ -6,24 +6,46 @@ import base64
 import hashlib
 import re
 import tomllib
+from html.parser import HTMLParser
 from os.path import relpath
 from pathlib import Path
 
-INLINE = re.compile(r"<script(?![^>]*\ssrc=)([^>]*)>([\s\S]*?)</script>")
 LINK = re.compile(r'(<a\b[^>]*\shref=")https://simonvanlierde\.com/citesync/')
 # Zensical's pinned search interface inserts this stylesheet at runtime.
 SEARCH_STYLE = "sha256-NwSx/R2V/U4jnW0Tq5pQ53Y/rzPVJ4dqE7D6UTA/J1k="
-DATA = re.compile(r'\stype="application/(?:ld\+)?json"')
 CHARSET = '<meta charset="utf-8">'
+
+
+class _InlineScripts(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.digests: set[str] = set()
+        self.content: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "script":
+            attributes = dict(attrs)
+            media_type = (attributes.get("type") or "").strip().lower()
+            if "src" not in attributes and media_type not in {"application/json", "application/ld+json"}:
+                self.content = []
+
+    def handle_data(self, data: str) -> None:
+        if self.content is not None:
+            self.content.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "script" and self.content is not None:
+            digest = hashlib.sha256("".join(self.content).encode()).digest()
+            self.digests.add("sha256-" + base64.b64encode(digest).decode())
+            self.content = None
 
 
 def script_hashes(html: str) -> set[str]:
     """Hash the exact script text as it appears in the final page."""
-    return {
-        "sha256-" + base64.b64encode(hashlib.sha256(code.encode()).digest()).decode()
-        for attrs, code in INLINE.findall(html)
-        if not DATA.search(attrs)
-    }
+    parser = _InlineScripts()
+    parser.feed(html)
+    parser.close()
+    return parser.digests
 
 
 def secure_docs(site: Path, root: Path) -> None:

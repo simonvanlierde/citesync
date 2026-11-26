@@ -44,6 +44,21 @@ def test_staging_rejects_missing_links_and_raw_html(docs: ModuleType, monkeypatc
         docs._stage_guide(guide, Path("guide.md"))  # noqa: SLF001
 
 
+def test_staging_strips_multiline_comments_and_rejects_html_between_comments(
+    docs: ModuleType, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setattr(docs, "ROOT", tmp_path)
+    guide = tmp_path / "guide.md"
+    guide.write_text("# Guide\n\n<!-- Internal\neditorial notes -->\n\nPublic text.\n")
+    docs._stage_guide(guide, Path("guide.md"))  # noqa: SLF001
+    staged = (tmp_path / "docs/guide.md").read_text()
+    assert "Public text." in staged
+    assert "editorial notes" not in staged
+    guide.write_text("# Guide\n\n<!-- A --><aside>Unexpected</aside><!-- B -->\n")
+    with pytest.raises(ValueError, match="raw HTML"):
+        docs._stage_guide(guide, Path("guide.md"))  # noqa: SLF001
+
+
 def test_policy_pins_inline_scripts_and_preserves_canonical_links(docs: ModuleType, tmp_path: Path):
     site = tmp_path / "site/docs/config"
     site.mkdir(parents=True)
@@ -54,7 +69,7 @@ def test_policy_pins_inline_scripts_and_preserves_canonical_links(docs: ModuleTy
         '<meta charset="utf-8">'
         '<link rel="canonical" href="https://simonvanlierde.com/citesync/docs/config/">'
         '<a href="https://simonvanlierde.com/citesync/">Playground</a>'
-        '<script>first()</script><script type="application/json">{}</script>'
+        '<SCRIPT>first()</SCRIPT><script src="bundle.js"></script><script type="application/json">{}</script>'
     )
     page = site / "index.html"
     page.write_text(html)
@@ -69,7 +84,7 @@ def test_policy_pins_inline_scripts_and_preserves_canonical_links(docs: ModuleTy
     docs.secure_docs(site.parent, tmp_path)
     output = page.read_text()
     assert f"'{digest}'" in output
-    assert output.index("Content-Security-Policy") < output.index("<script>")
+    assert output.index("Content-Security-Policy") < output.index("<SCRIPT>")
     assert 'href="https://simonvanlierde.com/citesync/docs/config/"' in output
     assert '<a href="../../">Playground</a>' in output
     assert "unsafe-inline" not in output
