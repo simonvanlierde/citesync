@@ -144,11 +144,12 @@ def _doi(raw: object) -> str | None:
     if not isinstance(raw, str):
         return None
     text = raw.strip()
-    doi = _DOI_PREFIX.sub("", text)
-    if text.lower().startswith(("https://", "http://")) and doi != text:
+    prefix = _DOI_PREFIX.match(text)
+    doi = text[prefix.end() :] if prefix else text
+    if prefix and prefix[0].endswith("/"):
         from urllib.parse import unquote  # noqa: PLC0415 - only when reading a DOI URL
 
-        doi = unquote(doi.split("#", 1)[0].split("?", 1)[0])
+        doi = unquote(doi.partition("#")[0].partition("?")[0])
     return doi if _DOI.match(doi) else None
 
 
@@ -183,10 +184,8 @@ def doi_encode(doi: str, form: str) -> str:
     if form == "url":
         from urllib.parse import quote  # noqa: PLC0415 - only when writing a DOI URL
 
-        return f"https://doi.org/{quote(doi, safe='/')}"
-    if form == "bare":
-        return doi
-    raise KeyError(form)
+        return f"https://doi.org/{quote(doi)}"
+    return {"bare": doi}[form]
 
 
 def doi_key(doi: str) -> str:

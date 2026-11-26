@@ -95,3 +95,10 @@ def test_dataset_citation_files_set_type_and_preserve_date_precision(tmp_path: P
 def test_software_only_format_refuses_an_article() -> None:
     with pytest.raises(CheckError, match=r"apa.*article"):
         render("apa", RECORD, kind="article")
+
+
+@pytest.mark.parametrize(("fmt", "kind"), [("cff", "article"), ("zenodo", "dataset")])
+def test_citation_file_rejects_incompatible_type(fmt: str, kind: str, tmp_path: Path) -> None:
+    source = Doc("remote.json", "codemeta", RECORD, frozenset(), None, release=True)
+    with pytest.raises(CheckError, match=rf"{fmt} does not support resource type '{kind}'"):
+        citation_file(fmt, tmp_path, Config(), source, load_mapping(), resource_type=kind)

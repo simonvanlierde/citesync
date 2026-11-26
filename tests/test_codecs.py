@@ -373,3 +373,21 @@ def test_publisher_decode_takes_a_name_or_an_organization(raw: object, expected:
 def test_custom_url_in_licence_expression_keeps_its_path(url: str) -> None:
     assert codecs.license_key(url + " OR MIT") == url + " or mit"
     assert codecs.license_key(url + " OR MIT") != codecs.license_key(url.replace("(", "").replace(")", "") + " OR MIT")
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("http://dx.doi.org/10.12345/A%252FB#one#two", "10.12345/A%2FB"),
+        ("https://doi.org/10.12345/A%3FB?first?second", "10.12345/A?B"),
+        ("doi:10.12345/A%2FB", "10.12345/A%2FB"),
+        ("10.12345/A%2FB", "10.12345/A%2FB"),
+    ],
+)
+def test_doi_resolver_decodes_only_the_url_path(value: str, expected: str) -> None:
+    assert codecs.doi_decode(value) == expected
+
+
+def test_doi_encoder_rejects_unknown_form() -> None:
+    with pytest.raises(KeyError, match="other"):
+        codecs.doi_encode("10.12345/Record", "other")
