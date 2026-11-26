@@ -25,6 +25,12 @@ export function detectFormats(text) {
       /^\s*\[(?:deps|compat|extras|targets|sources)\]\s*$/m.test(value))
   )
     found.push("Project.toml");
+  if (
+    value.trimStart().startsWith("<") &&
+    /<(?:[\w.-]+:)?project[\s>]/.test(value) &&
+    /<(?:[\w.-]+:)?modelVersion>\s*4\.[01]\.0\s*<\//.test(value)
+  )
+    found.push("pom.xml");
   if (cff.test(value)) found.push("CITATION.cff");
   if (python.test(value)) found.push("pyproject.toml");
   if (cargo.test(value)) found.push("Cargo.toml");

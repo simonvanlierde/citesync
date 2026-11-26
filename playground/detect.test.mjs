@@ -15,6 +15,7 @@ test("identifies all supported metadata formats without a filename", () => {
     [JSON.stringify({ name: "lensgrind", author: "Marie Skłodowska-Curie" }), "package.json"],
     [JSON.stringify({ name: "@optics/lensgrind", license: "MIT" }), "package.json"],
     [JSON.stringify({ name: "optics/lensgrind", license: ["MIT", "Apache-2.0"] }), "composer.json"],
+    ['<?xml version="1.0"?><project><modelVersion>4.0.0</modelVersion><name>Lensgrind</name></project>', "pom.xml"],
   ])
     assert.deepEqual(detectFormats(text), [expected]);
 });

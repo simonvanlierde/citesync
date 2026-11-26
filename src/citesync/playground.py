@@ -72,7 +72,7 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
     review = [{"original": name, "given": given, "family": family} for name, given, family in splits]
     if "names" in payload:
         _correct_names(root, payload["names"], splits, source.record["author"])
-    if source.format in {"r-description", "julia", "composer"}:
+    if source.format in {"r-description", "julia", "composer", "maven"}:
         metadata_source = source
         if "names" in payload:
             authors = read_doc(root, "CITATION.cff", mapping).record["author"]

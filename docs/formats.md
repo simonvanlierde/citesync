@@ -12,6 +12,7 @@ Reading, updating and creating a file are separate operations:
 | Cargo.toml | Yes, package metadata | Selected fields, opt-in | No |
 | package.json | Yes, npm package metadata | Selected fields, opt-in | No |
 | composer.json | Yes, PHP Composer metadata | Never | No |
+| pom.xml | Yes, static Maven project metadata | Never | No |
 | typst.toml | Yes, Typst package metadata (`[package]`) | Selected fields, opt-in | No |
 | _extension.yml / _extension.yaml | Yes, a Quarto extension's `title`, `version` and `author` | Selected fields, opt-in | No |
 | DESCRIPTION | Yes, static R package metadata | Never | No |
@@ -74,6 +75,12 @@ License-Expression is checked as SPDX. A legacy License value is carried over on
 Run `citesync init --source composer.json` from the project root, or open the file in the playground. To compare it against an existing citation file, list it under `manifests`.
 
 CiteSync reads package metadata directly from [Composer JSON](https://getcomposer.org/doc/04-schema.md). It reads all named authors and accepts a licence string or a list of alternatives. It uses `source.url` or `support.source` for the repository URL. It can read the version and release date when the file supplies them. CiteSync leaves the manifest untouched and runs no Composer scripts.
+
+## Maven import
+
+Run `citesync init --source pom.xml` from the project root, or open the file in the playground. List it under `manifests` to compare it with existing citation files.
+
+CiteSync reads the name, description, developers, contributors, and SCM URL from a UTF-8 [Maven POM](https://maven.apache.org/pom.html). It reads absolute HTTP, HTTPS, FTP, and SFTP licence URLs. Relative licence paths are omitted. If the project omits its version, CiteSync uses the version written in its parent declaration. It leaves the POM untouched. It reads only the named file and omits values that need Maven interpolation. It neither loads another POM nor runs a build.
 
 ## R and Julia imports
 

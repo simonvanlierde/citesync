@@ -41,6 +41,7 @@ const filenames = [
   "Cargo.toml",
   "package.json",
   "composer.json",
+  "pom.xml",
   "PKG-INFO",
   "METADATA",
   "DESCRIPTION",
@@ -69,6 +70,8 @@ const templateLabels = {
   "_extension.yml": "Quarto",
 };
 const examples = {
+  "pom.xml":
+    '<project xmlns="http://maven.apache.org/POM/4.0.0">\n  <modelVersion>4.0.0</modelVersion>\n  <name>Lensgrind</name>\n  <version>1.4.0</version>\n  <developers><developer><name>Antonie van Leeuwenhoek</name></developer></developers>\n</project>\n',
   "pyproject.toml":
     '[project]\nname = "lensgrind"\nversion = "1.4.0"\ndescription = "Measure microscope optics."\nauthors = [{name = "Antonie van Leeuwenhoek"}]\nlicense = "Apache-2.0"\n',
   "Cargo.toml":

@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Import citations from a [Maven POM](docs/formats.md#maven-import) with the CLI or the playground.
+
 ## [0.7.0] - 2026-11-26
 
 ### Changed
