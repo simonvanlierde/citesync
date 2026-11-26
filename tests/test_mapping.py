@@ -9,6 +9,7 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+from ruamel.yaml import YAML
 
 from citesync.errors import CheckError
 from citesync.formats import FORMAT_OF
@@ -183,14 +184,17 @@ def test_cff_license_write_keeps_the_field_type(
     record = read_doc(tmp_path, cff.name, mapping).record
     assert record["license"] == expected
     assert record["keywords"] == ("after",)
+    other_field = "license" if license_field == "license-url" else "license-url"
+    data = YAML(typ="safe").load(cff)
+    assert data[license_field] == expected
+    assert other_field not in data
     if replacement != expected:
-        other_field = "license" if license_field == "license-url" else "license-url"
         assert skipped["CITATION.cff", "license"] == f"move the licence to {other_field}"
     else:
         assert ("CITATION.cff", "license") not in skipped
 
 
-@pytest.mark.parametrize("scheme", ["http", "https"])
+@pytest.mark.parametrize("scheme", ["http", "https", "ftp", "sftp"])
 def test_cff_license_url_preserves_case_without_writing_a_zenodo_id(scheme: str):
     from citesync.playground import generate  # noqa: PLC0415
 
@@ -200,6 +204,22 @@ def test_cff_license_url_preserves_case_without_writing_a_zenodo_id(scheme: str)
     assert json.loads(result["files"]["codemeta.json"])["license"] == url
     assert "license" not in json.loads(result["files"][".zenodo.json"])
     assert any("Zenodo takes one licence id" in note for note in result["notes"])
+
+
+@pytest.mark.parametrize("scheme", ["http", "https", "ftp", "sftp"])
+def test_export_cff_keeps_custom_license_url(tmp_path: Path, capsys: pytest.CaptureFixture[str], scheme: str):
+    from citesync.cli import main  # noqa: PLC0415
+
+    url = f"{scheme}://example.org/CustomLicence"
+    (tmp_path / "CITATION.cff").write_text(
+        f"cff-version: 1.2.0\nmessage: Cite this software.\ntitle: Example\n"
+        f"authors: [{{family-names: Example}}]\nlicense-url: {url}\n",
+        encoding="utf-8",
+    )
+    assert main(["export", "--format", "cff", "--root", str(tmp_path)]) == 0
+    output = YAML(typ="safe").load(capsys.readouterr().out)
+    assert output["license-url"] == url
+    assert "license" not in output
 
 
 def test_publisher_is_read_for_the_exports_only(tmp_path) -> None:  # noqa: ANN001

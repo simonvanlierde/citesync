@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from ruamel.yaml import YAML
 
 from citesync.check import check
 from citesync.config import Config
@@ -92,6 +93,14 @@ def test_composer_import(
     path.write_text(text, encoding="utf-8")
     code, out, err = run("init", "--source", path.name, "--root", str(tmp_path))
     assert (code, err) == (0, ""), out
+    cff = YAML(typ="safe").load(tmp_path / "CITATION.cff")
+    assert cff["title"] == "optics/lensgrind"
+    assert [author["given-names"] for author in cff["authors"]] == ["Ada", "Mira"]
+    assert [author["family-names"] for author in cff["authors"]] == ["Example", "Example"]
+    assert str(cff["date-released"]) == "2026-04-02"
+    assert cff.get("version") == extra.get("version")
+    assert cff.get("repository-code") == repository
+    assert cff.get("license") == ("MIT" if expected_license == "MIT" else None)
     doc = read_doc(tmp_path, path.name, load_mapping())
     assert [person.name for person in doc.record["author"]] == ["Ada Example", "Mira Example"]
     assert doc.record["license"] == expected_license
@@ -120,6 +129,48 @@ def test_composer_import(
     assert not (tmp_path / "marker").exists()
 
 
+@pytest.mark.parametrize(
+    ("license_value", "expected"),
+    [
+        ("(MIT or  Apache-2.0)", ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]),
+        ("(MIT\tor\tApache-2.0)", ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]),
+        (["MIT", "proprietary"], ["https://spdx.org/licenses/MIT", "proprietary"]),
+    ],
+)
+def test_composer_license_alternatives(license_value: str | list[str], expected: list[str], tmp_path: Path, run: "Run"):
+    text = json.dumps({"name": "optics/example", "authors": [{"name": "Ada Example"}], "license": license_value})
+    (tmp_path / "composer.json").write_text(text, encoding="utf-8")
+    (tmp_path / ".zenodo.json").write_text("{}", encoding="utf-8")
+    code, out, err = run("init", "--source", "composer.json", "--root", str(tmp_path))
+    assert (code, err) == (0, ""), out
+    cff = YAML(typ="safe").load(tmp_path / "CITATION.cff")
+    if "proprietary" in expected:
+        assert "license" not in cff
+        assert "specific licence" in out
+    else:
+        assert cff["license"] == ["MIT", "Apache-2.0"]
+    result = generate({"filename": "composer.json", "text": text})
+    assert json.loads(result["files"]["codemeta.json"])["license"] == expected
+
+
+def test_composer_author_correction_keeps_licence_alternatives():
+    text = json.dumps(
+        {
+            "name": "optics/example",
+            "authors": [{"name": "Ada Marie Example"}],
+            "license": ["MIT", "Apache-2.0"],
+        }
+    )
+    result = generate(
+        {"filename": "composer.json", "text": text, "names": [{"given": "Ada", "family": "Marie Example"}]}
+    )
+    cff = YAML(typ="safe").load(result["files"]["CITATION.cff"])
+    assert cff["authors"] == [{"given-names": "Ada", "family-names": "Marie Example"}]
+    metadata = json.loads(result["files"]["codemeta.json"])
+    assert metadata["author"] == [{"@type": "Person", "givenName": "Ada", "familyName": "Marie Example"}]
+    assert metadata["license"] == ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]
+
+
 def test_composer_nested_json_reports_an_unreadable_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     def too_deep(_text: str) -> None:
         raise RecursionError
@@ -142,7 +193,7 @@ def test_composer_proprietary_license_is_omitted_from_cff(tmp_path: Path):
     assert json.loads(result["files"]["codemeta.json"])["license"] == "proprietary"
     assert "license" not in json.loads(result["files"]["schema.jsonld"])
     assert "license" not in json.loads(result["files"][".zenodo.json"])
-    assert any("cff-1.2.0 needs a specific licence" in note for note in result["notes"])
+    assert "CITATION.cff: license: cff-1.2.0 needs a specific licence" in result["notes"]
 
     write(tmp_path, Config(source="composer.json", files=(".zenodo.json",)))
     zenodo = json.loads((tmp_path / ".zenodo.json").read_text(encoding="utf-8"))

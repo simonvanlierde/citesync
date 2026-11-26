@@ -694,7 +694,7 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         raw = raw.strip().replace(" ", "T", 1)
     value = _DECODE[term](raw)
     if fmt == "composer" and term == "license" and isinstance(value, str):
-        value = re.sub(r"(?<=\s)(and|or)(?=\s)", lambda match: match[0].upper(), value, flags=re.IGNORECASE)
+        value = re.sub(r"\s+(and|or)\s+", lambda match: f" {match[1].upper()} ", value, flags=re.IGNORECASE)
     return value
 
 

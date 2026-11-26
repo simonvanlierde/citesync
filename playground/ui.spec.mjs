@@ -560,14 +560,18 @@ test("Composer example, pasted metadata and file upload generate citations", asy
   await page.locator("#input").fill(text);
   await expect(page.locator("#detected-format")).toHaveText("Detected composer.json");
   await expect(page.locator("#output")).toContainText("optics/measurement");
+  const upload = JSON.stringify({ authors: [{ name: "Mira Example" }], version: "2.3.4" });
   await page.locator("#file-picker").setInputFiles({
     name: "composer.json",
     mimeType: "application/json",
-    buffer: Buffer.from(text.replace("optics/measurement", "optics/calibration")),
+    buffer: Buffer.from(upload),
   });
-  await choose(page, "output-file", "codemeta.json");
-  await expect(page.locator("#output")).toContainText("optics/calibration");
-  await expect(page.locator("#output")).toContainText("Mira");
+  await expect(page.locator("#input")).toHaveValue(upload);
+  await expect(page.locator("#detected-format")).toHaveText("Detected composer.json");
+  await page.getByRole("tab", { name: "Enter details" }).click();
+  await expect(page.locator("#title")).toHaveValue("");
+  await expect(page.locator('#authors [data-part="given"]')).toHaveValue("Mira");
+  await expect(page.locator('#authors [data-part="family"]')).toHaveValue("Example");
 });
 
 test("R and Julia examples follow the selected format and generate citations", async ({ page }) => {
