@@ -124,8 +124,7 @@ filterwarnings = ["error"]
 log_level = "INFO"
 
 # Coverage is opt-in via `pytest --cov` (`just py-cov`), not addopts, because it
-# slows every plain test run. No fail_under until there is a suite worth setting
-# one against.
+# slows every plain test run. CI enables coverage and requires 80%.
 # Mutation testing covers check, codecs, write and jsonsplice via `just mutation`
 # and the weekly or manually triggered workflow.
 [tool.mutmut]

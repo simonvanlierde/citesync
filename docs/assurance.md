@@ -24,4 +24,4 @@ The project checks Python dependencies with a scheduled audit and checks pull re
 - Work through the [OpenSSF Silver criteria](https://www.bestpractices.dev/en/criteria/1) and maintain the evidence for dependency checks, tests and release verification.
 - Run an outside pilot if a participating project volunteers. Publish an example from the pilot with the project's agreement.
 
-See the [project roadmap](roadmap.md) for the current release and remaining release checks.
+The [roadmap’s design boundaries](roadmap.md) also apply through November 2027.

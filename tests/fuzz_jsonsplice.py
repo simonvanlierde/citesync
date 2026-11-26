@@ -24,10 +24,11 @@ def fuzz_splice(data: bytes) -> None:
         "title": "Release: " + revised_name,
         "author": (authors if append_author else []) + [{"name": revised_name}],
     }
-    text = json.dumps(old, indent=indent)
+    note_member = f'"note" : {json.dumps(note)}'
+    text = json.dumps(old, indent=indent).replace('"note":', '"note" :', 1)
     result = splice(text, old, new)
     assert json.loads(result) == new
-    assert json.dumps(note) in result
+    assert note_member in result
     assert splice(result, new, new) == result
 
 

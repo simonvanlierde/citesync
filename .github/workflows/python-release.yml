@@ -78,7 +78,11 @@ jobs:
           name: release-notes
           path: ${{ runner.temp }}/notes.md
 
-      - run: uv build
+      - name: Verify repeatable distribution builds
+        run: |
+          uv build
+          uv build --out-dir "$RUNNER_TEMP/rebuilt"
+          diff -r dist "$RUNNER_TEMP/rebuilt"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
