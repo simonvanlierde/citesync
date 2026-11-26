@@ -1,0 +1,71 @@
+# The documentation site: `just docs` builds the Markdown in docs/ into _docs/, and
+# docs.yml deploys it to GitHub Pages. Without a `nav`, the menu follows the files in docs/.
+# Settings: https://zensical.org/docs/setup/basics/
+[project]
+site_name = "citesync"
+site_description = "Check that CITATION.cff, codemeta.json, .zenodo.json and the package manifests (pyproject.toml, Cargo.toml, package.json) agree, and rewrite them to match one source file, using the CodeMeta crosswalks"
+site_url = "https://simonvanlierde.com/citesync/docs/"
+repo_url = "https://github.com/simonvanlierde/citesync"
+docs_dir = "_docs-source"
+site_dir = "site/docs"
+extra_css = ["assets/fonts/plex.css", "assets/docs-tokens.css", "assets/docs.css"]
+extra_javascript = ["assets/docs.js"]
+
+nav = [
+  { "Documentation" = "README.md" },
+  { "Playground" = "https://simonvanlierde.com/citesync/" },
+  { "Start here" = [
+    "getting-started.md",
+    { "Browser playground" = "playground.md" },
+  ] },
+  { "Use citesync" = ["init.md", "check.md", "write.md", "datasets.md", "export.md", "pandoc.md"] },
+  { "Reference" = ["config.md", "formats.md", "rules.md", "output.md", "contributions.md"] },
+  { "Project" = [
+    "tested-repositories.md",
+    { "Design decisions" = ["decisions/index.md",
+      "decisions/0001-pluggable-source.md", "decisions/0002-vendored-mapping.md",
+      "decisions/0003-manifests-opt-in.md", "decisions/0004-python-and-ruamel.md",
+      "decisions/0005-vocabulary-blind-roles.md",
+      "decisions/0006-field-conversions-from-codemeta-drift-and-codemeta-3.md",
+    ] },
+    "contributing.md", "changelog.md", "roadmap.md", "accessibility.md",
+  ] },
+]
+
+[project.theme]
+font = false
+custom_dir = "docs-overrides"
+favicon = "assets/favicon.svg"
+features = ["content.code.copy", "navigation.indexes"]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Follow system theme"
+
+# docs-overrides/main.html reads og_image for the link-preview tags. `just og-card` renders the
+# image and puts its hash in this URL, since link previews cache by URL.
+[project.extra]
+og_image = "assets/og.png?v=bda8a20d"
+
+# Line anchors are empty links, which screen readers announce without a name.
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = false
+
+[project.markdown_extensions.attr_list]
+
+[project.markdown_extensions.toc]
+permalink = true
+permalink_title = "Link to this section"
