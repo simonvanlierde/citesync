@@ -48,7 +48,7 @@
   'docker-compose': { enabled: false },
   packageRules: [
     // Firefox in Playwright 1.65.0 crashes during the accessibility journeys.
-    { matchPackageNames: ['@playwright/test'], ignoreVersions: ['1.65.0'] },
+    { matchPackageNames: ['@playwright/test'], allowedVersions: '!/^1\\.65\\.0$/' },
     // Actions and hook revs are all CI and dev tooling: one PR for both.
     { matchManagers: ['github-actions', 'pre-commit'], groupName: 'actions and hooks' },
     // Dev tooling lands as one PR and runtime minor and patch bumps as another, so a
