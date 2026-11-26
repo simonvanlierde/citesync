@@ -74,6 +74,8 @@ def _rewrite_link(match: re.Match[str], source: Path, destination: Path) -> str:
 def _changelog_anchor(text: str, headings: set[str]) -> str:
     """Retain the prior version and duplicate-section slugs."""
     base = re.sub(r"[^\w -]", "", text.lower()).replace(" ", "-")
+    # The live changelog exposed this fragment before the release date was set.
+    base = re.sub(r"^070---\d{4}-\d{2}-\d{2}$", "070---2026-11-20", base)
     anchor = base
     suffix = 1
     while anchor in headings:

@@ -7,13 +7,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-11-20
+## [0.7.0] - 2026-11-26
 
 ### Changed
 
 - **Breaking:** Update scripts reading `rules --format json` to read the list from `.rules`. The list now sits inside the shared JSON envelope; `schema_version` stays 1 ([output](docs/output.md#config-init-explain-and-rules)).
 - **Breaking:** Read usage errors from stdout when requesting JSON output. They now return an error report with exit code 2 and empty stderr ([exit codes](docs/check.md#findings-and-exit-codes)). When several format options are given, the last recognized format before `--` decides.
 - **Breaking:** Use full option names in scripts. Abbreviations such as `--jso` now return a usage error ([commands](docs/check.md)).
+- The [documentation](https://simonvanlierde.com/citesync/docs/) uses Zensical with local search.
+  Existing heading links still work, and the theme choice follows you between the docs and playground.
 - `check` averaged 96.6 ± 8.56 ms versus 93.0 ± 9.25 ms in 0.6.0 (+4%, within the observed variation); median peak memory was 18.2 MiB for both. Measurements used the same repository files, Python 3.14 and one pinned CPU on a shared Linux host: 30 runs after three warm-ups, with five fresh processes for memory ([benchmark](.github/CONTRIBUTING.md#profile)).
 
 ### Added
