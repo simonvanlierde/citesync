@@ -9,7 +9,7 @@ Citation files can agree in a checkout while the built package carries a differe
 
 ## Decision
 
-Start with a CiteSync release. Compare the wheel and source distribution with `CITATION.cff`, `codemeta.json` and `.zenodo.json` using the existing read-only Python metadata reader. Check the required fields each format can carry. Record the input for each comparison, the pinned mapping version, and any values that differ or that a format cannot represent. Publish the commands and a before-and-after example so another project can repeat the check in CI.
+Start with a CiteSync release. Use the existing read-only Python metadata reader to compare the wheel and source distribution with CiteSync's `CITATION.cff` and `codemeta.json`. Record that this checkout has no `.zenodo.json`. Include that file in later comparisons where the project supplies it. Check the required fields each format can carry. Record the input for each comparison, the pinned mapping version, and any values that differ or that a format cannot represent. Publish the commands and a before-and-after example so another project can repeat the check in CI.
 
 Extend [0003](0003-manifests-opt-in.md) to allow a maintainer to opt in to filling named fields in selected citation files. Fill a field only when the selected source supplies a value and the pinned mapping and target format can represent it. Show the addition in `write --diff`. By default, `write` preserves omissions. Package-manifest writes require their separate opt-in.
 
