@@ -15,3 +15,13 @@ citesync reads repository metadata and turns it into one record for comparison o
 Before running `citesync write` on a repository you received from someone else, use `citesync write --diff` and review the changes. Review generated citations before publishing or importing them. CiteSync checks metadata consistency and supported formats. The original metadata and cited claims still need a source you trust.
 
 The project checks Python dependencies with a scheduled audit and checks pull requests for new dependency advisories. GitHub CodeQL and the git hooks check the code and workflows. To report a security problem, use the [private reporting process](../.github/SECURITY.md).
+
+## Development through November 2027
+
+- Publish 0.7.0 and submit citesync to the Research Software Directory.
+- Add read-only Maven package metadata import using the pinned CodeMeta mapping.
+- Recheck Software Heritage's support for CodeMeta 4.0 by April 2027. Use the newer context by default when the indexer supports it.
+- Work through the [OpenSSF Silver criteria](https://www.bestpractices.dev/en/criteria/1) and maintain the evidence for dependency checks, tests and release verification.
+- Run an outside pilot if a participating project volunteers. Publish an example from the pilot with the project's agreement.
+
+See the [project roadmap](roadmap.md) for the current release and remaining release checks.
