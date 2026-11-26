@@ -31,6 +31,7 @@ citesync keeps software citation files in step with the metadata in your reposit
 - [Release notes](../CHANGELOG.md).
 - [Roadmap](roadmap.md).
 - [Tests on real repositories](tested-repositories.md).
+- [Architecture and security](assurance.md).
 - [Design decisions](decisions/index.md).
 - [Contributing](../.github/CONTRIBUTING.md).
 - [Accessibility](accessibility.md).

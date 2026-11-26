@@ -1,0 +1,42 @@
+name: fuzz
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/fuzz.yml"
+      - "src/citesync/jsonsplice.py"
+      - "tests/fuzz_jsonsplice.py"
+      - "pyproject.toml"
+      - "uv.lock"
+  schedule:
+    - cron: "37 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_MALWARE_CHECK: "1"
+  UV_PREVIEW_FEATURES: malware-check
+
+jobs:
+  json-splice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.7"
+          python-version: "3.14"
+      - name: Fuzz JSON edits
+        run: >-
+          uv run --locked --no-default-groups --group fuzz --no-build-package atheris
+          python tests/fuzz_jsonsplice.py -runs=10000 -max_len=1024 -timeout=5
+          -artifact_prefix="$RUNNER_TEMP/"

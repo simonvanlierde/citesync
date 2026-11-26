@@ -1,18 +1,20 @@
 # Roadmap
 
-Last reviewed: 2026-11-20
+Last reviewed 26 November 2026. This roadmap covers the next year, through November 2027.
 
 ## Current release
 
-Version 0.6.0 was published on 2026-11-16. Version 0.7.0 adds JSON output for more CLI commands and breaking changes to rules output and usage-error reporting.
+The [release notes](../CHANGELOG.md) describe published versions and upgrade steps. Version 0.7.0 is prepared on `main`. It adds Composer import and changes JSON rules output and usage-error reporting.
 
-Physical-device, Safari, real screen-reader and reference-manager checks remain unverified. Publication does not establish that these checks passed.
+The remaining manual release checks are physical iPhone Safari, native EndNote import and screen-reader announcements for page controls.
 
-Dataset metadata and required-field checks are implemented, and the consuming repositories have adopted them. The playground includes form mode and field lookup. Documentation is searchable, and installation, playground and reference guides stay on this website. See the [release notes](../CHANGELOG.md) for the changes.
+## Planned through November 2027
 
-## After 0.6
-
-- Submit citesync to the Research Software Directory after the release is published.
+- Publish 0.7.0 and submit citesync to the Research Software Directory.
+- Add read-only Maven package metadata import using the pinned CodeMeta mapping.
+- Recheck Software Heritage's support for CodeMeta 4.0 by April 2027. Use the newer context by default when the indexer supports it.
+- Work through the [OpenSSF Silver criteria](https://www.bestpractices.dev/en/criteria/1) and maintain the evidence for dependency checks, tests and release verification.
+- Run an outside pilot if a participating project volunteers. Publish an example from the pilot with the project's agreement.
 
 ## Not planned
 

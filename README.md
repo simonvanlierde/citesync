@@ -52,6 +52,8 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 - [Output formats](https://simonvanlierde.com/citesync/docs/output/): JSON, GitHub annotations and SARIF.
 - [Tested on real repositories](https://simonvanlierde.com/citesync/docs/tested-repositories/): what citesync reports on five public repositories.
 
+See [Architecture and security](https://simonvanlierde.com/citesync/docs/assurance/) and [release verification](https://simonvanlierde.com/citesync/docs/getting-started/#verify-a-release-download).
+
 ## Browser playground
 
 Generate citation files from existing metadata or basic project details, without installing Python. [Open the playground](https://simonvanlierde.com/citesync/) or [read the playground guide](playground/README.md). Files are processed in the browser; downloading the converter requires a network connection.
