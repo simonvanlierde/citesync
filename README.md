@@ -79,11 +79,10 @@ For a dataset file with a custom name, set `always_run: true` on each citesync h
 [`docs/og-card.html`](docs/og-card.html), whose example is `tests/fixtures/synthetic-agree/pyproject.toml` run through `citesync init`. Edit the HTML, then from the repo root:
 
 ```sh
-pnpm exec playwright screenshot --browser=chromium --viewport-size=1200,630 \
-  file://$PWD/docs/og-card.html playground/og.png
+just og-card
 ```
 
-`playground/build.py` copies the card into the built site and adds its hash to the image URL. The playground and every documentation page include sharing tags.
+Both builds use the same card. The site includes its image hash so sharing services fetch the current version.
 
 ## Development
 

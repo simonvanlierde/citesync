@@ -205,9 +205,18 @@ repo-settings:
 repo-about:
     gh repo edit --description 'Generate and synchronize software citation files from package metadata. CLI, pre-commit hook and browser playground.' --homepage 'https://simonvanlierde.com/citesync/' --add-topic python --add-topic citation --add-topic codemeta --add-topic zenodo --add-topic software-metadata --add-topic pre-commit
 
-# Build the current Python wheel and its locked browser dependencies.
+# Build the browser wheel bundle and Zensical docs into one Pages artifact.
 playground-build:
     uv run playground/build.py
+
+# Build the shared documentation theme and check its links and script hashes.
+docs:
+    uv run --frozen playground/build_docs.py
+
+# Refresh the social card shared by the playground and docs.
+og-card:
+    pnpm exec playwright screenshot --browser=chromium --viewport-size=1200,630 "file://$PWD/docs/og-card.html" playground/og.png
+    uv run --no-project python -c 'from hashlib import sha256; from pathlib import Path; import re; config = Path("zensical.toml"); digest = sha256(Path("playground/og.png").read_bytes()).hexdigest()[:8]; config.write_text(re.sub(r"og\.png(?:\?v=[0-9a-f]+)?", f"og.png?v={digest}", config.read_text()))'
 
 # Build and serve the playground locally; no citation data leaves the browser.
 playground: playground-build

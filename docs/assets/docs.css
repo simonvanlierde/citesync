@@ -1,0 +1,195 @@
+html {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    color-scheme: dark;
+  }
+}
+
+/* docs-tokens.css holds the paper, ink, accent and fonts. The accent also keeps selected links
+   readable over the theme's tinted background, and the dark one needs a lighter value for the
+   same contrast. A project that kept its own zensical.toml adds docs-tokens.css to `extra_css`;
+   until then the fallbacks give the same look. */
+:root > * {
+  --md-default-bg-color: var(--docs-paper);
+  --md-default-fg-color: var(--docs-ink);
+  --md-accent-fg-color: var(--docs-accent);
+  --md-accent-fg-color--transparent: color-mix(in srgb, var(--docs-accent) 10%, transparent);
+  --md-primary-fg-color: var(--docs-brand);
+  --md-primary-bg-color: #ffffff;
+  --md-typeset-a-color: var(--docs-accent);
+  --md-text-font-family: var(--docs-font, system-ui, sans-serif);
+  --md-code-font-family: var(--docs-mono, ui-monospace, monospace);
+}
+
+:root > [data-md-color-scheme="slate"] {
+  --md-primary-fg-color: var(--docs-brand-dark);
+  --md-typeset-a-color: var(--docs-accent-dark);
+  --md-default-bg-color: var(--docs-paper-dark);
+  --md-default-fg-color: var(--docs-ink-dark);
+  --md-accent-fg-color: var(--docs-accent-dark);
+  --md-accent-fg-color--transparent: color-mix(in srgb, var(--docs-accent-dark) 10%, transparent);
+}
+
+.md-header__button[data-docs-toggle] {
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+
+.md-header__button[data-docs-toggle]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media screen and (min-width: 60em) {
+  .md-header__button[data-docs-toggle="__search"] {
+    display: none;
+  }
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-header__button[data-docs-toggle="__drawer"] {
+    display: none;
+  }
+}
+
+/* Translation alone leaves the closed drawer's links in the tab order. The theme makes an
+   open section's nested list visible again, so its descendants are hidden too. */
+@media screen and (max-width: 76.234375em) {
+  [data-md-toggle="drawer"]:not(:checked) ~ .md-container .md-sidebar--primary,
+  [data-md-toggle="drawer"]:not(:checked) ~ .md-container .md-sidebar--primary * {
+    visibility: hidden;
+  }
+}
+
+/* Keep identifiers whole in a table's first column; a table that gets too wide scrolls. */
+.md-typeset td:first-child code {
+  white-space: nowrap;
+}
+
+/* Edge shadows show that a table scrolls sideways. The `local` layers cover them at the ends. */
+.md-typeset__scrollwrap {
+  background:
+    linear-gradient(to right, var(--md-default-bg-color) 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--md-default-bg-color) 30%, transparent) right / 2rem 100% no-repeat local,
+    linear-gradient(to right, var(--md-default-fg-color--lighter), transparent) left / 0.6rem 100% no-repeat scroll,
+    linear-gradient(to left, var(--md-default-fg-color--lighter), transparent) right / 0.6rem 100% no-repeat scroll;
+}
+
+.md-typeset .md-typeset__table table:not([class]) {
+  background: transparent;
+}
+
+.md-content__inner {
+  max-width: 75ch;
+  font-size: 17px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.md-typeset pre > code {
+  padding-right: 52px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.citesync-project-links .colophon {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 16px;
+  font-size: 14px;
+}
+
+.citesync-project-links :is(.colophon-meta, nav) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.citesync-project-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.citesync-project-links .theme-toggle {
+  display: none;
+}
+
+@media (max-width: 76.234375em) {
+  .no-js .md-header__button { display: none; }
+  .no-js .md-sidebar--primary { display: none; }
+}
+
+.no-js .docs-fallback { margin-bottom: 1rem; }
+.no-js .docs-fallback nav { display: grid; gap: .5rem; }
+
+@media (prefers-color-scheme: dark) {
+  .no-js > body {
+    color-scheme: dark;
+    --md-primary-fg-color: var(--docs-brand-dark);
+    --md-default-bg-color: var(--docs-paper-dark);
+    --md-default-fg-color: var(--docs-ink-dark);
+    --md-default-fg-color--light: var(--docs-ink-dark);
+    --md-default-fg-color--lighter: #b1c8ba;
+    --md-typeset-a-color: var(--docs-accent-dark);
+    --md-accent-fg-color: var(--docs-accent-dark);
+    --md-code-bg-color: #243f32;
+    --md-code-fg-color: var(--docs-ink-dark);
+  }
+}
+
+.docs-copy-status:not(:empty) {
+  display: block;
+  font-size: .75rem;
+}
+
+.md-typeset .align-right {
+  text-align: right;
+}
+
+.md-header {
+  background: var(--md-primary-fg-color);
+  color: #fff;
+}
+
+.md-typeset .md-code__button[data-md-type="copy"] {
+  color: var(--md-default-fg-color);
+  width: 44px;
+  height: 44px;
+}
+
+.no-js .md-search {
+  display: none;
+}
+
+.md-header .md-search__button {
+  color: #fff;
+}
+
+.md-header .theme-toggle:not([hidden]) {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.md-header .theme-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
