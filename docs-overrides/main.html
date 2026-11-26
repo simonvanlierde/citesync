@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{#- Link previews read these; the theme escapes the plain description tag. A page's own
+    `description:` front matter wins over the site's. Zensical has no page.is_homepage, so the
+    homepage is the page whose canonical URL is the site URL. Undefined values fail the build. #}
+{% block extrahead %}
+  <script src="{{ 'assets/theme.mjs' | url }}"></script>
+  {%- if page is defined and page.canonical_url is defined and page.canonical_url and config.extra.og_image is defined %}
+  {#- canonical_url always ends in a slash; a hand-edited site_url may not. URLs stay unescaped: the
+      escape filter writes / as &#x2f;, which some link-preview scrapers do not decode. #}
+  {%- set base = config.site_url if config.site_url[-1:] == "/" else config.site_url ~ "/" %}
+  {%- set title = config.site_name if page.canonical_url == base else page.title ~ " - " ~ config.site_name %}
+  {%- set summary = config.site_description or "" %}
+  {%- set description = page.meta.description if page.meta is defined and page.meta.description is defined else summary %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name | e }}">
+  <meta property="og:title" content="{{ title | e }}">
+  {%- if description %}
+  <meta property="og:description" content="{{ description | e }}">
+  {%- endif %}
+  <meta property="og:url" content="{{ page.canonical_url }}">
+  <meta property="og:image" content="{{ base ~ config.extra.og_image }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ (config.site_name ~ (': ' ~ summary if summary else '')) | e }}">
+  <meta name="twitter:card" content="summary_large_image">
+  {%- endif %}
+{% endblock %}
+
+{% block content %}
+  <noscript>
+    <details class="docs-fallback">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation pages">
+        {% for guide in nav.items recursive %}
+          {% if guide.url %}<a href="{{ guide.url | url }}">{{ guide.title }}</a>{% endif %}
+          {% if guide.children %}{{ loop(guide.children) }}{% endif %}
+        {% endfor %}
+      </nav>
+    </details>
+  </noscript>
+  {{ super() }}
+{% endblock %}
+
+{% block footer %}
+  <footer class="md-grid citesync-project-links" aria-label="About citesync">CITESYNC_COLOPHON</footer>
+{% endblock %}
