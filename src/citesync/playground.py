@@ -64,7 +64,7 @@ def _generate(root: Path, payload: dict[str, Any]) -> dict[str, Any]:  # noqa: C
             return _partial_details(source, text, mapping)
         msg = "Add a software title and at least one author."
         raise CheckError(msg)
-    if source.format in {"r-description", "julia"}:
+    if source.format in {"r-description", "julia", "composer"}:
         document = _new_codemeta("codemeta.json", source, NEW_CODEMETA_VERSION, mapping, keyword_key(Config()))[0]
         (root / "codemeta.json").write_text(document, encoding="utf-8")
     if filename == "CITATION.cff":

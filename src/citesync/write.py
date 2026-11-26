@@ -523,7 +523,7 @@ def _yaml(text: str) -> YAML:
     return yaml
 
 
-def _apply(
+def _apply(  # noqa: C901 - retains format-specific field shapes
     doc: Doc,
     source: Doc,
     terms: list[str],
@@ -553,6 +553,13 @@ def _apply(
             continue
         container, key = slot
         old = container[key]
+        if doc.format == "cff-1.2.0" and term == "license" and " | " in path:
+            spdx_key, url_key = path.split(" | ", 1)
+            value = source.record[term]
+            is_url = re.fullmatch(r"https?://\S+", value, re.IGNORECASE) is not None
+            if key != (url_key if is_url else spdx_key):
+                skipped[term] = f"move the licence to {url_key if is_url else spdx_key}"
+                continue
         if isinstance(old, dict) and old.get("workspace") is True:
             skipped[term] = "inherited from [workspace.package] in the workspace's Cargo.toml"
             continue
@@ -654,8 +661,14 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
     Raises:
         CannotWrite: for any compound expression in Zenodo, and ``AND`` or ``WITH`` in CFF and codemeta.
     """
+    if spdx.casefold() == "proprietary":
+        if fmt == "codemeta":
+            return spdx
+        if fmt in {"cff-1.2.0", "zenodo"}:
+            msg = f"{fmt} needs a specific licence"
+            raise CannotWrite(msg)
     operators = set(spdx.split()) & {"AND", "OR", "WITH"}
-    if fmt == "zenodo" and operators:
+    if fmt == "zenodo" and (operators or spdx.lower().startswith(("https://", "http://"))):
         msg = "Zenodo takes one licence id"
         raise CannotWrite(msg)
     if fmt == "zenodo":

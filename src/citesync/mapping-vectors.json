@@ -1353,6 +1353,659 @@
    "expected": [
     "Carberry"
    ]
+  },
+  {
+   "name": "Dublin Core parser: each oai_dc element is a prefixed key, and every key is a list",
+   "path": "dc:creator[]",
+   "raw_input": {
+    "format": "oai_dc",
+    "text": "<oai_dc:dc xmlns:oai_dc=\"http://www.openarchives.org/OAI/2.0/oai_dc/\"\n           xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n           xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n           xsi:schemaLocation=\"http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd\">\n  <dc:creator>van Leeuwenhoek, Antonie</dc:creator>\n  <dc:creator>Skłodowska-Curie, Marie</dc:creator>\n  <dc:contributor>Hua, Luogeng</dc:contributor>\n  <dc:date>2026-03-14</dc:date>\n  <dc:description>Counts animalcules in microscope images.</dc:description>\n  <dc:identifier>https://doi.org/10.5555/example.1234</dc:identifier>\n  <dc:identifier>oai:example.org:1234</dc:identifier>\n  <dc:publisher>Example Lab</dc:publisher>\n  <dc:relation>https://example.org/lab/animalcule-counter/tree/v1.2.0</dc:relation>\n  <dc:rights>info:eu-repo/semantics/openAccess</dc:rights>\n  <dc:rights>https://spdx.org/licenses/MIT.html</dc:rights>\n  <dc:subject>microscopy</dc:subject>\n  <dc:subject>image analysis</dc:subject>\n  <dc:title>Animalcule Counter</dc:title>\n  <dc:type>Software</dc:type>\n</oai_dc:dc>\n"
+   },
+   "document": {
+    "dc:creator": [
+     "van Leeuwenhoek, Antonie",
+     "Skłodowska-Curie, Marie"
+    ],
+    "dc:contributor": [
+     "Hua, Luogeng"
+    ],
+    "dc:date": [
+     "2026-03-14"
+    ],
+    "dc:description": [
+     "Counts animalcules in microscope images."
+    ],
+    "dc:identifier": [
+     "https://doi.org/10.5555/example.1234",
+     "oai:example.org:1234"
+    ],
+    "dc:publisher": [
+     "Example Lab"
+    ],
+    "dc:relation": [
+     "https://example.org/lab/animalcule-counter/tree/v1.2.0"
+    ],
+    "dc:rights": [
+     "info:eu-repo/semantics/openAccess",
+     "https://spdx.org/licenses/MIT.html"
+    ],
+    "dc:subject": [
+     "microscopy",
+     "image analysis"
+    ],
+    "dc:title": [
+     "Animalcule Counter"
+    ],
+    "dc:type": [
+     "Software"
+    ]
+   },
+   "expected": [
+    "van Leeuwenhoek, Antonie",
+    "Skłodowska-Curie, Marie"
+   ]
+  },
+  {
+   "name": "Dublin Core: a dcterms record is read before the oai_dc elements",
+   "path": "dcterms:creator[].foaf:familyName | dc:creator[]",
+   "document": {
+    "@id": "https://doi.org/10.5555/example.1234",
+    "dcterms:title": "Animalcule Counter",
+    "dcterms:creator": [
+     {
+      "@id": "https://orcid.org/0000-0002-1825-0097",
+      "foaf:givenName": "Josiah",
+      "foaf:familyName": "Carberry"
+     }
+    ],
+    "dcterms:contributor": [
+     {
+      "foaf:givenName": "Luogeng",
+      "foaf:familyName": "Hua"
+     }
+    ],
+    "dcterms:license": {
+     "@id": "https://spdx.org/licenses/MIT.html"
+    },
+    "dcterms:identifier": "https://doi.org/10.5555/example.1234",
+    "dcterms:issued": {
+     "@value": "2026-03-14",
+     "@type": "http://www.w3.org/2001/XMLSchema#date"
+    },
+    "dcterms:publisher": {
+     "foaf:name": "Example Lab"
+    },
+    "dcterms:type": {
+     "@id": "http://purl.org/dc/dcmitype/Software"
+    }
+   },
+   "expected": [
+    "Carberry"
+   ]
+  },
+  {
+   "name": "Debian parser: debian/control's first stanza is control, the others packages; field names in Policy's spelling",
+   "path": "control.Homepage",
+   "raw_input": {
+    "format": "debian-control",
+    "text": "Source: python-carberry\nMaintainer: Antonie van Leeuwenhoek <antonie@example.org>\nSection: python\nPriority: optional\nBuild-Depends: debhelper-compat (= 13), dh-sequence-python3, python3-all\nStandards-Version: 4.7.4\nHomePage: https://carberry.example.org/\nVcs-Browser: https://salsa.example.org/python-team/python-carberry\nVcs-Git: https://salsa.example.org/python-team/python-carberry.git\nRules-Requires-Root: no\n\nPackage: python3-carberry\nArchitecture: all\nDepends: ${misc:Depends}, ${python3:Depends}\nDescription: lab notes for psychoceramics research\n Carberry keeps readings and lab notes of the Psychoceramics Society\n in one place.\n .\n This package installs the library for Python 3.\n"
+   },
+   "document": {
+    "control": {
+     "Source": "python-carberry",
+     "Maintainer": "Antonie van Leeuwenhoek <antonie@example.org>",
+     "Section": "python",
+     "Priority": "optional",
+     "Build-Depends": "debhelper-compat (= 13), dh-sequence-python3, python3-all",
+     "Standards-Version": "4.7.4",
+     "Homepage": "https://carberry.example.org/",
+     "Vcs-Browser": "https://salsa.example.org/python-team/python-carberry",
+     "Vcs-Git": "https://salsa.example.org/python-team/python-carberry.git",
+     "Rules-Requires-Root": "no"
+    },
+    "packages": [
+     {
+      "Package": "python3-carberry",
+      "Architecture": "all",
+      "Depends": "${misc:Depends}, ${python3:Depends}",
+      "Description": "lab notes for psychoceramics research\nCarberry keeps readings and lab notes of the Psychoceramics Society\nin one place.\n.\nThis package installs the library for Python 3."
+     }
+    ]
+   },
+   "expected": [
+    "https://carberry.example.org/"
+   ]
+  },
+  {
+   "name": "MODS parser: elements as lists, attributes as @ keys, text under #text, and each name's roleTerm texts lifted",
+   "path": "name[roleTerm=aut].namePart[@type=family]",
+   "raw_input": {
+    "format": "mods",
+    "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<modsCollection xmlns=\"http://www.loc.gov/mods/v3\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.loc.gov/mods/v3 https://www.loc.gov/standards/mods/v3/mods-3-8.xsd\">\n  <mods version=\"3.8\">\n    <titleInfo>\n      <title>tidewater</title>\n      <subTitle>tide-gauge cleaning for coastal models</subTitle>\n    </titleInfo>\n    <titleInfo type=\"alternative\">\n      <title>Tidewater toolkit</title>\n    </titleInfo>\n    <typeOfResource>software, multimedia</typeOfResource>\n    <name type=\"personal\">\n      <namePart type=\"given\">Ada</namePart>\n      <namePart type=\"family\">Lovelace</namePart>\n      <nameIdentifier type=\"orcid\">https://orcid.org/0000-0002-1825-0097</nameIdentifier>\n      <role>\n        <roleTerm type=\"code\" authority=\"marcrelator\">aut</roleTerm>\n      </role>\n    </name>\n    <name type=\"personal\">\n      <namePart type=\"given\">Grace</namePart>\n      <namePart type=\"family\">Hopper</namePart>\n      <role>\n        <roleTerm type=\"code\" authority=\"marcrelator\">ctb</roleTerm>\n        <roleTerm type=\"text\" authority=\"marcrelator\">contributor</roleTerm>\n      </role>\n    </name>\n    <originInfo eventType=\"publication\">\n      <publisher>Zenodo</publisher>\n      <dateIssued encoding=\"w3cdtf\" keyDate=\"yes\">2024-03-14</dateIssued>\n      <edition>2.1.0</edition>\n    </originInfo>\n    <abstract>Cleans and resamples tide-gauge records for coastal models.</abstract>\n    <subject>\n      <topic>oceanography</topic>\n      <topic>time series</topic>\n    </subject>\n    <identifier type=\"doi\">10.5281/zenodo.1234567</identifier>\n    <identifier type=\"uri\">swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505</identifier>\n    <location>\n      <url access=\"object in context\" usage=\"primary\">https://zenodo.org/records/1234567</url>\n    </location>\n    <accessCondition type=\"use and reproduction\" xlink:href=\"https://spdx.org/licenses/MIT.html\">MIT License</accessCondition>\n  </mods>\n</modsCollection>\n"
+   },
+   "document": {
+    "@version": "3.8",
+    "titleInfo": [
+     {
+      "title": [
+       "tidewater"
+      ],
+      "subTitle": [
+       "tide-gauge cleaning for coastal models"
+      ]
+     },
+     {
+      "@type": "alternative",
+      "title": [
+       "Tidewater toolkit"
+      ]
+     }
+    ],
+    "typeOfResource": [
+     "software, multimedia"
+    ],
+    "name": [
+     {
+      "@type": "personal",
+      "namePart": [
+       {
+        "@type": "given",
+        "#text": "Ada"
+       },
+       {
+        "@type": "family",
+        "#text": "Lovelace"
+       }
+      ],
+      "nameIdentifier": [
+       {
+        "@type": "orcid",
+        "#text": "https://orcid.org/0000-0002-1825-0097"
+       }
+      ],
+      "role": [
+       {
+        "roleTerm": [
+         {
+          "@type": "code",
+          "@authority": "marcrelator",
+          "#text": "aut"
+         }
+        ]
+       }
+      ],
+      "roleTerm": [
+       "aut"
+      ]
+     },
+     {
+      "@type": "personal",
+      "namePart": [
+       {
+        "@type": "given",
+        "#text": "Grace"
+       },
+       {
+        "@type": "family",
+        "#text": "Hopper"
+       }
+      ],
+      "role": [
+       {
+        "roleTerm": [
+         {
+          "@type": "code",
+          "@authority": "marcrelator",
+          "#text": "ctb"
+         },
+         {
+          "@type": "text",
+          "@authority": "marcrelator",
+          "#text": "contributor"
+         }
+        ]
+       }
+      ],
+      "roleTerm": [
+       "ctb",
+       "contributor"
+      ]
+     }
+    ],
+    "originInfo": [
+     {
+      "@eventType": "publication",
+      "publisher": [
+       "Zenodo"
+      ],
+      "dateIssued": [
+       {
+        "@encoding": "w3cdtf",
+        "@keyDate": "yes",
+        "#text": "2024-03-14"
+       }
+      ],
+      "edition": [
+       "2.1.0"
+      ]
+     }
+    ],
+    "abstract": [
+     "Cleans and resamples tide-gauge records for coastal models."
+    ],
+    "subject": [
+     {
+      "topic": [
+       "oceanography",
+       "time series"
+      ]
+     }
+    ],
+    "identifier": [
+     {
+      "@type": "doi",
+      "#text": "10.5281/zenodo.1234567"
+     },
+     {
+      "@type": "uri",
+      "#text": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+     }
+    ],
+    "location": [
+     {
+      "url": [
+       {
+        "@access": "object in context",
+        "@usage": "primary",
+        "#text": "https://zenodo.org/records/1234567"
+       }
+      ]
+     }
+    ],
+    "accessCondition": [
+     {
+      "@type": "use and reproduction",
+      "@xlink:href": "https://spdx.org/licenses/MIT.html",
+      "#text": "MIT License"
+     }
+    ]
+   },
+   "expected": [
+    {
+     "@type": "family",
+     "#text": "Lovelace"
+    }
+   ]
+  },
+  {
+   "name": "VIVO: an Authorship's agents, framed on the software, ranked, without the reference back to it",
+   "path": "vivo:relatedBy[@type=Authorship].vivo:relates[].vivo:orcidId[].@id",
+   "raw_input": {
+    "format": "vivo",
+    "text": "@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .\n@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .\n@prefix foaf:  <http://xmlns.com/foaf/0.1/> .\n@prefix obo:   <http://purl.obolibrary.org/obo/> .\n@prefix bibo:  <http://purl.org/ontology/bibo/> .\n@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .\n@prefix vivo:  <http://vivoweb.org/ontology/core#> .\n\n<https://vivo.example.org/individual/sw1>\n    a obo:ERO_0000071 ;\n    rdfs:label \"Animalcule Counter\" ;\n    obo:ERO_0000072 \"2.1.0\" ;\n    bibo:abstract \"Counts animalcules in microscope images.\" ;\n    bibo:doi \"10.5555/animalcule.2.1.0\" ;\n    vivo:swhid \"swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505\" ;\n    vivo:freetextKeyword \"microscopy\", \"image analysis\" ;\n    vivo:dateTimeValue <https://vivo.example.org/individual/dt1> ;\n    vivo:publisher <https://vivo.example.org/individual/org1> ;\n    vivo:relatedBy <https://vivo.example.org/individual/as2>, <https://vivo.example.org/individual/as1> .\n\n<https://vivo.example.org/individual/dt1>\n    a vivo:DateTimeValue ;\n    vivo:dateTime \"2025-03-14T00:00:00\"^^xsd:dateTime ;\n    vivo:dateTimePrecision vivo:yearMonthDayPrecision .\n\n<https://vivo.example.org/individual/org1>\n    a foaf:Organization ;\n    rdfs:label \"Carberry Institute\" ;\n    vivo:publisherOf <https://vivo.example.org/individual/sw1> .\n\n<https://vivo.example.org/individual/as1>\n    a vivo:Authorship ;\n    vivo:rank \"1\"^^xsd:int ;\n    vivo:relates <https://vivo.example.org/individual/sw1>, <https://vivo.example.org/individual/p1> .\n\n<https://vivo.example.org/individual/as2>\n    a vivo:Authorship ;\n    vivo:rank \"2\"^^xsd:int ;\n    vivo:relates <https://vivo.example.org/individual/sw1>, <https://vivo.example.org/individual/vc2> .\n\n<https://vivo.example.org/individual/p1>\n    a foaf:Person ;\n    rdfs:label \"van Leeuwenhoek, Antonie\" ;\n    vivo:orcidId <https://orcid.org/0000-0002-1825-0097> ;\n    vivo:relatedBy <https://vivo.example.org/individual/as1> ;\n    obo:ARG_2000028 <https://vivo.example.org/individual/p1-vcard> .\n\n<https://vivo.example.org/individual/p1-vcard>\n    a vcard:Individual ;\n    obo:ARG_2000029 <https://vivo.example.org/individual/p1> ;\n    vcard:hasName <https://vivo.example.org/individual/p1-name> .\n\n<https://vivo.example.org/individual/p1-name>\n    a vcard:Name ;\n    vcard:givenName \"Antonie\" ;\n    vcard:familyName \"van Leeuwenhoek\" .\n\n<https://vivo.example.org/individual/vc2>\n    a vcard:Individual ;\n    rdfs:label \"Hua, Luogeng\" ;\n    vivo:relatedBy <https://vivo.example.org/individual/as2> ;\n    vcard:hasName <https://vivo.example.org/individual/vc2-name> .\n\n<https://vivo.example.org/individual/vc2-name>\n    a vcard:Name ;\n    vcard:givenName \"Luogeng\" ;\n    vcard:familyName \"Hua\" .\n"
+   },
+   "document": {
+    "@id": "https://vivo.example.org/individual/sw1",
+    "@type": "obo:ERO_0000071",
+    "obo:ERO_0000072": "2.1.0",
+    "bibo:abstract": "Counts animalcules in microscope images.",
+    "bibo:doi": "10.5555/animalcule.2.1.0",
+    "vivo:dateTimeValue": {
+     "@id": "https://vivo.example.org/individual/dt1",
+     "@type": "vivo:DateTimeValue",
+     "vivo:dateTime": {
+      "@type": "http://www.w3.org/2001/XMLSchema#dateTime",
+      "@value": "2025-03-14T00:00:00"
+     },
+     "vivo:dateTimePrecision": {
+      "@id": "vivo:yearMonthDayPrecision"
+     }
+    },
+    "vivo:freetextKeyword": [
+     "microscopy",
+     "image analysis"
+    ],
+    "vivo:publisher": {
+     "@id": "https://vivo.example.org/individual/org1",
+     "@type": "http://xmlns.com/foaf/0.1/Organization",
+     "vivo:publisherOf": {
+      "@id": "https://vivo.example.org/individual/sw1"
+     },
+     "rdfs:label": "Carberry Institute"
+    },
+    "vivo:relatedBy": [
+     {
+      "@id": "https://vivo.example.org/individual/as1",
+      "@type": "Authorship",
+      "vivo:rank": {
+       "@type": "http://www.w3.org/2001/XMLSchema#int",
+       "@value": "1"
+      },
+      "vivo:relates": [
+       {
+        "@id": "https://vivo.example.org/individual/p1",
+        "@type": "http://xmlns.com/foaf/0.1/Person",
+        "obo:ARG_2000028": [
+         {
+          "@id": "https://vivo.example.org/individual/p1-vcard",
+          "@type": "vcard:Individual",
+          "obo:ARG_2000029": {
+           "@id": "https://vivo.example.org/individual/p1"
+          },
+          "vcard:hasName": {
+           "@id": "https://vivo.example.org/individual/p1-name",
+           "@type": "vcard:Name",
+           "vcard:familyName": "van Leeuwenhoek",
+           "vcard:givenName": "Antonie"
+          }
+         }
+        ],
+        "vivo:orcidId": [
+         {
+          "@id": "https://orcid.org/0000-0002-1825-0097"
+         }
+        ],
+        "vivo:relatedBy": [
+         {
+          "@id": "https://vivo.example.org/individual/as1"
+         }
+        ],
+        "rdfs:label": "van Leeuwenhoek, Antonie"
+       }
+      ]
+     },
+     {
+      "@id": "https://vivo.example.org/individual/as2",
+      "@type": "Authorship",
+      "vivo:rank": {
+       "@type": "http://www.w3.org/2001/XMLSchema#int",
+       "@value": "2"
+      },
+      "vivo:relates": [
+       {
+        "@id": "https://vivo.example.org/individual/vc2",
+        "@type": "vcard:Individual",
+        "vivo:relatedBy": [
+         {
+          "@id": "https://vivo.example.org/individual/as2"
+         }
+        ],
+        "rdfs:label": "Hua, Luogeng",
+        "vcard:hasName": {
+         "@id": "https://vivo.example.org/individual/vc2-name",
+         "@type": "vcard:Name",
+         "vcard:familyName": "Hua",
+         "vcard:givenName": "Luogeng"
+        }
+       }
+      ]
+     }
+    ],
+    "vivo:swhid": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505",
+    "rdfs:label": "Animalcule Counter"
+   },
+   "expected": [
+    "https://orcid.org/0000-0002-1825-0097"
+   ]
+  },
+  {
+   "name": "SPASE parser: the tree starts at Spase.Software, and only the elements the schema lets repeat are lists",
+   "path": "AccessInformation[].AccessURL[Style=Git].URL",
+   "raw_input": {
+    "format": "spase",
+    "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Spase xmlns=\"http://www.spase-group.org/data/schema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.spase-group.org/data/schema https://spase-group.org/data/schema/spase-2.6.1.xsd\">\n   <Version>2.6.1</Version>\n   <Software>\n      <ResourceID>spase://Example/Software/fern-spectra</ResourceID>\n      <ResourceHeader>\n         <ResourceName>fern-spectra</ResourceName>\n         <DOI>https://doi.org/10.5281/zenodo.1234567</DOI>\n         <ReleaseDate>2026-03-02T09:30:00</ReleaseDate>\n         <Description>Fits and plots auroral emission spectra from all-sky camera frames.</Description>\n         <PublicationInfo>\n            <Authors>Lovelace, Ada; Hopper, Grace Brewster</Authors>\n            <PublicationDate>2026-02-27T00:00:00Z</PublicationDate>\n            <PublishedBy>Zenodo</PublishedBy>\n            <LandingPageURL>https://zenodo.org/records/1234567</LandingPageURL>\n         </PublicationInfo>\n         <Contact>\n            <PersonID>spase://SMWG/Person/Ada.Lovelace</PersonID>\n            <Role>Author</Role>\n            <Role>Developer</Role>\n         </Contact>\n         <Contact>\n            <PersonID>spase://SMWG/Person/Alan.Turing</PersonID>\n            <Role>Contributor</Role>\n         </Contact>\n      </ResourceHeader>\n      <AccessInformation>\n         <RepositoryID>spase://Example/Repository/GitHub</RepositoryID>\n         <AccessURL>\n            <Name>Source code</Name>\n            <URL>https://github.com/example/fern-spectra</URL>\n            <Style>Git</Style>\n         </AccessURL>\n         <AccessURL>\n            <Name>Release archive</Name>\n            <URL>https://zenodo.org/records/1234567/files/fern-spectra-1.4.0.zip</URL>\n            <Style>File</Style>\n         </AccessURL>\n         <Format>Text</Format>\n      </AccessInformation>\n      <SoftwareVersion>1.4.0</SoftwareVersion>\n      <CodeLanguage>Python</CodeLanguage>\n      <Prerequisites>Python 3.11 or later, NumPy, Astropy</Prerequisites>\n      <ExecutionEnvironment>\n         <OperatingSystem>Linux, macOS, Windows</OperatingSystem>\n         <Installer>\n            <URL>https://pypi.org/project/fern-spectra/</URL>\n         </Installer>\n      </ExecutionEnvironment>\n   </Software>\n</Spase>\n"
+   },
+   "document": {
+    "ResourceID": "spase://Example/Software/fern-spectra",
+    "ResourceHeader": {
+     "ResourceName": "fern-spectra",
+     "DOI": "https://doi.org/10.5281/zenodo.1234567",
+     "ReleaseDate": "2026-03-02T09:30:00",
+     "Description": "Fits and plots auroral emission spectra from all-sky camera frames.",
+     "PublicationInfo": {
+      "Authors": "Lovelace, Ada; Hopper, Grace Brewster",
+      "PublicationDate": "2026-02-27T00:00:00Z",
+      "PublishedBy": "Zenodo",
+      "LandingPageURL": "https://zenodo.org/records/1234567"
+     },
+     "Contact": [
+      {
+       "PersonID": "spase://SMWG/Person/Ada.Lovelace",
+       "Role": [
+        "Author",
+        "Developer"
+       ]
+      },
+      {
+       "PersonID": "spase://SMWG/Person/Alan.Turing",
+       "Role": [
+        "Contributor"
+       ]
+      }
+     ]
+    },
+    "AccessInformation": [
+     {
+      "RepositoryID": "spase://Example/Repository/GitHub",
+      "AccessURL": [
+       {
+        "Name": "Source code",
+        "URL": "https://github.com/example/fern-spectra",
+        "Style": "Git"
+       },
+       {
+        "Name": "Release archive",
+        "URL": "https://zenodo.org/records/1234567/files/fern-spectra-1.4.0.zip",
+        "Style": "File"
+       }
+      ],
+      "Format": "Text"
+     }
+    ],
+    "SoftwareVersion": "1.4.0",
+    "CodeLanguage": "Python",
+    "Prerequisites": "Python 3.11 or later, NumPy, Astropy",
+    "ExecutionEnvironment": {
+     "OperatingSystem": "Linux, macOS, Windows",
+     "Installer": {
+      "URL": "https://pypi.org/project/fern-spectra/"
+     }
+    }
+   },
+   "expected": [
+    "https://github.com/example/fern-spectra"
+   ]
+  },
+  {
+   "name": "ISO 19115-3 parser: each property replaced by its value, repeatable properties as lists, codelists as their value",
+   "path": "identificationInfo.citation.citedResponsibleParty[role=author].party[].partyIdentifier[].code",
+   "raw_input": {
+    "format": "iso-19115-3",
+    "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<mdb:MD_Metadata xmlns:mdb=\"http://standards.iso.org/iso/19115/-3/mdb/2.0\"\n    xmlns:cit=\"http://standards.iso.org/iso/19115/-3/cit/2.0\"\n    xmlns:mcc=\"http://standards.iso.org/iso/19115/-3/mcc/1.0\"\n    xmlns:mri=\"http://standards.iso.org/iso/19115/-3/mri/1.0\"\n    xmlns:mco=\"http://standards.iso.org/iso/19115/-3/mco/1.0\"\n    xmlns:lan=\"http://standards.iso.org/iso/19115/-3/lan/1.0\"\n    xmlns:gco=\"http://standards.iso.org/iso/19115/-3/gco/1.0\"\n    xmlns:gcx=\"http://standards.iso.org/iso/19115/-3/gcx/1.0\"\n    xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n  <mdb:metadataScope>\n    <mdb:MD_MetadataScope>\n      <mdb:resourceScope>\n        <mcc:MD_ScopeCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/mcc-1.0-codelists.xml#MD_ScopeCode\" codeListValue=\"software\">software</mcc:MD_ScopeCode>\n      </mdb:resourceScope>\n      <mdb:name>\n        <gco:CharacterString>Python package</gco:CharacterString>\n      </mdb:name>\n    </mdb:MD_MetadataScope>\n  </mdb:metadataScope>\n  <mdb:contact>\n    <cit:CI_Responsibility>\n      <cit:role>\n        <cit:CI_RoleCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_RoleCode\" codeListValue=\"pointOfContact\">pointOfContact</cit:CI_RoleCode>\n      </cit:role>\n      <cit:party>\n        <cit:CI_Organisation>\n          <cit:name>\n            <gco:CharacterString>Carberry Institute</gco:CharacterString>\n          </cit:name>\n        </cit:CI_Organisation>\n      </cit:party>\n    </cit:CI_Responsibility>\n  </mdb:contact>\n  <mdb:dateInfo>\n    <cit:CI_Date>\n      <cit:date>\n        <gco:DateTime>2024-05-02T09:00:00</gco:DateTime>\n      </cit:date>\n      <cit:dateType>\n        <cit:CI_DateTypeCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_DateTypeCode\" codeListValue=\"creation\">creation</cit:CI_DateTypeCode>\n      </cit:dateType>\n    </cit:CI_Date>\n  </mdb:dateInfo>\n  <mdb:identificationInfo>\n    <mri:MD_DataIdentification>\n      <mri:citation>\n        <cit:CI_Citation>\n          <cit:title>\n            <gco:CharacterString>carberry-notes</gco:CharacterString>\n          </cit:title>\n          <cit:date>\n            <cit:CI_Date>\n              <cit:date>\n                <gco:Date>2024-05-02</gco:Date>\n              </cit:date>\n              <cit:dateType>\n                <cit:CI_DateTypeCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_DateTypeCode\" codeListValue=\"publication\">publication</cit:CI_DateTypeCode>\n              </cit:dateType>\n            </cit:CI_Date>\n          </cit:date>\n          <cit:edition>\n            <gco:CharacterString>1.4.0</gco:CharacterString>\n          </cit:edition>\n          <cit:identifier>\n            <mcc:MD_Identifier>\n              <mcc:code>\n                <gcx:Anchor xlink:href=\"https://doi.org/10.5555/carberry.notes\">10.5555/carberry.notes</gcx:Anchor>\n              </mcc:code>\n              <mcc:codeSpace>\n                <gco:CharacterString>doi.org</gco:CharacterString>\n              </mcc:codeSpace>\n            </mcc:MD_Identifier>\n          </cit:identifier>\n          <cit:identifier>\n            <mcc:MD_Identifier>\n              <mcc:code>\n                <gco:CharacterString>swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505</gco:CharacterString>\n              </mcc:code>\n            </mcc:MD_Identifier>\n          </cit:identifier>\n          <cit:citedResponsibleParty>\n            <cit:CI_Responsibility>\n              <cit:role>\n                <cit:CI_RoleCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_RoleCode\" codeListValue=\"author\">author</cit:CI_RoleCode>\n              </cit:role>\n              <cit:party>\n                <cit:CI_Individual>\n                  <cit:name>\n                    <gco:CharacterString>Antonie van Leeuwenhoek</gco:CharacterString>\n                  </cit:name>\n                  <cit:partyIdentifier>\n                    <mcc:MD_Identifier>\n                      <mcc:code>\n                        <gcx:Anchor xlink:href=\"https://orcid.org/0000-0002-1825-0097\">0000-0002-1825-0097</gcx:Anchor>\n                      </mcc:code>\n                      <mcc:codeSpace>\n                        <gco:CharacterString>orcid.org</gco:CharacterString>\n                      </mcc:codeSpace>\n                    </mcc:MD_Identifier>\n                  </cit:partyIdentifier>\n                </cit:CI_Individual>\n              </cit:party>\n            </cit:CI_Responsibility>\n          </cit:citedResponsibleParty>\n          <cit:citedResponsibleParty>\n            <cit:CI_Responsibility>\n              <cit:role>\n                <cit:CI_RoleCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_RoleCode\" codeListValue=\"coAuthor\">coAuthor</cit:CI_RoleCode>\n              </cit:role>\n              <cit:party>\n                <cit:CI_Individual>\n                  <cit:name>\n                    <gco:CharacterString>Marie Skłodowska-Curie</gco:CharacterString>\n                  </cit:name>\n                </cit:CI_Individual>\n              </cit:party>\n            </cit:CI_Responsibility>\n          </cit:citedResponsibleParty>\n          <cit:citedResponsibleParty>\n            <cit:CI_Responsibility>\n              <cit:role>\n                <cit:CI_RoleCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_RoleCode\" codeListValue=\"contributor\">contributor</cit:CI_RoleCode>\n              </cit:role>\n              <cit:party>\n                <cit:CI_Individual>\n                  <cit:name>\n                    <gco:CharacterString>Hua Luogeng</gco:CharacterString>\n                  </cit:name>\n                </cit:CI_Individual>\n              </cit:party>\n            </cit:CI_Responsibility>\n          </cit:citedResponsibleParty>\n          <cit:citedResponsibleParty>\n            <cit:CI_Responsibility>\n              <cit:role>\n                <cit:CI_RoleCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/cit-2.0-codelists.xml#CI_RoleCode\" codeListValue=\"publisher\">publisher</cit:CI_RoleCode>\n              </cit:role>\n              <cit:party>\n                <cit:CI_Organisation>\n                  <cit:name>\n                    <gco:CharacterString>Carberry Institute</gco:CharacterString>\n                  </cit:name>\n                </cit:CI_Organisation>\n              </cit:party>\n            </cit:CI_Responsibility>\n          </cit:citedResponsibleParty>\n        </cit:CI_Citation>\n      </mri:citation>\n      <mri:abstract>\n        <gco:CharacterString>Keeps lab notes next to the code that produced them.</gco:CharacterString>\n      </mri:abstract>\n      <mri:descriptiveKeywords>\n        <mri:MD_Keywords>\n          <mri:keyword>\n            <gco:CharacterString>lab notes</gco:CharacterString>\n          </mri:keyword>\n          <mri:keyword>\n            <gco:CharacterString>reproducibility</gco:CharacterString>\n          </mri:keyword>\n          <mri:type>\n            <mri:MD_KeywordTypeCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/mri-1.0-codelists.xml#MD_KeywordTypeCode\" codeListValue=\"theme\">theme</mri:MD_KeywordTypeCode>\n          </mri:type>\n        </mri:MD_Keywords>\n      </mri:descriptiveKeywords>\n      <mri:descriptiveKeywords>\n        <mri:MD_Keywords>\n          <mri:keyword>\n            <gco:CharacterString>Delft</gco:CharacterString>\n          </mri:keyword>\n          <mri:type>\n            <mri:MD_KeywordTypeCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/mri-1.0-codelists.xml#MD_KeywordTypeCode\" codeListValue=\"place\">place</mri:MD_KeywordTypeCode>\n          </mri:type>\n        </mri:MD_Keywords>\n      </mri:descriptiveKeywords>\n      <mri:resourceConstraints>\n        <mco:MD_LegalConstraints>\n          <mco:reference>\n            <cit:CI_Citation>\n              <cit:title>\n                <gco:CharacterString>MIT License</gco:CharacterString>\n              </cit:title>\n              <cit:onlineResource>\n                <cit:CI_OnlineResource>\n                  <cit:linkage>\n                    <gco:CharacterString>https://spdx.org/licenses/MIT.html</gco:CharacterString>\n                  </cit:linkage>\n                </cit:CI_OnlineResource>\n              </cit:onlineResource>\n            </cit:CI_Citation>\n          </mco:reference>\n          <mco:useConstraints>\n            <mco:MD_RestrictionCode codeList=\"https://schemas.isotc211.org/19115/resources/codelists/mco-1.0-codelists.xml#MD_RestrictionCode\" codeListValue=\"licence\">licence</mco:MD_RestrictionCode>\n          </mco:useConstraints>\n        </mco:MD_LegalConstraints>\n      </mri:resourceConstraints>\n    </mri:MD_DataIdentification>\n  </mdb:identificationInfo>\n</mdb:MD_Metadata>\n"
+   },
+   "document": {
+    "_class": "MD_Metadata",
+    "metadataScope": [
+     {
+      "_class": "MD_MetadataScope",
+      "resourceScope": "software",
+      "name": "Python package"
+     }
+    ],
+    "contact": [
+     {
+      "_class": "CI_Responsibility",
+      "role": "pointOfContact",
+      "party": [
+       {
+        "_class": "CI_Organisation",
+        "name": "Carberry Institute"
+       }
+      ]
+     }
+    ],
+    "dateInfo": [
+     {
+      "_class": "CI_Date",
+      "date": "2024-05-02T09:00:00",
+      "dateType": "creation"
+     }
+    ],
+    "identificationInfo": {
+     "_class": "MD_DataIdentification",
+     "citation": {
+      "_class": "CI_Citation",
+      "title": "carberry-notes",
+      "date": [
+       {
+        "_class": "CI_Date",
+        "date": "2024-05-02",
+        "dateType": "publication"
+       }
+      ],
+      "edition": "1.4.0",
+      "identifier": [
+       {
+        "_class": "MD_Identifier",
+        "code": "10.5555/carberry.notes",
+        "codeSpace": "doi.org"
+       },
+       {
+        "_class": "MD_Identifier",
+        "code": "swh:1:dir:d198bc9d7a6bcf6db04f476d29314f157507d505"
+       }
+      ],
+      "citedResponsibleParty": [
+       {
+        "_class": "CI_Responsibility",
+        "role": "author",
+        "party": [
+         {
+          "_class": "CI_Individual",
+          "name": "Antonie van Leeuwenhoek",
+          "partyIdentifier": [
+           {
+            "_class": "MD_Identifier",
+            "code": "0000-0002-1825-0097",
+            "codeSpace": "orcid.org"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "_class": "CI_Responsibility",
+        "role": "coAuthor",
+        "party": [
+         {
+          "_class": "CI_Individual",
+          "name": "Marie Skłodowska-Curie"
+         }
+        ]
+       },
+       {
+        "_class": "CI_Responsibility",
+        "role": "contributor",
+        "party": [
+         {
+          "_class": "CI_Individual",
+          "name": "Hua Luogeng"
+         }
+        ]
+       },
+       {
+        "_class": "CI_Responsibility",
+        "role": "publisher",
+        "party": [
+         {
+          "_class": "CI_Organisation",
+          "name": "Carberry Institute"
+         }
+        ]
+       }
+      ]
+     },
+     "abstract": "Keeps lab notes next to the code that produced them.",
+     "descriptiveKeywords": [
+      {
+       "_class": "MD_Keywords",
+       "keyword": [
+        "lab notes",
+        "reproducibility"
+       ],
+       "type": "theme"
+      },
+      {
+       "_class": "MD_Keywords",
+       "keyword": [
+        "Delft"
+       ],
+       "type": "place"
+      }
+     ],
+     "resourceConstraints": [
+      {
+       "_class": "MD_LegalConstraints",
+       "reference": [
+        {
+         "_class": "CI_Citation",
+         "title": "MIT License",
+         "onlineResource": [
+          {
+           "_class": "CI_OnlineResource",
+           "linkage": "https://spdx.org/licenses/MIT.html"
+          }
+         ]
+        }
+       ],
+       "useConstraints": [
+        "licence"
+       ]
+      }
+     ]
+    }
+   },
+   "expected": [
+    "0000-0002-1825-0097"
+   ]
+  },
+  {
+   "name": "Composer: licence array keeps every option",
+   "path": "license",
+   "document": {
+    "license": [
+     "MIT",
+     "Apache-2.0"
+    ]
+   },
+   "expected": [
+    [
+     "MIT",
+     "Apache-2.0"
+    ]
+   ]
+  },
+  {
+   "name": "Composer: a licence expression stays intact",
+   "path": "license",
+   "document": {
+    "license": "MIT OR Apache-2.0"
+   },
+   "expected": [
+    "MIT OR Apache-2.0"
+   ]
+  },
+  {
+   "name": "Composer: a root manifest's repository",
+   "path": "source.url | support.source",
+   "document": {
+    "support": {
+     "source": "https://example.org/carberry/notes/tree/1.2.0"
+    }
+   },
+   "expected": [
+    "https://example.org/carberry/notes/tree/1.2.0"
+   ]
   }
  ]
 }

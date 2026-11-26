@@ -146,6 +146,45 @@ def test_a_plus_path_in_a_written_format_is_refused() -> None:
         check_mapping(data, "mapping-local.json")
 
 
+@pytest.mark.parametrize(
+    ("license_field", "value", "replacement", "expected"),
+    [
+        ("license-url", "https://example.org/old", "https://example.org/new", "https://example.org/new"),
+        ("license-url", "https://example.org/old", "MIT OR Apache-2.0", "https://example.org/old"),
+        ("license", "MIT", "https://example.org/new", "MIT"),
+        ("license", "MIT", "Apache-2.0", "Apache-2.0"),
+    ],
+)
+def test_cff_license_write_keeps_the_field_type(
+    tmp_path: Path, license_field: str, value: str, replacement: str, expected: str
+) -> None:
+    from citesync.config import Config  # noqa: PLC0415
+    from citesync.formats import read_doc  # noqa: PLC0415
+    from citesync.write import write  # noqa: PLC0415
+
+    (tmp_path / "codemeta.json").write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.1", "name": "Example", "license": replacement}),
+        encoding="utf-8",
+    )
+    cff = tmp_path / "CITATION.cff"
+    cff.write_text(f"cff-version: 1.2.0\ntitle: Example\n{license_field}: {value}\n", encoding="utf-8")
+    mapping = load_mapping()
+    assert read_doc(tmp_path, cff.name, mapping).record["license"] == value
+    _, skipped, _, _ = write(tmp_path, Config(source="codemeta.json"), mapping)
+    assert read_doc(tmp_path, cff.name, mapping).record["license"] == expected
+    assert (("CITATION.cff", "license") in skipped) == (replacement != expected)
+
+
+def test_cff_license_url_preserves_case_without_writing_a_zenodo_id():
+    from citesync.playground import generate  # noqa: PLC0415
+
+    text = "cff-version: 1.2.0\ntitle: Example\nauthors: [{family-names: Example}]\n"
+    result = generate({"filename": "CITATION.cff", "text": text + "license-url: https://example.org/CustomLicence\n"})
+    assert json.loads(result["files"]["codemeta.json"])["license"] == "https://example.org/CustomLicence"
+    assert "license" not in json.loads(result["files"][".zenodo.json"])
+    assert any("Zenodo takes one licence id" in note for note in result["notes"])
+
+
 def test_publisher_is_read_for_the_exports_only(tmp_path) -> None:  # noqa: ANN001
     from citesync.formats import read_doc  # noqa: PLC0415
     from citesync.mapping import EXPORT_TERMS, TERMS  # noqa: PLC0415

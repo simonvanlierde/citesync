@@ -13,6 +13,8 @@ test("identifies all supported metadata formats without a filename", () => {
     [JSON.stringify({ "@context": "https://w3id.org/codemeta/3.0", name: "lensgrind" }), "codemeta.json"],
     [JSON.stringify({ title: "lensgrind", creators: [{ name: "Skłodowska-Curie, Marie" }] }), ".zenodo.json"],
     [JSON.stringify({ name: "lensgrind", author: "Marie Skłodowska-Curie" }), "package.json"],
+    [JSON.stringify({ name: "@optics/lensgrind", license: "MIT" }), "package.json"],
+    [JSON.stringify({ name: "optics/lensgrind", license: ["MIT", "Apache-2.0"] }), "composer.json"],
   ])
     assert.deepEqual(detectFormats(text), [expected]);
 });

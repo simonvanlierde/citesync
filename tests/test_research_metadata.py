@@ -1,4 +1,4 @@
-"""Static R and Julia inputs retain citation data without evaluating package code."""
+"""Static package inputs retain citation data without evaluating package code."""
 
 import json
 import unicodedata
@@ -44,6 +44,122 @@ authors = [
 license = "MIT"
 [deps]
 """
+
+
+@pytest.mark.parametrize(
+    ("license_value", "expected_license", "extra", "repository"),
+    [
+        ("MIT", "MIT", {"homepage": "https://example.org/docs"}, None),
+        ("(MIT or Apache-2.0)", "(MIT OR Apache-2.0)", {}, None),
+        ("(MIT and Apache-2.0)", "(MIT AND Apache-2.0)", {}, None),
+        (
+            ["MIT", "Apache-2.0"],
+            "MIT OR Apache-2.0",
+            {"version": "1.4.2", "support": {"source": "https://example.org/lensgrind"}},
+            "https://example.org/lensgrind",
+        ),
+        (
+            "MIT",
+            "MIT",
+            {
+                "source": {"type": "git", "url": "https://example.org/lensgrind"},
+                "support": {"source": "https://example.org/other"},
+            },
+            "https://example.org/lensgrind",
+        ),
+    ],
+)
+def test_composer_import(
+    tmp_path: Path,
+    run: "Run",
+    license_value: str | list[str],
+    expected_license: str,
+    extra: dict,
+    repository: str | None,
+):
+    text = json.dumps(
+        {
+            "name": "optics/lensgrind",
+            "authors": [{"name": "Ada Example"}, {"name": "Mira Example", "email": "mira@example.org"}],
+            "license": license_value,
+            "time": "2026-04-02 12:34:56",
+            "scripts": {"post-install-cmd": "touch marker"},
+            "_import_notes": [["untrusted", "note"]],
+            **extra,
+        }
+    )
+    path = tmp_path / "composer.json"
+    path.write_text(text, encoding="utf-8")
+    code, out, err = run("init", "--source", path.name, "--root", str(tmp_path))
+    assert (code, err) == (0, ""), out
+    doc = read_doc(tmp_path, path.name, load_mapping())
+    assert [person.name for person in doc.record["author"]] == ["Ada Example", "Mira Example"]
+    assert doc.record["license"] == expected_license
+    assert doc.record["datePublished"] == "2026-04-02"
+    assert doc.record.get("version") == extra.get("version")
+    assert doc.record.get("codeRepository") == repository
+    assert not doc.import_notes
+    result = generate({"filename": path.name, "text": text})
+    assert "{Example}, {Mira}" in result["files"]["citation.bib"]
+    metadata = json.loads(result["files"]["codemeta.json"])
+    if " AND " in expected_license:
+        assert "license:" not in result["files"]["CITATION.cff"]
+        assert "license" not in metadata
+        assert any("can only say OR" in note for note in result["notes"])
+    elif " OR " in expected_license:
+        assert metadata["license"] == ["https://spdx.org/licenses/MIT", "https://spdx.org/licenses/Apache-2.0"]
+    else:
+        assert metadata["license"] == "https://spdx.org/licenses/MIT"
+    mismatch = json.loads(text) | {"authors": [{"name": "Other Author"}]}
+    path.write_text(json.dumps(mismatch), encoding="utf-8")
+    before = path.read_bytes()
+    config = Config(manifests=(path.name,), write_manifests=("author",))
+    assert any(f.file == path.name and f.term == "author" for f in check(tmp_path, config)[0])
+    assert path.name not in write(tmp_path, config)[0]
+    assert path.read_bytes() == before
+    assert not (tmp_path / "marker").exists()
+
+
+def test_composer_nested_json_reports_an_unreadable_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def too_deep(_text: str) -> None:
+        raise RecursionError
+
+    path = tmp_path / "composer.json"
+    path.write_text('{"extra": []}', encoding="utf-8")
+    mapping = load_mapping()
+    monkeypatch.setattr(json, "loads", too_deep)
+    with pytest.raises(UnreadableError, match="nested too deeply"):
+        read_doc(tmp_path, path.name, mapping)
+
+
+def test_composer_proprietary_license_is_omitted_from_cff(tmp_path: Path):
+    text = json.dumps({"name": "optics/lensgrind", "authors": [{"name": "Ada Example"}], "license": "proprietary"})
+    (tmp_path / "composer.json").write_text(text, encoding="utf-8")
+    record = read_doc(tmp_path, "composer.json", load_mapping()).record
+    assert record["license"] == "proprietary"
+    result = generate({"filename": "composer.json", "text": text})
+    assert "license:" not in result["files"]["CITATION.cff"]
+    assert json.loads(result["files"]["codemeta.json"])["license"] == "proprietary"
+    assert "license" not in json.loads(result["files"]["schema.jsonld"])
+    assert any("cff-1.2.0 needs a specific licence" in note for note in result["notes"])
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [('"' + r"\ud800" + '"', "invalid Unicode escape"), ("1" * 10000, "integer string conversion")],
+)
+def test_composer_rejects_values_the_json_reader_cannot_use(tmp_path: Path, value: str, message: str):
+    path = tmp_path / "composer.json"
+    path.write_text('{"name":' + value + "}", encoding="utf-8")
+    with pytest.raises(UnreadableError, match=message):
+        read_doc(tmp_path, path.name, load_mapping())
+
+
+def test_composer_uses_the_full_name_field(tmp_path: Path):
+    path = tmp_path / "composer.json"
+    path.write_text('{"authors":[{"name":"Ada Example (Jr.)","email":"ada@example.org"}]}', encoding="utf-8")
+    doc = read_doc(tmp_path, path.name, load_mapping())
+    assert doc.record["author"][0].name == "Ada Example (Jr.)"
 
 
 @pytest.mark.parametrize(

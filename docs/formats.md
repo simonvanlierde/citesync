@@ -11,6 +11,7 @@ Reading, updating and creating a file are separate operations:
 | pyproject.toml | Yes, `[project]` metadata | Selected fields, opt-in | No |
 | Cargo.toml | Yes, package metadata | Selected fields, opt-in | No |
 | package.json | Yes, npm package metadata | Selected fields, opt-in | No |
+| composer.json | Yes, PHP Composer metadata | Never | No |
 | typst.toml | Yes, Typst package metadata (`[package]`) | Selected fields, opt-in | No |
 | _extension.yml / _extension.yaml | Yes, a Quarto extension's `title`, `version` and `author` | Selected fields, opt-in | No |
 | DESCRIPTION | Yes, static R package metadata | Never | No |
@@ -67,6 +68,12 @@ The reader follows the [Python Core Metadata specification](https://packaging.py
 The reader turns the headers into header names and values, and codemeta-drift's pkg-info rows read Name, Version, Summary, author names, keywords, licence and the repository URL from them ([coverage matrix](https://github.com/simonvanlierde/codemeta-drift/blob/main/docs/coverage.md)). Description and the message body hold the README, so they aren't read as the summary. The repository is the first Project-URL labelled source, repository, sourcecode or github, in that order, with labels compared in lower case without punctuation or spaces, so `Source Code` matches; with none of those, it's Home-page. Repeated Author, Author-email and Project-URL headers are read in full. Named email contacts enrich matching author names; other named contacts are appended. Unnamed email addresses do not invent author names. Commas separate names in Author, as the pyproject.toml spec writes them, except that a company suffix (Inc, LLC, Ltd, GmbH, PBC, Corp) stays with the name before it and "et al." is dropped. Quote a name containing a comma, such as "Sun, Junyi", and review inferred name splits. Email addresses and unrelated URL labels are not citation fields. Maintainers never become authors automatically.
 
 License-Expression is checked as SPDX. A legacy License value is carried over only when it is itself a valid SPDX expression; other free text is omitted with a `metadata-omitted` notice. Private LicenseRef values also get a notice rather than an invented public SPDX URL. Missing optional fields stay absent. No DOI or ORCID is inferred from package URLs or email addresses.
+
+## Composer import
+
+Run `citesync init --source composer.json` from the project root, or open the file in the playground. To compare it against an existing citation file, list it under `manifests`.
+
+CiteSync reads package metadata directly from [Composer JSON](https://getcomposer.org/doc/04-schema.md). It reads all named authors and accepts a licence string or a list of alternatives. It uses `source.url` or `support.source` for the repository URL. It can read the version and release date when the file supplies them. CiteSync leaves the manifest untouched and runs no Composer scripts.
 
 ## R and Julia imports
 

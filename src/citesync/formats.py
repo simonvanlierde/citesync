@@ -24,6 +24,7 @@ from citesync import codecs
 from citesync.errors import CheckError, UnreadableError, did_you_mean
 from citesync.mapping import (
     EXPORT_TERMS,
+    IMPORTED,
     PEOPLE,
     PERSON_TERMS,
     TERMS,
@@ -51,6 +52,7 @@ IMPORTS = {
     "DESCRIPTION": "r-description",
     "Project.toml": "julia",
     "JuliaProject.toml": "julia",
+    "composer.json": "composer",
 }
 DATASET_FILES = {"ro-crate-metadata.json": "ro-crate", "croissant.json": "croissant"}
 """Compared like a manifest and never written; see :data:`citesync.mapping.DATASETS`."""
@@ -211,7 +213,7 @@ def read_doc(
         dangling_roles=roles,
         stray_terms=stray,
         zenodo_gaps=gaps,
-        import_notes=tuple(data.get("_import_notes", ())) if PurePosixPath(rel).name in IMPORTS else (),
+        import_notes=tuple(data.get("_import_notes", ())) if fmt in IMPORTED and fmt != "composer" else (),
         unusable=tuple(unusable),
         is_dataset=is_dataset,
     )
@@ -433,7 +435,7 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
         raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
     if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
         raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
-    if path.name in IMPORTS:
+    if path.name in IMPORTS and path.suffix != ".json":
         if IMPORTS[path.name] == "pkg-info":
             from citesync.core_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
         else:
@@ -445,10 +447,15 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
             data = tomllib.loads(text)
         elif path.suffix == ".json":
             data = json.loads(text)
+            if path.name == "composer.json":
+                # JSON escapes can decode to lone surrogates, which cannot appear in the citation files.
+                json.dumps(data, ensure_ascii=False).encode()
         else:
             data = YAML(typ="base").load(text)  # every scalar a string: version 1.10 is not the float 1.1
     except json.JSONDecodeError as err:
         raise UnreadableError(rel, err.msg, err.lineno, err.colno) from err
+    except RecursionError as err:
+        raise UnreadableError(rel, "metadata is nested too deeply") from err
     except tomllib.TOMLDecodeError as err:  # its position is only in the message before Python 3.14
         match = _TOML_AT.search(str(err))
         line, column = (int(match[1]), int(match[2])) if match and match[1] else (None, None)
@@ -456,7 +463,9 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
     except MarkedYAMLError as err:
         mark = err.problem_mark
         raise UnreadableError(rel, err.problem or str(err), mark and mark.line + 1, mark and mark.column + 1) from err
-    except YAMLError as err:
+    except UnicodeEncodeError as err:
+        raise UnreadableError(rel, "contains an invalid Unicode escape") from err
+    except (ValueError, YAMLError) as err:
         raise UnreadableError(rel, str(err)) from err
     if not isinstance(data, dict):
         raise UnreadableError(rel, "the top level is not a mapping")
@@ -681,7 +690,12 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
         return words or None
     if term in {"name", "description"}:  # in NFC, as names are, so equal text never differs by its encoding
         return (codecs.clean(unicodedata.normalize("NFC", raw)) or None) if isinstance(raw, str) else None
-    return _DECODE[term](raw)
+    if fmt == "composer" and term == "datePublished" and isinstance(raw, str):
+        raw = raw.strip().replace(" ", "T", 1)
+    value = _DECODE[term](raw)
+    if fmt == "composer" and term == "license" and isinstance(value, str):
+        value = re.sub(r"(?<=\s)(and|or)(?=\s)", lambda match: match[0].upper(), value, flags=re.IGNORECASE)
+    return value
 
 
 _DECODE = {
@@ -745,7 +759,7 @@ def person(  # noqa: C901 - one branch per format's person shape
             given, family = codecs.zenodo_name_decode(raw) or (None, None)
             name = codecs.display_name(given, family)
         else:
-            name = codecs.contact_name_decode(raw)
+            name = text(raw) if fmt == "composer" else codecs.contact_name_decode(raw)
     else:
         given, family = text(sub(given_term)), text(sub(family_term))
         name = codecs.display_name(given, family)

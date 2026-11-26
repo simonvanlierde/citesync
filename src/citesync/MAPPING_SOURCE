@@ -1,7 +1,7 @@
 # Vendored from simonvanlierde/codemeta-drift; tests/test_mapping.py checks the sha256 lines.
-tag v0.8.0
-commit 4b68ef7a9038992a918d806829c6dfbc45eac481
-sha256 443f5c075e54416086cbb97f4680cb88900b671a435d9feb4e85d09c69c17cad mapping-local.json examples/mapping-3.1.json
-sha256 99a26aa91a026cdd4fc0ac0631ec38749e6b3a96d5176bb115b2e22bb2298bc5 mapping-4.0.json examples/mapping-4.0.json
-sha256 8c3dc9f4ce49e50b9fe3c6fbd4ba6082ca100439974b3f531485740218b2aa7b mapping.schema.json src/codemeta_drift/mapping.schema.json
-sha256 a761fda190f4ddc4e981a30c87780a77f4f7416949da68e41cbf55350705eb1a mapping-vectors.json src/codemeta_drift/mapping-vectors.json
+tag v0.9.0
+commit 58073887934c3763fdd3308911a4f98cd556814c
+sha256 41cd08c6664c669a9a303c1d6c998e0b30378d5e331bdfd0fd92406548f0cec7 mapping-local.json examples/mapping-3.1.json
+sha256 03f5b05a702440770fad0b3a6617ac13ce1a1f64eda85c94f1a9b5ef705a50fa mapping-4.0.json examples/mapping-4.0.json
+sha256 4496900082f009346c44f16d5c28dd282695de17d3da5b4f675788fd7a1ca5d9 mapping.schema.json src/codemeta_drift/mapping.schema.json
+sha256 c24cad4aaa382478cead5b2cfb0e0c70e3647a389245d47867fcae81af8aa030 mapping-vectors.json src/codemeta_drift/mapping-vectors.json

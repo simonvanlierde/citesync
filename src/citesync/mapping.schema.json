@@ -42,7 +42,7 @@
       "required": ["format", "term", "path", "source"],
       "properties": {
         "format": {
-          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, pkg-info, r-description, julia, bibtex, datacite, setup-py, ruby-gem, maven, cpan-meta-2, nuget, pubspec, cabal, typst, quarto, github, figshare, bio-tools, leiningen, octave, publiccode-0.8, swmath, spdx-2.3, codemeta-2, dcat-3, doap, wikidata, ris, endnote, gitlab, code-json-2.0, ro-crate, croissant. A versioned format puts its version in the id. gitlab and code-json-2.0 have rows from codemeta_tag 4.0 on.",
+          "description": "Stable format id: cff-1.2.0, codemeta, zenodo, pep621, cargo, npm, composer, pkg-info, r-description, julia, bibtex, datacite, setup-py, ruby-gem, maven, cpan-meta-2, nuget, pubspec, cabal, typst, quarto, github, figshare, bio-tools, leiningen, octave, publiccode-0.8, swmath, spdx-2.3, codemeta-2, dcat-3, doap, wikidata, ris, endnote, gitlab, code-json-2.0, ro-crate, croissant, dublin-core, debian, mods, vivo-1.8, spase-2.6.1, iso-19115-1-2014. A versioned format puts its version in the id. gitlab and code-json-2.0 have rows from codemeta_tag 4.0 on.",
           "type": "string",
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9.]+)*$"
         },
@@ -64,6 +64,10 @@
         "crosswalk_cell": {
           "description": "The original crosswalk cell, before trimming or path expansion. Empty string means an empty cell; null means no cell could be joined, including formats with no upstream crosswalk. Optional in older exports; emitted on every row since schema 1.3.",
           "type": ["string", "null"]
+        },
+        "kind": {
+          "description": "Why a curated row departs from a crosswalk cell that is not wrong. notation: the cell names the right field in a form a tool can't use as a path. scope: the cell is right by CodeMeta's definition, but the path reads the term more narrowly or also reads another field. A curated row without it corrects a wrong cell. Added in schema 1.9.",
+          "enum": ["notation", "scope"]
         },
         "see_also": {
           "description": "Upstream issue or pull request that reports the crosswalk cell this row departs from.",

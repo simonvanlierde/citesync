@@ -20,6 +20,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Import citations from [PHP Composer metadata](docs/formats.md#composer-import) with the CLI or the playground.
+- The refreshed CodeMeta mapping reads `license-url` from CITATION.cff when `license` is absent.
 - `citesync config`, `init` and `explain` accept `--json`. Their reports include the active configuration, initialization results or rule details ([output](docs/output.md#config-init-explain-and-rules)).
 - `rules --json` is an alias of `rules --format json` ([output](docs/output.md#config-init-explain-and-rules)).
 - `--help` includes two JSON command examples.

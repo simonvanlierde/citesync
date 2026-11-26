@@ -40,8 +40,10 @@ export function detectFormats(text) {
       ) || [data["@type"], data.type].flat().includes("SoftwareSourceCode");
     if (codemeta) found.push("codemeta.json");
     if ("upload_type" in data || "creators" in data) found.push(".zenodo.json");
-    if (!codemeta && !("@context" in data) && typeof data.name === "string" && npmKeys.some((key) => key in data))
-      found.push("package.json");
+    if (!codemeta && !("@context" in data) && typeof data.name === "string") {
+      if (/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(data.name)) found.push("composer.json");
+      else if (npmKeys.some((key) => key in data)) found.push("package.json");
+    }
   } catch {
     // Incomplete JSON is left for the filename override rather than guessed.
   }
