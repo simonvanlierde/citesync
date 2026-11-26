@@ -151,7 +151,7 @@ def test_a_plus_path_in_a_written_format_is_refused() -> None:
     [
         ("license-url", "https://example.org/old", "https://example.org/new", "https://example.org/new"),
         ("license-url", "https://example.org/old", "MIT OR Apache-2.0", "https://example.org/old"),
-        ("license", "MIT", "https://example.org/new", "MIT"),
+        ("license", "MIT", "HTTPS://example.org/new", "MIT"),
         ("license", "MIT", "Apache-2.0", "Apache-2.0"),
     ],
 )
@@ -163,24 +163,41 @@ def test_cff_license_write_keeps_the_field_type(
     from citesync.write import write  # noqa: PLC0415
 
     (tmp_path / "codemeta.json").write_text(
-        json.dumps({"@context": "https://w3id.org/codemeta/3.1", "name": "Example", "license": replacement}),
+        json.dumps(
+            {
+                "@context": "https://w3id.org/codemeta/3.1",
+                "name": "Example",
+                "license": replacement,
+                "keywords": ["after"],
+            }
+        ),
         encoding="utf-8",
     )
     cff = tmp_path / "CITATION.cff"
-    cff.write_text(f"cff-version: 1.2.0\ntitle: Example\n{license_field}: {value}\n", encoding="utf-8")
+    cff.write_text(
+        f"cff-version: 1.2.0\ntitle: Example\n{license_field}: {value}\nkeywords: [before]\n", encoding="utf-8"
+    )
     mapping = load_mapping()
     assert read_doc(tmp_path, cff.name, mapping).record["license"] == value
     _, skipped, _, _ = write(tmp_path, Config(source="codemeta.json"), mapping)
-    assert read_doc(tmp_path, cff.name, mapping).record["license"] == expected
-    assert (("CITATION.cff", "license") in skipped) == (replacement != expected)
+    record = read_doc(tmp_path, cff.name, mapping).record
+    assert record["license"] == expected
+    assert record["keywords"] == ("after",)
+    if replacement != expected:
+        other_field = "license" if license_field == "license-url" else "license-url"
+        assert skipped["CITATION.cff", "license"] == f"move the licence to {other_field}"
+    else:
+        assert ("CITATION.cff", "license") not in skipped
 
 
-def test_cff_license_url_preserves_case_without_writing_a_zenodo_id():
+@pytest.mark.parametrize("scheme", ["http", "https"])
+def test_cff_license_url_preserves_case_without_writing_a_zenodo_id(scheme: str):
     from citesync.playground import generate  # noqa: PLC0415
 
     text = "cff-version: 1.2.0\ntitle: Example\nauthors: [{family-names: Example}]\n"
-    result = generate({"filename": "CITATION.cff", "text": text + "license-url: https://example.org/CustomLicence\n"})
-    assert json.loads(result["files"]["codemeta.json"])["license"] == "https://example.org/CustomLicence"
+    url = f"{scheme}://example.org/CustomLicence"
+    result = generate({"filename": "CITATION.cff", "text": text + f"license-url: {url}\n"})
+    assert json.loads(result["files"]["codemeta.json"])["license"] == url
     assert "license" not in json.loads(result["files"][".zenodo.json"])
     assert any("Zenodo takes one licence id" in note for note in result["notes"])
 

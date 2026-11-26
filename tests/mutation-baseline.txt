@@ -79,7 +79,7 @@ citesync.write.x__new_cff__mutmut_141  init writes no mapping inside a mapping, 
 citesync.write.x__new_cff__mutmut_3  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.check.x_read_docs__mutmut_69  readable is only read as a truth value, and None is falsy like False
 citesync.write.x__apply__mutmut_42  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
-citesync.write.x__apply__mutmut_98  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
+citesync.write.x__apply__mutmut_127  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__new_person__mutmut_48  a person with no name is rejected before reaching Cargo or npm
 citesync.write.x__new_person__mutmut_50  tomlkit writes a plain dict in an array as the same inline table
 citesync.write.x__new_person__mutmut_51  tomlkit writes a plain dict in an array as the same inline table

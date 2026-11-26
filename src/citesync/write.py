@@ -554,11 +554,11 @@ def _apply(  # noqa: C901 - retains format-specific field shapes
         container, key = slot
         old = container[key]
         if doc.format == "cff-1.2.0" and term == "license" and " | " in path:
-            spdx_key, url_key = path.split(" | ", 1)
-            value = source.record[term]
-            is_url = re.fullmatch(r"https?://\S+", value, re.IGNORECASE) is not None
-            if key != (url_key if is_url else spdx_key):
-                skipped[term] = f"move the licence to {url_key if is_url else spdx_key}"
+            spdx_key, _, url_key = path.partition(" | ")
+            is_url = re.fullmatch(r"https?://\S+", source.record[term].lower()) is not None
+            target = url_key if is_url else spdx_key
+            if key != target:
+                skipped[term] = f"move the licence to {target}"
                 continue
         if isinstance(old, dict) and old.get("workspace") is True:
             skipped[term] = "inherited from [workspace.package] in the workspace's Cargo.toml"

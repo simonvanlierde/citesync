@@ -141,6 +141,7 @@ def test_composer_proprietary_license_is_omitted_from_cff(tmp_path: Path):
     assert "license:" not in result["files"]["CITATION.cff"]
     assert json.loads(result["files"]["codemeta.json"])["license"] == "proprietary"
     assert "license" not in json.loads(result["files"]["schema.jsonld"])
+    assert "license" not in json.loads(result["files"][".zenodo.json"])
     assert any("cff-1.2.0 needs a specific licence" in note for note in result["notes"])
 
 
