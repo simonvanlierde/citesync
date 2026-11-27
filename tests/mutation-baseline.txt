@@ -140,3 +140,13 @@ citesync.write.x_write__mutmut_268  a new file's Doc is only encoded into, and e
 citesync.check.x_check__mutmut_54  without a dataset path, compare_term never reads dataset_doc
 citesync.write.x_write__mutmut_18  without a dataset path, neither comparison nor rewriting reads ds_source
 citesync.write.x_write__mutmut_192  without a resource type repair, no (file, @type) error exists for done to mark fixed
+citesync.write.x__fill_one__mutmut_16  locate uses the format only for Cargo and the Zenodo SWHID fallback, which a CFF licence does not use
+citesync.write.x__fill_one__mutmut_17  locate branches on repository and SWHID terms only, so the CFF licence lookup is the same
+citesync.write.x__fill_one__mutmut_62  a writable first alternative in the pinned mapping has either a single unfiltered step or two steps starting with a filter
+citesync.write.x__fill_one__mutmut_66  the format matters only to the scheme-less Zenodo SWHID fallback, which the reader already accepts as populated
+citesync.write.x__fill_one__mutmut_138  CommentedMap preserves existing YAML scalar styles on assignment, and JSON has no ScalarString values
+citesync.write.x__fill_one__mutmut_141  CommentedMap preserves existing YAML scalar styles on assignment, and JSON has no ScalarString values
+citesync.write.x__fill_value__mutmut_2  both filler strings lack any of the URL and repository style markers the codecs inspect
+citesync.write.x__fill_value__mutmut_22  DOI form detection case-folds the URL prefix
+citesync.write.x__fill_value__mutmut_27  both fallback strings lack any of the URL and repository style markers the codecs inspect
+citesync.write.x__fill_value__mutmut_60  the pinned CFF licence path has exactly one alternative separator

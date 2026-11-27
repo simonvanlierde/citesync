@@ -117,3 +117,15 @@ def test_splice_appends_after_the_last_member_with_duplicate_unknown_keys() -> N
 def test_splice_appends_unicode_members_in_the_original_layout(text: str, expected: str) -> None:
     old = json.loads(text)
     assert splice(text, old, {**old, "é": {"name": "Skłodowska"}}) == expected
+
+
+@pytest.mark.parametrize(
+    ("original", "updated", "expected"),
+    [
+        ("2", 4, "4"),
+        ('{"name":"Lens"}', ["Lens", "Optic"], '["Lens", "Optic"]'),
+        ('{ "name" : "Lens" }', {"version": 2, "name": "Lens"}, '{"version": 2, "name": "Lens"}'),
+    ],
+)
+def test_splice_replaces_non_appends_as_a_whole(original: str, updated: object, expected: str) -> None:
+    assert splice(original, json.loads(original), updated) == expected

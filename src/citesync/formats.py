@@ -73,6 +73,29 @@ _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
 _KEYWORD_COMMAS = re.compile("[,\uff0c\u3001]")  # ASCII, full-width and ideographic commas
 
 
+_YAML_NULL = "tag:yaml.org,2002:null"
+
+
+class _MetadataYAMLConstructor(BaseConstructor):
+    """Read YAML nulls as absent while preserving the spelling of other scalars."""
+
+    @override
+    def construct_mapping(self, node: Node, deep: bool = False) -> dict[Any, Any]:
+        if isinstance(node, MappingNode) and any(key.tag == _YAML_NULL for key, _ in node.value):
+            node = copy(node)
+            node.value = [
+                # An alias to the same node in a value still needs to read as null.
+                (ScalarNode("tag:yaml.org,2002:str", key.value, key.start_mark, key.end_mark), value)
+                if isinstance(key, ScalarNode) and key.tag == _YAML_NULL
+                else (key, value)
+                for key, value in node.value
+            ]
+        return super().construct_mapping(node, deep=deep)
+
+
+_MetadataYAMLConstructor.add_constructor(_YAML_NULL, SafeConstructor.construct_yaml_null)
+
+
 @dataclass(frozen=True)
 class Person:
     """One author. ``name`` is ``"Given Family"``; a format with one name string has no parts.
@@ -420,29 +443,6 @@ def codemeta_orcid(value: object) -> str | None:
 def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     """The terms and person sub-terms ``fmt`` has a place for."""
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
-
-
-_YAML_NULL = "tag:yaml.org,2002:null"
-
-
-class _MetadataYAMLConstructor(BaseConstructor):
-    """Read YAML nulls as absent while preserving the spelling of other scalars."""
-
-    @override
-    def construct_mapping(self, node: Node, deep: bool = False) -> dict[Any, Any]:
-        if isinstance(node, MappingNode) and any(key.tag == _YAML_NULL for key, _ in node.value):
-            node = copy(node)
-            node.value = [
-                # An alias to the same node in a value still needs to read as null.
-                (ScalarNode("tag:yaml.org,2002:str", key.value, key.start_mark, key.end_mark), value)
-                if isinstance(key, ScalarNode) and key.tag == _YAML_NULL
-                else (key, value)
-                for key, value in node.value
-            ]
-        return super().construct_mapping(node, deep=deep)
-
-
-_MetadataYAMLConstructor.add_constructor(_YAML_NULL, SafeConstructor.construct_yaml_null)
 
 
 def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one branch per way a file fails

@@ -412,7 +412,7 @@ def test_fill_cff_uses_license_url_only_for_a_single_custom_licence(
         assert f"license-url: {license_value}" in target.read_text(encoding="utf-8")
         assert not err
     else:
-        assert "needs a specific licence" in err
+        assert err == "'CITATION.cff': leaving out license: 'cff-1.2.0 needs a specific licence'\n"
         assert target.read_text(encoding="utf-8") == original
 
 
@@ -551,3 +551,19 @@ def test_fill_leaves_ordinary_repairs_to_aliases_alone(tmp_path: Path, run: "Run
     assert json.loads(zenodo.read_text(encoding="utf-8"))["version"] == "1.2.3"
     assert nested.is_symlink()
     assert run("write", "--diff", *args) == (0, "", "")
+
+
+def test_fill_leaves_an_unreadable_but_populated_scalar_slot(tmp_path: Path, run: "Run") -> None:
+    (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
+    target = tmp_path / "codemeta.json"
+    original = '{"@context": "https://w3id.org/codemeta/3.0", "description": 42}\n'
+    target.write_text(original, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('[fill-missing]\n"codemeta.json" = ["description"]\n', encoding="utf-8")
+
+    for flags in (("--diff",), ()):
+        code, _, err = run("write", *flags, "--root", str(tmp_path))
+        assert code == 0
+        assert (
+            err == "'codemeta.json': leaving out description: 'description already has a value or needs a hand edit'\n"
+        )
+        assert target.read_text(encoding="utf-8") == original
