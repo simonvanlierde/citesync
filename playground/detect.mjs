@@ -13,9 +13,26 @@ const npmKeys = [
   "license",
 ];
 
+function mavenRoot(text) {
+  let start = 0;
+  while (start < text.length) {
+    if (/[ \t\r\n]/.test(text[start])) {
+      start++;
+      continue;
+    }
+    const opener = text.startsWith("<?", start) ? "<?" : text.startsWith("<!--", start) ? "<!--" : "";
+    if (!opener) break;
+    const closer = opener === "<?" ? "?>" : "-->";
+    const end = text.indexOf(closer, start + opener.length);
+    if (end === -1) return null;
+    start = end + closer.length;
+  }
+  return /^<(?:([\w.-]+):)?project(?=[\s/>])([^>]*)>/.exec(text.slice(start));
+}
+
 export function detectFormats(text) {
   const value = text.replace(/^\uFEFF/, "");
-  const project = /^\s*(?:(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->)\s*)*<(?:([\w.-]+):)?project(?=[\s/>])([^>]*)>/.exec(value);
+  const project = mavenRoot(value);
   if (project) {
     const namespaces = project[2].matchAll(
       /\sxmlns(?::([\w.-]+))?\s*=\s*(["'])http:\/\/maven\.apache\.org\/POM\/4\.[01]\.0\2/g,
