@@ -721,7 +721,9 @@ def _maven_licence_url(value: object) -> bool:
     if not isinstance(value, str) or "${" in value or not re.fullmatch(r"(?:https?|s?ftp)://\S+", value, re.IGNORECASE):
         return False
     try:
-        return bool(urlsplit(value).hostname)
+        parts = urlsplit(value)
+        hostname, _ = parts.hostname, parts.port  # accessing port rejects invalid values
+        return bool(hostname)
     except ValueError:
         return False
 

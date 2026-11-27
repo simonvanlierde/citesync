@@ -28,3 +28,15 @@ def test_release_notes_refuse_pending_changes(tmp_path: Path, pending: str) -> N
     else:
         assert result.returncode == 0, result.stderr
         assert "Import Composer" in result.stdout
+
+
+def test_release_notes_require_a_dated_release_heading(tmp_path: Path) -> None:
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("bash is needed for the release script")
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text("## [Unreleased]\n\n## [0.7.0]\n\n- Import Maven metadata.\n", encoding="utf-8")
+    result = subprocess.run([bash, str(SCRIPT), "v0.7.0", str(changelog)], capture_output=True, text=True, check=False)  # noqa: S603
+    assert result.returncode == 1
+    assert "dated" in result.stderr
+    assert not result.stdout

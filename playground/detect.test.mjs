@@ -68,3 +68,17 @@ test("detects a POM with tag whitespace or text resembling another metadata form
     ["pom.xml"],
   );
 });
+
+test("detects a Maven POM whose namespace supplies the model version", () => {
+  assert.deepEqual(
+    detectFormats('<project xmlns="http://maven.apache.org/POM/4.1.0"><name>Lensgrind</name></project>'),
+    ["pom.xml"],
+  );
+  assert.deepEqual(
+    detectFormats(
+      '<?xml version="1.0"?><m:project xmlns:m="http://maven.apache.org/POM/4.1.0"><m:name>Lensgrind</m:name></m:project>',
+    ),
+    ["pom.xml"],
+  );
+  assert.deepEqual(detectFormats('<outer><project xmlns="http://maven.apache.org/POM/4.1.0"/></outer>'), []);
+});

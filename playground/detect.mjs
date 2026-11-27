@@ -15,12 +15,14 @@ const npmKeys = [
 
 export function detectFormats(text) {
   const value = text.replace(/^\uFEFF/, "");
-  if (
-    value.trimStart().startsWith("<") &&
-    /<(?:[\w.-]+:)?project[\s>]/.test(value) &&
-    /<(?:[\w.-]+:)?modelVersion\s*>\s*4\.[01]\.0\s*<\/(?:[\w.-]+:)?modelVersion\s*>/.test(value)
-  )
-    return ["pom.xml"];
+  const project = /^\s*(?:(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->)\s*)*<(?:([\w.-]+):)?project(?=[\s/>])([^>]*)>/.exec(value);
+  if (project) {
+    const namespaces = project[2].matchAll(
+      /\sxmlns(?::([\w.-]+))?\s*=\s*(["'])http:\/\/maven\.apache\.org\/POM\/4\.[01]\.0\2/g,
+    );
+    const modelVersion = /<(?:[\w.-]+:)?modelVersion\s*>\s*4\.[01]\.0\s*<\/(?:[\w.-]+:)?modelVersion\s*>/;
+    if (Array.from(namespaces).some((match) => match[1] === project[1]) || modelVersion.test(value)) return ["pom.xml"];
+  }
   const found = [];
   if (/^Metadata-Version:\s*\d+\.\d+\s*$/m.test(value) && /^Name:\s*\S/m.test(value)) found.push("METADATA");
   if (/^Package:\s*\S/m.test(value) && /^(?:Title|Version|Authors@R):/m.test(value)) found.push("DESCRIPTION");

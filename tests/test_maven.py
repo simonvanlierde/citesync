@@ -115,7 +115,15 @@ def test_maven_projected_developers_keep_their_order(names: list[str]):
 
 
 @pytest.mark.parametrize(
-    "url", ["LICENSE.txt", "file:///example/COPYING", "${project.url}/LICENSE", "https:///License"]
+    "url",
+    [
+        "LICENSE.txt",
+        "file:///example/COPYING",
+        "${project.url}/LICENSE",
+        "https:///License",
+        "https://example.org:abc/License",
+        "https://example.org:99999/License",
+    ],
 )
 def test_maven_licence_links_are_never_guessed_as_spdx_ids(url: str):
     result = generate({"filename": "pom.xml", "text": POM.replace("https://spdx.org/licenses/MIT", url)})

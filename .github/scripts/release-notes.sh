@@ -21,7 +21,10 @@ fi
 # index() rather than a regex, so the dots in the version match only dots. The section
 # ends at the next heading; trailing version comparison links are omitted.
 notes="$(awk -v head="## [${version#v}]" '
-  index($0, head) == 1 { found = 1; next }
+  index($0, head " - ") == 1 && substr($0, length(head) + 4) ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][[:space:]]*$/ {
+    found = 1
+    next
+  }
   found && /^## \[/ { exit }
   found { lines[++n] = $0 }
   END {
@@ -35,7 +38,7 @@ notes="$(awk -v head="## [${version#v}]" '
 ' "$changelog")"
 
 if ! grep -q '[^[:space:]]' <<<"$notes"; then
-  echo "no '## [${version#v}]' section in $changelog" >&2
+  echo "no dated, nonempty '## [${version#v}]' section in $changelog" >&2
   exit 1
 fi
 printf '%s\n' "$notes"
