@@ -4,7 +4,7 @@ Run these checks before uploading a wheel and source distribution. Use the built
 
 ## Build the artifacts and copy their metadata
 
-The example uses CiteSync 0.7.0. Start in the release checkout with [CiteSync installed](getting-started.md) and `uv` available. For another project, substitute its artifact and archive member names and copy the citation files it uses.
+The example uses CiteSync 0.7.0. Start in the release checkout with Python and `uv` available. For another project, substitute its artifact and archive member names, expected package name, and citation files.
 
 ```sh
 release_check=$(mktemp -d) &&
@@ -14,6 +14,7 @@ release_check=$(mktemp -d) &&
 import sys
 import tarfile
 import zipfile
+from email.parser import BytesHeaderParser
 from pathlib import Path
 
 root = Path(sys.argv[1])
@@ -27,16 +28,27 @@ with zipfile.ZipFile(root / "dist/citesync-0.7.0-py3-none-any.whl") as wheel:
 with tarfile.open(root / "dist/citesync-0.7.0.tar.gz", "r:gz") as sdist:
     header = sdist.extractfile("citesync-0.7.0/PKG-INFO").read()
     (root / "PKG-INFO").write_bytes(header)
+
+expected_name = "citesync"
+for filename in ("METADATA", "PKG-INFO"):
+    headers = BytesHeaderParser().parsebytes((root / filename).read_bytes())
+    if headers.get("Name") != expected_name:
+        raise SystemExit(f"{filename}: expected package {expected_name!r}, got {headers.get('Name')!r}")
 PY
 ```
 
-The command copies just the two metadata members. For a CiteSync wheel, it also prints the packaged mapping tag.
+The command copies just the two metadata members and checks their Python package names against the expected name. For a CiteSync wheel, it also prints the packaged mapping tag.
 
 ## Require fields and check both artifacts
 
 Save this configuration as `citesync.toml` in the temporary directory. For a project that ships `.zenodo.json`, copy it there and add its own requirements.
 
 ```sh
+checker="$release_check/dist/citesync-0.7.0-py3-none-any.whl"
+check_metadata() {
+  uvx --from "$checker" citesync check --root "$release_check" --source "$1"
+}
+
 cat >"$release_check/citesync.toml" <<'TOML' &&
 [required-fields]
 "CITATION.cff" = ["name", "version", "author", "license"]
@@ -44,15 +56,16 @@ cat >"$release_check/citesync.toml" <<'TOML' &&
 "METADATA" = ["name", "version", "author", "license"]
 "PKG-INFO" = ["name", "version", "author", "license"]
 TOML
-  citesync check --root "$release_check" --source METADATA &&
-  citesync check --root "$release_check" --source PKG-INFO
+  check_metadata METADATA &&
+  check_metadata PKG-INFO
 ```
 
-Each command compares the citation files with one artifact. In CI, run this block in a step that must pass before upload.
+Each command uses the built CiteSync wheel to check the citation files against one artifact. For another project, set `checker` to a pinned CiteSync version such as `citesync==0.6.0`. Run both blocks in the same CI step, and upload the artifacts from that step only after both checks pass.
 
 | Field | Wheel and source distribution | Citation files |
 | --- | --- | --- |
-| Name and version | `Name` and `Version` | Title or name and version |
+| Package name and citation title | Python package `Name` checked during extraction | Citation titles checked against each other |
+| Version | `Version` | Release version |
 | Authors | Author headers | Structured author records |
 | Licence | SPDX `License-Expression` | Licence field or URL |
 | DOI and release date | The importer supplies neither | Check them separately if the release requires them |
@@ -64,7 +77,7 @@ The CiteSync candidate had identical metadata in both artifacts. Both checks rep
 Change the version to `0.6.0` in the **temporary copy** of `CITATION.cff`. Run the wheel check again.
 
 ```sh
-citesync check --root "$release_check" --source METADATA
+check_metadata METADATA
 ```
 
 The check exits with status 1 and includes this finding.
@@ -77,8 +90,8 @@ Restore the file from the checked-out release and run both checks again.
 
 ```sh
 cp CITATION.cff "$release_check/CITATION.cff" &&
-  citesync check --root "$release_check" --source METADATA &&
-  citesync check --root "$release_check" --source PKG-INFO
+  check_metadata METADATA &&
+  check_metadata PKG-INFO
 ```
 
 Both checks now pass. When a real release fails, correct the file with the wrong version. If the artifact was wrong, rebuild it and extract its metadata again before running the checks.
