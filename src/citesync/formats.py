@@ -13,12 +13,15 @@ import re
 import tomllib
 import unicodedata
 from collections.abc import Iterable, Iterator
+from copy import copy
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, override
 
 from ruamel.yaml import YAML
+from ruamel.yaml.constructor import BaseConstructor, SafeConstructor
 from ruamel.yaml.error import MarkedYAMLError, YAMLError
+from ruamel.yaml.nodes import MappingNode, Node, ScalarNode
 
 from citesync import codecs
 from citesync.errors import CheckError, UnreadableError, did_you_mean
@@ -68,6 +71,29 @@ _URL_LABELS = {"source": "Source", "sourcecode": "Source", "repository": "Reposi
 _TOML_AT = re.compile(r" \(at (?:line (\d+), column (\d+)|end of document)\)$")
 _CODEMETA_2_DOI = "https://doi.org/10.5063/schema/codemeta-2.0"
 _KEYWORD_COMMAS = re.compile("[,\uff0c\u3001]")  # ASCII, full-width and ideographic commas
+
+
+_YAML_NULL = "tag:yaml.org,2002:null"
+
+
+class _MetadataYAMLConstructor(BaseConstructor):
+    """Read YAML nulls as absent while preserving the spelling of other scalars."""
+
+    @override
+    def construct_mapping(self, node: Node, deep: bool = False) -> dict[Any, Any]:
+        if isinstance(node, MappingNode) and any(key.tag == _YAML_NULL for key, _ in node.value):
+            node = copy(node)
+            node.value = [
+                # An alias to the same node in a value still needs to read as null.
+                (ScalarNode("tag:yaml.org,2002:str", key.value, key.start_mark, key.end_mark), value)
+                if isinstance(key, ScalarNode) and key.tag == _YAML_NULL
+                else (key, value)
+                for key, value in node.value
+            ]
+        return super().construct_mapping(node, deep=deep)
+
+
+_MetadataYAMLConstructor.add_constructor(_YAML_NULL, SafeConstructor.construct_yaml_null)
 
 
 @dataclass(frozen=True)
@@ -451,7 +477,9 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
                 # JSON escapes can decode to lone surrogates, which cannot appear in the citation files.
                 json.dumps(data, ensure_ascii=False).encode()
         else:
-            data = YAML(typ="base").load(text)  # every scalar a string: version 1.10 is not the float 1.1
+            yaml = YAML(typ="base")  # preserve version 1.10 as written
+            yaml.Constructor = _MetadataYAMLConstructor
+            data = yaml.load(text)
     except json.JSONDecodeError as err:
         raise UnreadableError(rel, err.msg, err.lineno, err.colno) from err
     except RecursionError as err:

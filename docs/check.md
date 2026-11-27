@@ -80,4 +80,5 @@ The JSON, GitHub and SARIF formats are in [output.md](output.md).
 
 Set [`required-fields`](config.md#require-values-in-selected-files) to fail check when selected files omit values.
 The check uses CodeMeta terms and the pinned format mapping. It reports missing values even when the source also lacks them.
-Defaults still allow omissions, and write still preserves them.
+By default, check allows omissions and write preserves them.
+Set [`fill-missing`](write.md#fill-missing-fields) to let write copy selected missing values from the source.

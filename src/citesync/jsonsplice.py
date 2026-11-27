@@ -43,7 +43,14 @@ def splice(text: str, old: Any, new: Any) -> str:  # noqa: ANN401
     """``text``, the JSON of ``old``, with each value that differs in ``new`` replaced in place."""
     indent = re.search(r"\n([ \t]+)\S", text)
     edits: list[tuple[int, int, str]] = []
-    _edits(text, _node(text, 0), old, new, edits, indent[1] if indent else "  ")
+    spacing = indent[1] if indent else "  "
+    node = _node(text, 0)
+    if isinstance(old, dict) and isinstance(new, dict) and old and list(old) == list(new)[: len(old)]:
+        added = {key: new[key] for key in list(new)[len(old) :]}
+        if added:
+            edits.append(_append_members(text, node, added, spacing))
+            new = {key: new[key] for key in old}
+    _edits(text, node, old, new, edits, spacing)
     for start, end, value in sorted(edits, reverse=True):
         text = text[:start] + value + text[end:]
     return text
@@ -75,3 +82,21 @@ def _edits(text: str, node: tuple[int, int, Any, Any], old: Any, new: Any, edits
         edits.append((start, end, json.dumps(new, indent=indent, ensure_ascii=False).replace("\n", "\n" + margin)))
     else:
         edits.append((start, end, json.dumps(new, ensure_ascii=False)))
+
+
+def _append_members(
+    text: str, node: tuple[int, int, Any, Any], added: dict[Any, Any], indent: str
+) -> tuple[int, int, str]:
+    """Append new top-level object members in the original layout."""
+    start, _, kids, _ = node
+    first_key = _skip(text, start + 1)
+    last_end = max(child[1] for child in kids.values())
+    multiline = "\n" in text[start:first_key]
+    margin = text[text.rfind("\n", start, first_key) + 1 : first_key] if multiline else ""
+    separator = ",\n" + margin if multiline else ", "
+    pieces = []
+    for key, item in added.items():
+        name = json.dumps(key, ensure_ascii=False)
+        value = json.dumps(item, indent=indent if multiline else None, ensure_ascii=False)
+        pieces.append(f"{name}: {value}".replace("\n", "\n" + margin))
+    return last_end, last_end, separator + separator.join(pieces)

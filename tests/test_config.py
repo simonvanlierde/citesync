@@ -68,6 +68,7 @@ def test_config_prints_defaults(tmp_path: Path, capsys: pytest.CaptureFixture[st
         "write-manifests = []\n"
         "exports = []\n"
         "required-fields = {}\n"
+        "fill-missing = {}\n"
         "# zenodo-contributor-type: not set, so new contributors need a hand edit\n"
         "keywords-case-sensitive = false\n"
         "keywords-ignore-separators = false\n"

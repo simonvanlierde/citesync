@@ -90,3 +90,42 @@ def test_splice_with_no_indented_line_indents_by_two() -> None:
 def test_splice_on_the_line_after_a_blank_first_line(text: str, new: object, expected: str) -> None:
     """The margin is found back to the newline at offset 0."""
     assert splice(text, json.loads(text), new) == expected
+
+
+def test_splice_appends_an_object_member_without_reformatting_other_members() -> None:
+    text = '{\n\t"label" : "\\u00e9",\n\t"version": 1\n}\n'
+    new = {"label": "é", "version": 2, "nested": {"ok": True}}
+    expected = '{\n\t"label" : "\\u00e9",\n\t"version": 2,\n\t"nested": {\n\t\t"ok": true\n\t}\n}\n'
+    assert splice(text, json.loads(text), new) == expected
+
+
+def test_splice_appends_after_the_last_member_with_duplicate_unknown_keys() -> None:
+    text = '{\n  "label": 1, "note": 2, "label": 3\n}\n'
+    old = json.loads(text)
+    assert splice(text, old, {**old, "version": "2.0"}) == (
+        '{\n  "label": 1, "note": 2, "label": 3,\n  "version": "2.0"\n}\n'
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('{"old":0}', '{"old":0, "é": {"name": "Skłodowska"}}'),
+        ('{\n\n  "old": 0\n}', '{\n\n  "old": 0,\n  "é": {\n    "name": "Skłodowska"\n  }\n}'),
+    ],
+)
+def test_splice_appends_unicode_members_in_the_original_layout(text: str, expected: str) -> None:
+    old = json.loads(text)
+    assert splice(text, old, {**old, "é": {"name": "Skłodowska"}}) == expected
+
+
+@pytest.mark.parametrize(
+    ("original", "updated", "expected"),
+    [
+        ("2", 4, "4"),
+        ('{"name":"Lens"}', ["Lens", "Optic"], '["Lens", "Optic"]'),
+        ('{ "name" : "Lens" }', {"version": 2, "name": "Lens"}, '{"version": 2, "name": "Lens"}'),
+    ],
+)
+def test_splice_replaces_non_appends_as_a_whole(original: str, updated: object, expected: str) -> None:
+    assert splice(original, json.loads(original), updated) == expected

@@ -42,7 +42,7 @@ A complete selected file passes completeness even when the source lacks those va
 Paths are relative to the repo root, with `/` separators. Each must name a [supported metadata file](formats.md).
 Requirements apply even outside `files` or `manifests`, including private or unreleased manifests.
 They do not add files to write's inputs or change its field omission behavior.
-`write` does not fill an omitted field to satisfy a requirement; its final check still exits 1 while required values are missing.
+Select omitted fields under [`fill-missing`](write.md#fill-missing-fields) to let `write` copy them from the source. Its final check exits 1 while required values remain missing.
 
 Terms are limited to the eleven compared fields listed below. The pinned mapping must have a slot for each term in the selected format.
 Unknown terms, unsupported filenames, paths outside the repo and fields the format cannot represent are config errors (exit 3).
@@ -55,6 +55,10 @@ Requiring `author` means at least one decoded person or organization, not an ORC
 Review dates, authors, licences and identifiers before adding them by hand.
 
 For a complete workflow, see [keep software and dataset metadata separate](datasets.md).
+
+## Fill values in existing citation files
+
+[`fill-missing`](write.md#fill-missing-fields) selects fields for `write` by citation file and CodeMeta term. Use an empty table to preserve omissions. `required-fields` controls which omissions `check` reports.
 
 ## Other settings
 
