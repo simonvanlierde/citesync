@@ -43,7 +43,7 @@ A config is optional. A one-line `citesync.toml` is `ignore = ["description-mism
 
 - [How check works](https://simonvanlierde.com/citesync/docs/check/): the fields, files, options and exit codes.
 - [How write works](https://simonvanlierde.com/citesync/docs/write/): what it changes and what it leaves alone.
-- [Supported files](https://simonvanlierde.com/citesync/docs/formats/): which files citesync reads, updates and creates, including read-only Python distribution, R, Julia and Composer metadata, and the RO-Crate and Croissant files sourceledger makes.
+- [Supported files](https://simonvanlierde.com/citesync/docs/formats/): which files citesync reads, updates and creates, including read-only Python distribution, R, Julia, Composer and Maven metadata, and the RO-Crate and Croissant files sourceledger makes.
 - [How init works](https://simonvanlierde.com/citesync/docs/init/): where a new CITATION.cff takes each field from.
 - [Citation exports](https://simonvanlierde.com/citesync/docs/export/): BibTeX, CSL-JSON, APA, schema.org JSON-LD, DataCite XML, RIS and EndNote files kept in step with the source.
 - [Rules](https://simonvanlierde.com/citesync/docs/rules/): each rule id, what it checks and how to fix it.
