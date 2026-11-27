@@ -19,4 +19,4 @@ Run the pilot using the [single-source model](0001-pluggable-source.md). If a re
 
 - CiteSync reads metadata from artifacts produced by the project's existing build. The pilot uses extracted `METADATA` and `PKG-INFO` as inputs.
 - Field locations come from [codemeta-drift](0002-vendored-mapping.md). Contribution roles stay in CodeMeta, with Zenodo types supplied explicitly as described in [0005](0005-vocabulary-blind-roles.md).
-- The worked example is the starting point for an outside pilot and a reusable template check. Running these comparisons verifies agreement on the fields checked. Archive ingestion needs its own test.
+- The [worked example](../release-metadata.md) is the starting point for an outside pilot and a reusable template check. Running these comparisons verifies agreement on the fields checked. Archive ingestion needs its own test.

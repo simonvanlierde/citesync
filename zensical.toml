@@ -15,6 +15,7 @@ nav = [
   { "Playground" = "https://simonvanlierde.com/citesync/" },
   { "Start here" = [
     "getting-started.md",
+    "release-metadata.md",
     { "Browser playground" = "playground.md" },
   ] },
   { "Use citesync" = ["init.md", "check.md", "write.md", "datasets.md", "export.md", "pandoc.md"] },
