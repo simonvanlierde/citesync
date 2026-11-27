@@ -20,8 +20,9 @@ root = Path(sys.argv[1])
 with zipfile.ZipFile(root / "dist/citesync-0.7.0-py3-none-any.whl") as wheel:
     header = wheel.read("citesync-0.7.0.dist-info/METADATA")
     (root / "METADATA").write_bytes(header)
-    pin = wheel.read("citesync/MAPPING_SOURCE").decode().splitlines()
-    print(next(line for line in pin if line.startswith("tag ")))
+    if "citesync/MAPPING_SOURCE" in wheel.namelist():
+        pin = wheel.read("citesync/MAPPING_SOURCE").decode().splitlines()
+        print(next(line for line in pin if line.startswith("tag ")))
 
 with tarfile.open(root / "dist/citesync-0.7.0.tar.gz", "r:gz") as sdist:
     header = sdist.extractfile("citesync-0.7.0/PKG-INFO").read()
@@ -29,7 +30,7 @@ with tarfile.open(root / "dist/citesync-0.7.0.tar.gz", "r:gz") as sdist:
 PY
 ```
 
-The command copies just the two metadata members. It also prints the mapping tag in the wheel so you can record which mapping the release ships.
+The command copies just the two metadata members. For a CiteSync wheel, it also prints the packaged mapping tag.
 
 ## Require fields and check both artifacts
 
