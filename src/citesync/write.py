@@ -480,7 +480,12 @@ def _fill_one(
         msg = "the pinned mapping has no place for this field"
         raise CannotWrite(msg)
     raw = source.record[term]
-    fill_path = _cff_license_field(path, raw) if doc.format == "cff-1.2.0" and term == "license" else path
+    fill_path = path
+    if doc.format == "cff-1.2.0" and term == "license":
+        if (existing := locate(doc.format, term, data, path)) is not None:
+            msg = f"{existing[1]} already has a value or needs a hand edit"
+            raise CannotWrite(msg)
+        fill_path = _cff_license_field(path, raw)
     steps = _parse(fill_path)[0][0]
     key, filter_key, filter_value, _ = steps[0]
     encoded = _fill_value(doc, source, term, path, mapping, keyword_key, zenodo_contributor_type)
