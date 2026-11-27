@@ -2,6 +2,8 @@
 
 `citesync check` compares eleven fields with one file, the source (CITATION.cff by default): title/name, version, authors and contributors with ORCID, licence, DOI, Software Heritage identifier (SWHID), repository URL, description, keywords and release date. When the source doesn't hold a field (pyproject.toml has no DOI), the other files that hold it must agree with each other.
 
+To compare an actual wheel and source distribution before publishing, follow the [release metadata check](release-metadata.md).
+
 ## Options
 
 ```sh

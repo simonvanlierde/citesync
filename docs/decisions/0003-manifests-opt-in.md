@@ -18,3 +18,4 @@ Citation files exist to hold this metadata, so `write` may rewrite them freely. 
 - A default `write` cannot disturb a release tool.
 - A manifest finding that `write` may not fix is reported with what to do: edit by hand, or add the field to `write-manifests`.
 - Details are in [How write works](../write.md) and [Configuration](../config.md).
+- [0007](0007-check-release-metadata.md) approves a planned opt-in to fill selected citation fields. This record describes current behavior until that option ships.

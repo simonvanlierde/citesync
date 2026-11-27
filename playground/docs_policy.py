@@ -60,8 +60,13 @@ def secure_docs(site: Path, root: Path) -> None:
         html = LINK.sub(r"\g<1>" + prefix, html)
         html = html.replace(' style="text-align: right;"', ' class="align-right"')
         if page.relative_to(site).as_posix() == "roadmap/index.html":
-            # The previous public roadmap called this section "Before 0.6".
-            html = html.replace('<h2 id="current-release">', '<span id="before-06"></span><h2 id="current-release">')
+            for old, current in (
+                ("before-06", "current-release"),
+                ("after-06", "next"),
+                ("not-planned", "design-boundaries"),
+            ):
+                heading = f'<h2 id="{current}">'
+                html = html.replace(heading, f'<span id="{old}"></span>{heading}')
         hashes = script_hashes(html)
         observed.update(hashes)
         policy = "; ".join(
