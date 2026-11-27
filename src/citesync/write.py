@@ -137,9 +137,7 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
         bom = "\ufeff" if old.startswith("\ufeff") else ""  # ruamel.yaml drops one, so put it back
         # edited with LF line ends, which the YAML and JSON writers add
         lf = old.removeprefix(bom).replace("\r\n", "\n")
-        new, reasons = _rewrite(
-            doc, ref, terms, lf, mapping, context, key, config.zenodo_contributor_type, resource_type, fill=fill
-        )
+        new, reasons = _rewrite(doc, ref, terms, lf, mapping, context, root, config, resource_type, fill=fill)
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != lf:
             crlf = old.count("\r\n") * 2 > old.count("\n")  # a file with both gets the more common one
@@ -173,6 +171,7 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
     }
     texts |= exports
     done |= {(path, None) for path in exports}
+    _check_fill_destinations(root, source.path, texts, texts.keys() & fill_targets.keys())
     if not dry_run:
         for rel in texts:  # read_doc refuses an existing file outside; this catches a dangling link to one
             if not inside(root, rel):
@@ -181,6 +180,18 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
         _replace(root, texts)
     fixed = [*(f for f in errors if (f.file, f.term) in done), *fills]
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"], fixed
+
+
+def _check_fill_destinations(root: Path, source: str, texts: dict[str, str], selected: set[str]) -> None:
+    """Refuse aliases that would overwrite the source or another planned edit."""
+    if not selected:
+        return
+    destinations = {(root / source).resolve(): source}
+    for rel in texts:
+        other = destinations.setdefault((root / rel).resolve(), rel)
+        if other != rel and (rel in selected or other in selected):
+            msg = f"{rel!r} and {other!r} resolve to the same file, so write won't write them"
+            raise CheckError(msg)
 
 
 def init(
@@ -395,19 +406,36 @@ def _rewrite(
     text: str,
     mapping: Mapping,
     context: str | None,
-    keyword_key: Callable[[str], str],
-    zenodo_contributor_type: str | None,
+    root: Path,
+    config: Config,
     resource_type: str | None,
     *,
     fill: list[str],
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
+    key = keyword_key(config)
+    zenodo_contributor_type = config.zenodo_contributor_type
+    zenodo_reads_cff = (
+        doc.format == "cff-1.2.0"
+        and "license" in fill
+        and "zenodo-license-list" not in config.ignore
+        and not (root / doc.path).with_name(".zenodo.json").is_file()
+    )
 
     def apply(data: Any) -> dict[str, str]:  # noqa: ANN401 - the round-trip data has format-specific values
-        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
+        skipped = _apply(doc, source, terms, data, mapping, context, key, zenodo_contributor_type)
         for term in fill:
             try:
-                _fill_one(doc, source, term, data, mapping, keyword_key, zenodo_contributor_type)
+                _fill_one(
+                    doc,
+                    source,
+                    term,
+                    data,
+                    mapping,
+                    key,
+                    zenodo_contributor_type,
+                    zenodo_reads_cff=zenodo_reads_cff,
+                )
             except CannotWrite as err:
                 skipped[term] = str(err)
         return skipped
@@ -444,6 +472,8 @@ def _fill_one(
     mapping: Mapping,
     keyword_key: Callable[[str], str],
     zenodo_contributor_type: str | None,
+    *,
+    zenodo_reads_cff: bool,
 ) -> None:
     path = mapping[doc.format, term]
     if path is None:
@@ -454,6 +484,8 @@ def _fill_one(
     steps = _parse(fill_path)[0][0]
     key, filter_key, filter_value, _ = steps[0]
     encoded = _fill_value(doc, source, term, path, mapping, keyword_key, zenodo_contributor_type)
+    if zenodo_reads_cff and term == "license" and isinstance(encoded, list):
+        raise CannotWrite(ZENODO_GAPS["zenodo-license-list"])
     if filter_key is not None and len(steps) == 2:
         if locate(doc.format, term, data, path) is not None:
             msg = f"{key} already contains an entry for this field"

@@ -97,3 +97,11 @@ def test_splice_appends_an_object_member_without_reformatting_other_members() ->
     new = {"label": "é", "version": 2, "nested": {"ok": True}}
     expected = '{\n\t"label" : "\\u00e9",\n\t"version": 2,\n\t"nested": {\n\t\t"ok": true\n\t}\n}\n'
     assert splice(text, json.loads(text), new) == expected
+
+
+def test_splice_appends_after_the_last_member_with_duplicate_unknown_keys() -> None:
+    text = '{\n  "label": 1, "note": 2, "label": 3\n}\n'
+    old = json.loads(text)
+    assert splice(text, old, {**old, "version": "2.0"}) == (
+        '{\n  "label": 1, "note": 2, "label": 3,\n  "version": "2.0"\n}\n'
+    )

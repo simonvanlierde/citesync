@@ -120,6 +120,48 @@ def test_fill_does_not_add_an_unrepresentable_zenodo_licence(tmp_path: Path, run
     assert target.read_text(encoding="utf-8") == original
 
 
+@pytest.mark.parametrize(
+    ("zenodo_path", "ignore_rule", "allowed"),
+    [(None, False, False), (".zenodo.json", False, False), ("metadata/.zenodo.json", False, True), (None, True, True)],
+)
+def test_fill_cff_licence_keeps_zenodo_fallback_publishable(
+    tmp_path: Path, run: "Run", zenodo_path: str | None, *, ignore_rule: bool, allowed: bool
+) -> None:
+    (tmp_path / "codemeta.json").write_text(
+        '{"@context":"https://w3id.org/codemeta/3.0","license":["MIT","Apache-2.0"]}',
+        encoding="utf-8",
+    )
+    cff = tmp_path / "metadata" / "CITATION.cff"
+    cff.parent.mkdir()
+    original = 'cff-version: "1.2.0"\n'
+    cff.write_text(original, encoding="utf-8")
+    if zenodo_path:
+        (tmp_path / zenodo_path).write_text('{"upload_type":"software"}', encoding="utf-8")
+    ignore = 'ignore = ["zenodo-license-list"]\n' if ignore_rule else ""
+    (tmp_path / "citesync.toml").write_text(
+        'source = "codemeta.json"\nfiles = ["metadata/CITATION.cff"]\n'
+        f'{ignore}[fill-missing]\n"metadata/CITATION.cff" = ["license"]\n',
+        encoding="utf-8",
+    )
+    args = ("--root", str(tmp_path))
+
+    preview = run("write", "--diff", *args)
+    assert cff.read_text(encoding="utf-8") == original
+    code, _, err = run("write", *args)
+    assert code == 0
+    if allowed:
+        assert preview[0] == 1
+        assert "license:" in cff.read_text(encoding="utf-8")
+        assert not err
+    else:
+        assert preview[0] == 0
+        assert not preview[1]
+        assert "Zenodo reads one licence" in preview[2]
+        assert "Zenodo reads one licence" in err
+        assert cff.read_text(encoding="utf-8") == original
+    assert run("check", "-q", *args) == (0, "", "")
+
+
 @pytest.mark.parametrize("target", ["pyproject.toml", "ro-crate-metadata.json"])
 def test_fill_config_rejects_non_citation_targets(tmp_path: Path, run: "Run", target: str) -> None:
     (tmp_path / "CITATION.cff").write_text(CFF, encoding="utf-8")
@@ -278,3 +320,45 @@ def test_fill_swhid_beside_a_scalar_codemeta_doi(tmp_path: Path, run: "Run") -> 
         {"@type": "PropertyValue", "propertyID": "SWHID", "value": ref},
     ]
     assert run("write", "--diff", *args) == (0, "", "")
+
+
+def test_fill_refuses_two_targets_that_resolve_to_one_file(tmp_path: Path, run: "Run") -> None:
+    source = tmp_path / "CITATION.cff"
+    source.write_text(CFF + "repository-code: https://example.org/lens/optic\n", encoding="utf-8")
+    target = tmp_path / "codemeta.json"
+    original = b'{"@context": "https://w3id.org/codemeta/3.0", "name": "Lens Observatory"}\n'
+    target.write_bytes(original)
+    nested = tmp_path / "docs" / "codemeta.json"
+    nested.parent.mkdir()
+    nested.symlink_to(Path("..") / target.name)
+    (tmp_path / "citesync.toml").write_text(
+        'files = ["codemeta.json", "docs/codemeta.json"]\n[fill-missing]\n'
+        '"codemeta.json" = ["version"]\n"docs/codemeta.json" = ["codeRepository"]\n',
+        encoding="utf-8",
+    )
+
+    for flags in (("--diff",), ()):
+        code, out, err = run("write", *flags, "--root", str(tmp_path))
+        assert (code, out) == (3, "")
+        assert "'docs/codemeta.json' and 'codemeta.json' resolve to the same file" in err
+        assert target.read_bytes() == original
+        assert nested.is_symlink()
+
+
+def test_fill_refuses_a_target_that_resolves_to_the_source(tmp_path: Path, run: "Run") -> None:
+    source = tmp_path / "codemeta.json"
+    original = b'{"@context": "https://w3id.org/codemeta/3.0", "name": "Lens Observatory"}\n'
+    source.write_bytes(original)
+    target = tmp_path / ".zenodo.json"
+    target.symlink_to(source.name)
+    (tmp_path / "citesync.toml").write_text(
+        'source = "codemeta.json"\n[fill-missing]\n".zenodo.json" = ["name"]\n',
+        encoding="utf-8",
+    )
+
+    for flags in (("--diff",), ()):
+        code, out, err = run("write", *flags, "--root", str(tmp_path))
+        assert (code, out) == (3, "")
+        assert "'.zenodo.json' and 'codemeta.json' resolve to the same file" in err
+        assert source.read_bytes() == original
+        assert target.is_symlink()

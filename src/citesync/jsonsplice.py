@@ -43,7 +43,14 @@ def splice(text: str, old: Any, new: Any) -> str:  # noqa: ANN401
     """``text``, the JSON of ``old``, with each value that differs in ``new`` replaced in place."""
     indent = re.search(r"\n([ \t]+)\S", text)
     edits: list[tuple[int, int, str]] = []
-    _edits(text, _node(text, 0), old, new, edits, indent[1] if indent else "  ")
+    spacing = indent[1] if indent else "  "
+    node = _node(text, 0)
+    if isinstance(old, dict) and isinstance(new, dict) and old and list(old) == list(new)[: len(old)]:
+        added = {key: new[key] for key in list(new)[len(old) :]}
+        if added:
+            edits.append(_append_members(text, node, added, spacing))
+            new = {key: new[key] for key in old}
+    _edits(text, node, old, new, edits, spacing)
     for start, end, value in sorted(edits, reverse=True):
         text = text[:start] + value + text[end:]
     return text
@@ -54,13 +61,9 @@ def _edits(text: str, node: tuple[int, int, Any, Any], old: Any, new: Any, edits
     start, end, kids, _ = node
     if type(old) is type(new) and old == new:
         return
-    if isinstance(old, dict) and isinstance(new, dict) and old and list(old) == list(new)[: len(old)]:
+    if isinstance(old, dict) and isinstance(new, dict) and list(old) == list(new):
         for key in old:
             _edits(text, kids[key], old[key], new[key], edits, indent)
-        if len(new) > len(old):
-            _append_members(text, start, kids, old, new, edits, indent)
-    elif isinstance(old, dict) and isinstance(new, dict) and list(old) == list(new):
-        return  # two empty objects with different mapping types
     elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
         for i, (a, b) in enumerate(zip(old, new, strict=True)):
             _edits(text, kids[i], a, b, edits, indent)
@@ -82,23 +85,18 @@ def _edits(text: str, node: tuple[int, int, Any, Any], old: Any, new: Any, edits
 
 
 def _append_members(
-    text: str,
-    start: int,
-    kids: dict[Any, Any],
-    old: dict[Any, Any],
-    new: dict[Any, Any],
-    edits: list,
-    indent: str,
-) -> None:
-    """Append new object members without rewriting existing values or their whitespace."""
-    first_key = kids[next(iter(old))][3]
-    last_end = kids[next(reversed(old))][1]
+    text: str, node: tuple[int, int, Any, Any], added: dict[Any, Any], indent: str
+) -> tuple[int, int, str]:
+    """Append new top-level object members in the original layout."""
+    start, _, kids, _ = node
+    first_key = _skip(text, start + 1)
+    last_end = max(child[1] for child in kids.values())
     multiline = "\n" in text[start:first_key]
     margin = text[text.rfind("\n", start, first_key) + 1 : first_key] if multiline else ""
     separator = ",\n" + margin if multiline else ", "
     pieces = []
-    for key in list(new)[len(old) :]:
+    for key, item in added.items():
         name = json.dumps(key, ensure_ascii=False)
-        value = json.dumps(new[key], indent=indent if multiline else None, ensure_ascii=False)
+        value = json.dumps(item, indent=indent if multiline else None, ensure_ascii=False)
         pieces.append(f"{name}: {value}".replace("\n", "\n" + margin))
-    edits.append((last_end, last_end, separator + separator.join(pieces)))
+    return last_end, last_end, separator + separator.join(pieces)

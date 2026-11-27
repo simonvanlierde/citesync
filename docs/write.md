@@ -26,7 +26,7 @@ Name the citation file and the CodeMeta terms to copy from the configured source
 
 Run `citesync write --diff` to preview the additions. Run `citesync write` to apply them.
 Choose existing CFF, CodeMeta or Zenodo citation files. For nested paths, list the file under [`files`](config.md) as well. A configured dataset CodeMeta file can use its own dataset licence.
-Each addition needs a source value the target can represent. Populated fields and other files follow the existing write rules. See [`required-fields`](config.md#require-values-in-selected-files) if you also want `check` to report omissions.
+Each addition needs a source value the target can represent. Preview and write report when they cannot copy a selected source value. Populated fields and other files follow the existing write rules. See [`required-fields`](config.md#require-values-in-selected-files) if you also want `check` to report omissions.
 
 ## Create citation files
 
@@ -68,7 +68,7 @@ shows the checked people/role contract and each format's limits.
 - If that would drop an old entry with more than a name and ORCID, for example after a rename, write leaves that file's authors for you to edit.
 - The same goes for an old entry with an ORCID when a new author without one comes in: that may be the same person renamed, and write won't guess.
 - An author with only a name, such as an organization, keeps it as a family name. A new one goes into codemeta.json as an `Organization`.
-- Zenodo requires a contributor `type`. Set `zenodo-contributor-type = "Researcher"` (or another [supported type](config.md)) to seed new contributors, including in a newly created .zenodo.json. Existing types are preserved; CRediT roles never determine the type. In an existing target, an explicit empty `contributors: []` allows additions; an absent field stays absent. Without a configured type, add new contributors by hand.
+- Zenodo requires a contributor `type`. Set `zenodo-contributor-type = "Researcher"` (or another [supported type](config.md)) to seed new contributors, including in a newly created .zenodo.json. Existing types are preserved; CRediT roles never determine the type. In an existing target, an explicit empty `contributors: []` allows additions; select an absent field under `fill-missing` to add it. Without a configured type, add new contributors by hand.
 - A Cargo field inherited with `.workspace = true` stays as it is, and the finding says so. Change it in `[workspace.package]`.
 
 ## Output and exit codes
@@ -77,6 +77,6 @@ Write prints `wrote <file>` for each file it changed, to stderr with `--format j
 
 ## Safety
 
-Write puts every file in a temporary file beside it before it moves any into place, so a failure leaves your files as they were. Only a failed move can leave some files written and others not. It writes through a symlink that points inside the repo. It doesn't touch a file that wouldn't change, and CRLF line ends stay CRLF, and so does a CITATION.cff's byte order mark. A file with both LF and CRLF line ends gets the more common one, or LF on a tie.
+Write puts every file in a temporary file beside it before it moves any into place, so a failure leaves your files as they were. Only a failed move can leave some files written and others not. It writes through a symlink that points inside the repo. A selected fill and another edit or the source cannot resolve to the same file. It doesn't touch a file that wouldn't change, and CRLF line ends stay CRLF, and so does a CITATION.cff's byte order mark. A file with both LF and CRLF line ends gets the more common one, or LF on a tie.
 
 In CITATION.cff, write may change a few things around what it edits. A list item it replaces loses its end-of-line comment. A sequence indented differently from the first one is reindented to match it. A closing `...` line is dropped.

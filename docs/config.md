@@ -42,7 +42,7 @@ A complete selected file passes completeness even when the source lacks those va
 Paths are relative to the repo root, with `/` separators. Each must name a [supported metadata file](formats.md).
 Requirements apply even outside `files` or `manifests`, including private or unreleased manifests.
 They do not add files to write's inputs or change its field omission behavior.
-`write` does not fill an omitted field to satisfy a requirement; its final check still exits 1 while required values are missing.
+Select omitted fields under [`fill-missing`](write.md#fill-missing-fields) to let `write` copy them from the source. Its final check exits 1 while required values remain missing.
 
 Terms are limited to the eleven compared fields listed below. The pinned mapping must have a slot for each term in the selected format.
 Unknown terms, unsupported filenames, paths outside the repo and fields the format cannot represent are config errors (exit 3).
