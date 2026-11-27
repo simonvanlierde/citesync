@@ -227,8 +227,8 @@
       "format": "cff-1.2.0",
       "term": "preferredCitation",
       "path": "preferred-citation",
-      "source": "curated:CFF 1.2.0 stores the separate preferred reference in preferred-citation",
-      "crosswalk_cell": null
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@4.0",
+      "crosswalk_cell": "preferred-citation"
     },
     {
       "format": "codemeta",
@@ -2271,8 +2271,9 @@
       "format": "datacite",
       "term": "author.name",
       "path": "creators[].name",
-      "source": "curated:the DataCite creator name holds the full personal or organizational name",
-      "crosswalk_cell": null
+      "source": "curated:the cell says creatorName, the XML element; in the REST JSON each creator's full personal or organizational name is its name key",
+      "kind": "notation",
+      "crosswalk_cell": "creatorName "
     },
     {
       "format": "datacite",
@@ -2300,7 +2301,7 @@
       "term": "url",
       "path": "url",
       "source": "curated:DataCite REST gives the resulting landing page URL",
-      "crosswalk_cell": null
+      "crosswalk_cell": ""
     },
     {
       "format": "datacite",
