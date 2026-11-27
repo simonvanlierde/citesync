@@ -23,6 +23,10 @@ GitHub lookups record the default branch's commit and read its root
 supported `preferred-citation` in CFF. The preferred citation has its own title,
 people and identifiers. For the exact software release, use its version DOI.
 
+Crossref can supply several licences with different content versions or start
+dates. CiteSync leaves the work's licence unset and keeps those entries in
+the captured response when you use `--save-responses`.
+
 ## Inspect authors and references
 
 ```sh

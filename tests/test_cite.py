@@ -7,11 +7,12 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from citesync.cite_sources import doi
+from citesync.cite_sources import _preferred, doi
 from citesync.cli import main
 from citesync.codecs import doi_decode
 from citesync.errors import CheckError
 from citesync.formats import codemeta_is_dataset
+from citesync.mapping import load_mapping
 
 
 def test_cite_crossref_cli(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]):
@@ -59,6 +60,12 @@ def responses() -> dict[str, tuple[int, bytes]]:
                         "role": [{"vocabulary": "credit", "role": "software"}],
                     },
                     {"name": "Lens Methods Group"},
+                ],
+                "contributor": [{"given": "Magda", "family": "Moon"}],
+                "editor": [{"family": "Asher"}],
+                "license": [
+                    {"content-version": "am", "URL": "https://creativecommons.org/licenses/by/4.0/"},
+                    {"content-version": "tdm", "URL": "https://example.org/tdm"},
                 ],
                 "container-title": ["Journal of Lens Methods"],
                 "published": {"date-parts": [[2025, 4, 9]]},
@@ -132,6 +139,8 @@ preferred-citation:
   title: Lens calibration with open instruments
   doi: 10.12345/Paper
   journal: Journal of Lens Methods
+  volume: 12
+  issue: 4
   start: 3
   end: 9
   year: 2025
@@ -164,6 +173,8 @@ def test_shared_citation_example(
     assert main([*args, "--save-responses", str(library)]) == 0
     paper = json.loads(capsys.readouterr().out)
     assert [author["name"] for author in paper["work"]["record"]["author"]] == ["Ada Valence", "Lens Methods Group"]
+    assert [person["name"] for person in paper["work"]["record"]["contributor"]] == ["Magda Moon"]
+    assert "license" not in paper["work"]["record"]
     author = paper["work"]["record"]["author"][0]
     assert author["orcid"] == "0000-0002-1825-0097"
     assert paper["work"]["attribution"][0]["roles"] == [{"vocabulary": "credit", "role": "software"}]
@@ -184,15 +195,6 @@ def test_shared_citation_example(
         assert release["work"]["record"]["author"][0]["organization"]
         assert release["work"]["related"]["isVersionOf"] == ["10.12345/Concept"]
         assert "openalex" not in release
-
-    repo = "https://github.com/lens-methods/lens-calibration"
-    assert main(["cite", repo, "--preferred", "--json"]) == 0
-    github = json.loads(capsys.readouterr().out)
-    assert github["selected"] == "preferred"
-    assert github["work"]["record"]["identifier"] == "10.12345/Software"
-    assert github["work"]["preferred"]["record"]["identifier"] == "10.12345/Paper"
-    assert github["work"]["preferred"]["record"]["pages"] == "3-9"
-    assert github["work"]["revision"] == "d" * 40
 
     assert main(["cite", "https://arxiv.org/abs/2510.01234v2", "--json"]) == 0
     preprint = json.loads(capsys.readouterr().out)
@@ -242,6 +244,47 @@ def test_bare_doi_keeps_literal_percent_and_case(suffix: str):
     bare = "10.12345/" + suffix
     assert doi(bare) == bare
     assert doi("https://doi.org/" + quote(bare, safe="/")) == bare
+
+
+def test_repository_preferred_article(
+    responses: dict[str, tuple[int, bytes]], monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    monkeypatch.setattr("citesync.cite_http.fetch", responses.__getitem__)
+    repo = "https://github.com/lens-methods/lens-calibration"
+    assert main(["cite", repo, "--preferred", "--json"]) == 0
+    github = json.loads(capsys.readouterr().out)
+    assert github["selected"] == "preferred"
+    assert github["work"]["record"]["identifier"] == "10.12345/Software"
+    assert github["work"]["preferred"]["record"]["identifier"] == "10.12345/Paper"
+    assert github["work"]["preferred"]["record"]["pages"] == "3-9"
+    assert github["work"]["preferred"]["record"]["volume"] == "12"
+    assert github["work"]["preferred"]["record"]["issue"] == "4"
+    assert github["work"]["revision"] == "d" * 40
+    assert main(["cite", repo, "--preferred", "--format", "ris"]) == 0
+    assert {"VL  - 12", "IS  - 4"} <= set(capsys.readouterr().out.splitlines())
+
+
+def test_preferred_citation_accepts_parsed_numbers():
+    data = {"preferred-citation": {"type": "article", "title": "Lens methods", "volume": 12, "issue": 4.5}}
+    work, error = _preferred(data, "CITATION.cff", "a" * 40, load_mapping())
+    assert error is None
+    assert work is not None
+    assert work.record["volume"] == "12"
+    assert work.record["issue"] == "4.5"
+
+
+def test_repository_preferred_dataset(
+    responses: dict[str, tuple[int, bytes]], monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    cff = next(url for url in responses if url.endswith("CITATION.cff"))
+    responses[cff] = (200, responses[cff][1].replace(b"type: article", b"type: data"))
+    monkeypatch.setattr("citesync.cite_http.fetch", responses.__getitem__)
+    args = ["cite", "https://github.com/lens-methods/lens-calibration", "--preferred", "--json"]
+    assert main(args) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["work"]["kind"] == "software"
+    assert result["work"]["preferred"]["kind"] == "dataset"
+    assert result["work"]["preferred"]["record"]["identifier"] == "10.12345/Paper"
 
 
 def test_repository_main_survives_unsupported_preferred(

@@ -6,6 +6,7 @@ import json
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field, replace
+from math import isfinite
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, unquote, urlsplit
@@ -203,13 +204,12 @@ def _record(fmt: str, data: dict[str, Any], mapping: Mapping) -> dict[str, Any]:
             record[term] = tuple(cleaned for p in people if (cleaned := _safe_person(p)).name)
     if keywords := record.get("keywords"):
         record["keywords"] = tuple(cleaned for word in keywords if (cleaned := _safe_text(word)))
-    record.update(
-        {
-            key: text
-            for term, key in {"name": "name", "description": "description", **_EXTRAS}.items()
-            if isinstance(raw := _value(mapping, fmt, term, data), str) and (text := codecs.clean(raw))
-        }
-    )
+    for term, key in {"name": "name", "description": "description", **_EXTRAS}.items():
+        raw = _value(mapping, fmt, term, data)
+        if term in {"volume", "issue"} and (type(raw) is int or (isinstance(raw, float) and isfinite(raw))):
+            raw = str(raw)
+        if isinstance(raw, str) and (text := codecs.clean(raw)):
+            record[key] = text
     if fmt == "cff-preferred":
         pages = [str(p) for p in _field(mapping, fmt, "pagination", data) if isinstance(p, (str, int))]
         if pages:
@@ -375,7 +375,8 @@ def _preferred(data: dict[str, Any], source: str, revision: str, mapping: Mappin
         return None, None
     try:
         obj = _object(raw, source)
-        kind = _kind(_value(mapping, "cff-preferred", "resourceType", obj), source)
+        reference_type = _value(mapping, "cff-preferred", "resourceType", obj)
+        kind = _kind("dataset" if reference_type == "data" else reference_type, source)
         record = _record("cff-preferred", obj, mapping)
         _require_title(record, f"{source} preferred citation")
     except CheckError as err:

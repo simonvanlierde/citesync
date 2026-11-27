@@ -2,8 +2,8 @@
 status candidate
 tag unreleased
 base-tag v0.9.0
-commit 8d40682d1620cb8d1013f74535e86590785a5fe2
-sha256 cda8d943ae8f0d8c6d4d43b5987beb7829abd917a7cbd30b6c7005ccf4287094 mapping-local.json examples/mapping-3.1.json
-sha256 7916c3b784a741810130de9b10e79192be08f0411d50d0c42b77261c514a4b81 mapping-4.0.json examples/mapping-4.0.json
+commit a951d7782c79b7205f250d305f6c7feaed560df3
+sha256 1ede20b5a4d63d8b655caf70fe1c290852ace9339c189ae5dae7957b636096b1 mapping-local.json examples/mapping-3.1.json
+sha256 b71c2bd2a45c9b5de9137d2c268a4dd606fe5ecb09ceb8cf9b3199cf996a4679 mapping-4.0.json examples/mapping-4.0.json
 sha256 006d990ef30f82a0df22e1beffc68071ad27ecf118a594be6157abc9d2ce4cd9 mapping.schema.json src/codemeta_drift/mapping.schema.json
 sha256 c24cad4aaa382478cead5b2cfb0e0c70e3647a389245d47867fcae81af8aa030 mapping-vectors.json src/codemeta_drift/mapping-vectors.json

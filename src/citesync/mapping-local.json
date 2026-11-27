@@ -404,36 +404,36 @@
     {
       "format": "crossref",
       "term": "contributor",
-      "path": null,
-      "source": "curated:the Crossref REST work record has no dedicated contributor field in this mapping",
+      "path": "contributor[]",
+      "source": "curated:Crossref REST lists other contributors separately from authors and editors",
       "crosswalk_cell": null
     },
     {
       "format": "crossref",
       "term": "contributor.givenName",
-      "path": null,
-      "source": "curated:the Crossref REST work record has no dedicated contributor.givenName field in this mapping",
+      "path": "contributor[].given",
+      "source": "curated:Crossref REST uses given for the contributor's given name",
       "crosswalk_cell": null
     },
     {
       "format": "crossref",
       "term": "contributor.familyName",
-      "path": null,
-      "source": "curated:the Crossref REST work record has no dedicated contributor.familyName field in this mapping",
+      "path": "contributor[].family",
+      "source": "curated:Crossref REST uses family for the contributor's family name",
       "crosswalk_cell": null
     },
     {
       "format": "crossref",
       "term": "contributor.@id",
-      "path": null,
-      "source": "curated:the Crossref REST work record has no dedicated contributor.@id field in this mapping",
+      "path": "contributor[].ORCID",
+      "source": "curated:Crossref REST uses ORCID for the contributor's ORCID URL",
       "crosswalk_cell": null
     },
     {
       "format": "crossref",
       "term": "license",
       "path": null,
-      "source": "curated:the Crossref REST work record has no dedicated license field in this mapping",
+      "source": "curated:Crossref REST gives licences by content version and start date, so no single work licence is selected",
       "crosswalk_cell": null
     },
     {
