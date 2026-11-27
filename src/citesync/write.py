@@ -1,4 +1,4 @@
-"""Rewrite the files that disagree with the source, changing only what check reports.
+"""Rewrite metadata disagreements and fill explicitly selected omissions.
 
 Each file is edited in a form that keeps the rest of it as it was: CFF through
 ruamel.yaml's round trip (comments, key order, quoting), TOML through tomlkit

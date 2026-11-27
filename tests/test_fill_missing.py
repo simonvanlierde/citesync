@@ -77,7 +77,7 @@ def test_fill_doi_preserves_a_structured_codemeta_identifier(tmp_path: Path, run
     identifiers = json.loads(updated)["identifier"]
     assert identifiers[0] == json.loads(old_identifier)
     assert len(identifiers) == 2
-    assert "10.5555/lens-observatory" in json.dumps(identifiers[1])
+    assert identifiers[1] == "https://doi.org/10.5555/lens-observatory"
     assert run("check", "-q", *args) == (0, "", "")
     assert run("write", "--diff", *args) == (0, "", "")
 
@@ -191,7 +191,7 @@ def test_fill_uses_the_dataset_licence_for_configured_dataset_codemeta(tmp_path:
 
     assert run("write", *args)[0] == 0
     updated = json.loads(dataset.read_text(encoding="utf-8"))
-    assert updated["license"] in {"CC-BY-4.0", "https://spdx.org/licenses/CC-BY-4.0"}
+    assert updated["license"] == "https://spdx.org/licenses/CC-BY-4.0"
     assert source.read_bytes() == original
     assert run("write", "--diff", *args) == (0, "", "")
 
@@ -220,7 +220,7 @@ def test_fill_does_not_duplicate_a_populated_unreadable_identifier(
         f'source = "codemeta.json"\n[fill-missing]\n"{target}" = ["swhid"]\n', encoding="utf-8"
     )
     args = ("--root", str(tmp_path))
-    assert run("write", "--diff", *args)[0] == 0
+    assert "already contains an entry for this field" in run("write", "--diff", *args)[2]
     assert run("write", *args)[0] == 0
     assert path.read_text(encoding="utf-8") == original
 
@@ -301,6 +301,60 @@ def test_fill_selected_values_in_cff_and_zenodo(tmp_path: Path, run: "Run") -> N
         "contributors": [{"name": "Example, Lee", "type": "Researcher"}],
     }
     assert run("write", "--diff", *args) == (0, "", "")
+
+
+@pytest.mark.parametrize("blank", [{}, {"identifier": ""}, {"identifier": []}, {"identifier": None}])
+def test_fill_doi_uses_a_scalar_in_blank_codemeta(
+    tmp_path: Path, run: "Run", blank: dict[str, str | list[str] | None]
+) -> None:
+    doi = "10.5555/lens-observatory"
+    (tmp_path / "CITATION.cff").write_text(CFF + f"doi: {doi}\n", encoding="utf-8")
+    target = tmp_path / "codemeta.json"
+    target.write_text(json.dumps({"@context": "https://w3id.org/codemeta/3.0", **blank}), encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('[fill-missing]\n"codemeta.json" = ["identifier"]\n', encoding="utf-8")
+
+    assert run("write", "--root", str(tmp_path))[0] == 0
+    assert json.loads(target.read_text(encoding="utf-8"))["identifier"] == f"https://doi.org/{doi}"
+
+
+@pytest.mark.parametrize("license_value", ["https://example.org/licence", ["MIT", "https://example.org/licence"]])
+def test_fill_cff_uses_license_url_only_for_a_single_custom_licence(
+    tmp_path: Path, run: "Run", license_value: str | list[str]
+) -> None:
+    (tmp_path / "codemeta.json").write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "license": license_value}),
+        encoding="utf-8",
+    )
+    (tmp_path / ".zenodo.json").write_text('{"upload_type":"software"}', encoding="utf-8")
+    target = tmp_path / "CITATION.cff"
+    original = 'cff-version: "1.2.0"\n'
+    target.write_text(original, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text(
+        'source = "codemeta.json"\n[fill-missing]\n"CITATION.cff" = ["license"]\n', encoding="utf-8"
+    )
+
+    code, _, err = run("write", "--root", str(tmp_path))
+    assert code == 0
+    if isinstance(license_value, str):
+        assert f"license-url: {license_value}" in target.read_text(encoding="utf-8")
+        assert not err
+    else:
+        assert "needs a specific licence" in err
+        assert target.read_text(encoding="utf-8") == original
+
+
+def test_fill_zenodo_identifiers_requires_a_list(tmp_path: Path, run: "Run") -> None:
+    ref = "swh:1:rev:0123456789abcdef0123456789abcdef01234567"
+    (tmp_path / "CITATION.cff").write_text(CFF + f"identifiers: [{{type: swh, value: '{ref}'}}]\n", encoding="utf-8")
+    path = tmp_path / ".zenodo.json"
+    original = '{"upload_type":"software","related_identifiers":{"scheme":"swh"}}'
+    path.write_text(original, encoding="utf-8")
+    (tmp_path / "citesync.toml").write_text('[fill-missing]\n".zenodo.json" = ["swhid"]\n', encoding="utf-8")
+
+    code, _, err = run("write", "--root", str(tmp_path))
+    assert code == 0
+    assert "related_identifiers is not a list" in err
+    assert path.read_text(encoding="utf-8") == original
 
 
 def test_fill_swhid_beside_a_scalar_codemeta_doi(tmp_path: Path, run: "Run") -> None:
