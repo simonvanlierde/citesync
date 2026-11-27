@@ -97,10 +97,11 @@ def test_fill_doi_preserves_a_structured_codemeta_identifier(tmp_path: Path, run
     assert run("write", "--diff", *args) == (0, "", "")
 
 
-def test_fill_nested_cff_from_explicit_source(tmp_path: Path, run: "Run") -> None:
+@pytest.mark.parametrize("placeholder", ['""', "null", "~"])
+def test_fill_nested_cff_from_explicit_source(tmp_path: Path, run: "Run", placeholder: str) -> None:
     cff = tmp_path / "metadata" / "CITATION.cff"
     cff.parent.mkdir()
-    cff.write_text(CFF.replace("version: 1.2.3", 'version: ""  # slot') + "# preserved\n", encoding="utf-8")
+    cff.write_text(CFF.replace("version: 1.2.3", f"version: {placeholder}  # slot") + "# preserved\n", encoding="utf-8")
     (tmp_path / "codemeta.json").write_text(
         '{"@context": "https://w3id.org/codemeta/3.0", "name": "Lens Observatory", "version": "2.0.1"}\n',
         encoding="utf-8",
@@ -113,7 +114,10 @@ def test_fill_nested_cff_from_explicit_source(tmp_path: Path, run: "Run") -> Non
 
     assert run("write", "--root", str(tmp_path))[0] == 0
     updated = cff.read_text(encoding="utf-8")
-    assert 'version: "2.0.1"  # slot' in updated
+    assert YAML(typ="safe").load(updated)["version"] == "2.0.1"
+    assert any(line.startswith("version:") and "# slot" in line for line in updated.splitlines())
+    if placeholder == '""':
+        assert 'version: "2.0.1"  # slot' in updated
     assert "# preserved" in updated
     assert "repository-code" not in updated
 

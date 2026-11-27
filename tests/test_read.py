@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from citesync.errors import UnreadableError
-from citesync.formats import Doc, Person, read_doc
+from citesync.formats import Doc, Person, load, read_doc
 from citesync.mapping import PEOPLE, load_mapping
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -110,7 +110,22 @@ def test_cff_name_particle_suffix_and_entity(tmp_path: Path) -> None:
 
 
 def test_cff_scalars_read_as_written(tmp_path: Path) -> None:
-    assert _read(tmp_path, "CITATION.cff", CFF + "version: 1.10\n")["version"] == "1.10"
+    record = _read(tmp_path, "CITATION.cff", CFF + 'version: 1.10\nabstract: "null"\n')
+    assert (record["version"], record["description"]) == ("1.10", "null")
+
+
+def test_cff_yaml_null_key_keeps_its_spelling(tmp_path: Path) -> None:
+    cff = tmp_path / "CITATION.cff"
+    cff.write_text(CFF + "&blank null: arbitrary\nabstract: *blank\n", encoding="utf-8")
+    data = load(cff, cff.name)
+    assert data["null"] == "arbitrary"
+    assert data["abstract"] is None
+    assert read_doc(tmp_path, cff.name, load_mapping()).record == {"name": "x"}
+
+
+def test_quarto_yaml_null_and_literal_scalars(tmp_path: Path) -> None:
+    record = _read(tmp_path, "_extension.yml", 'title: "null"\nversion: 1.10\nauthor: null\n')
+    assert record == {"name": "null", "version": "1.10"}
 
 
 def test_zenodo_repository_skips_a_doi_supplement(tmp_path: Path) -> None:
