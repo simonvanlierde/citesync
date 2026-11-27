@@ -64,7 +64,7 @@ from citesync.formats import (
     zenodo_gaps,
 )
 from citesync.jsonsplice import splice
-from citesync.mapping import DATASETS, PEOPLE, TERMS, Mapping, load_mapping, person_terms, relative
+from citesync.mapping import DATASETS, PEOPLE, TERMS, Mapping, _parse, load_mapping, person_terms, relative
 
 # The @context of a codemeta.json write creates when codemeta-version is unset: the version
 # the project template renders and Software Heritage reads.
@@ -79,8 +79,8 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
     It fixes the findings check reports, less those config ``ignore`` lists: in a derived
     citation file every term, in a manifest only the terms in ``write-manifests``, and only
     where the source holds the term and is what the file was compared with. A field the file
-    leaves out stays out. Each file under ``exports`` that ``export-stale`` reports is made again
-    whole. An unreadable file is never written. A value the file's format can't
+    leaves out stays out unless selected in ``fill-missing``. Each stale file under ``exports`` is made again whole.
+    An unreadable file is never written. A value the file's format can't
     spell without losing something is left as it was, its (path, term) mapped to the reason.
     Every new text is made before any file is replaced, so an error leaves the files as they were.
     With ``dry_run``, nothing is replaced.
@@ -107,6 +107,8 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
     fix = {(f.file, f.term) for f in errors}
     source, texts, skipped, done = docs[0], {}, {}, set()
     key = keyword_key(config)
+    fill_targets = dict(config.fill_missing)
+    fills = []
     for doc in docs:  # the source too, for its @context
         if PurePosixPath(doc.path).name in IMPORTS | DATASET_FILES:
             continue
@@ -120,23 +122,35 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
             and t in doc.record
             and (doc.is_citation or t in config.write_manifests)
         ]
+        fill = [
+            term
+            for term in fill_targets.get(doc.path, ())
+            if doc is not source and doc.readable and ref.record.get(term) and not doc.record.get(term)
+        ]
+        if fill:
+            terms = [term for term in terms if term not in fill]
         context = config.codemeta_version if (doc.path, "@context") in fix else None
         resource_type = "https://schema.org/Dataset" if (doc.path, "@type") in fix else None
-        if not terms and not context and not resource_type:
+        if not terms and not fill and not context and not resource_type:
             continue
         old = (root / doc.path).read_bytes().decode("utf-8")  # bytes, so CRLF line ends stay
         bom = "\ufeff" if old.startswith("\ufeff") else ""  # ruamel.yaml drops one, so put it back
         # edited with LF line ends, which the YAML and JSON writers add
         lf = old.removeprefix(bom).replace("\r\n", "\n")
         new, reasons = _rewrite(
-            doc, ref, terms, lf, mapping, context, key, config.zenodo_contributor_type, resource_type
+            doc, ref, terms, lf, mapping, context, key, config.zenodo_contributor_type, resource_type, fill=fill
         )
         skipped |= {(doc.path, term): reason for term, reason in reasons.items()}
         if new != lf:
             crlf = old.count("\r\n") * 2 > old.count("\n")  # a file with both gets the more common one
             texts[doc.path] = bom + (new.replace("\n", "\r\n") if crlf else new)
-            changed = [*terms, *(["@context"] if context else []), *(["@type"] if resource_type else [])]
+            changed = [*terms, *fill, *(["@context"] if context else []), *(["@type"] if resource_type else [])]
             done |= {(doc.path, t) for t in changed if t not in reasons}
+            fills.extend(
+                Finding(doc.path, t, "required-field-missing", "selected field was missing")
+                for t in fill
+                if t not in reasons and (doc.path, t) not in fix
+            )
     version = config.codemeta_version or NEW_CODEMETA_VERSION
     for rel in missing(root, config) if source.readable else ():
         fmt = "codemeta" if rel == ds_path else format_of(rel)
@@ -165,7 +179,7 @@ def write(  # noqa: C901, PLR0915 - preserve each format and create requested ci
                 msg = f"{rel}: resolves outside the repo root, so write won't write it"
                 raise CheckError(msg)
         _replace(root, texts)
-    fixed = [f for f in errors if (f.file, f.term) in done]
+    fixed = [*(f for f in errors if (f.file, f.term) in done), *fills]
     return dict(sorted(texts.items())), skipped, [f for f in unreadable if f.rule == "unreadable"], fixed
 
 
@@ -384,19 +398,33 @@ def _rewrite(
     keyword_key: Callable[[str], str],
     zenodo_contributor_type: str | None,
     resource_type: str | None,
+    *,
+    fill: list[str],
 ) -> tuple[str, dict[str, str]]:
     """``text`` with ``terms`` set from ``source``, and the reason for each term it left as it was."""
+
+    def apply(data: Any) -> dict[str, str]:  # noqa: ANN401 - the round-trip data has format-specific values
+        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
+        for term in fill:
+            try:
+                _fill_one(doc, source, term, data, mapping, keyword_key, zenodo_contributor_type)
+            except CannotWrite as err:
+                skipped[term] = str(err)
+        return skipped
+
     if doc.format in {"cff-1.2.0", "quarto"}:
         yaml = _yaml(text)
         data = yaml.load(text)
-        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
+        skipped = apply(data)
+        if not terms and not context and len(skipped) == len(fill):
+            return text, skipped
         out = io.StringIO()
         yaml.dump(data, out)
         head = re.match(r"(?:[ \t]*(?:#.*)?\n)*(?=---)", text)  # ruamel drops the comments above a ---
         return (head[0] if head else "") + out.getvalue(), skipped
     if doc.path.endswith(".toml"):
         data = tomlkit.parse(text)
-        skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
+        skipped = apply(data)
         return tomlkit.dumps(data), skipped
     old = json.loads(text)
     data = copy.deepcopy(old)
@@ -404,8 +432,87 @@ def _rewrite(
         type_key = codemeta_type_key(data)
         old_types = data.get(type_key)
         data[type_key] = [*old_types, resource_type] if isinstance(old_types, list) else resource_type
-    skipped = _apply(doc, source, terms, data, mapping, context, keyword_key, zenodo_contributor_type)
+    skipped = apply(data)
     return splice(text, old, data), skipped
+
+
+def _fill_one(
+    doc: Doc,
+    source: Doc,
+    term: str,
+    data: dict[str, Any],
+    mapping: Mapping,
+    keyword_key: Callable[[str], str],
+    zenodo_contributor_type: str | None,
+) -> None:
+    path = mapping[doc.format, term]
+    if path is None:
+        msg = "the pinned mapping has no place for this field"
+        raise CannotWrite(msg)
+    raw = source.record[term]
+    fill_path = _cff_license_field(path, raw) if doc.format == "cff-1.2.0" and term == "license" else path
+    steps = _parse(fill_path)[0][0]
+    key, filter_key, filter_value, _ = steps[0]
+    encoded = _fill_value(doc, source, term, path, mapping, keyword_key, zenodo_contributor_type)
+    if filter_key is not None and len(steps) == 2:
+        if locate(doc.format, term, data, path) is not None:
+            msg = f"{key} already contains an entry for this field"
+            raise CannotWrite(msg)
+        _append_identifier(doc.format, term, data, key, {filter_key: filter_value, steps[1][0]: encoded})
+    elif doc.format == "codemeta" and term in {"identifier", "swhid"}:
+        if term == "swhid":
+            encoded = {"@type": "PropertyValue", "propertyID": "SWHID", "value": encoded}
+        old = data.get(key)
+        data[key] = encoded if old in (None, "", []) else [*(old if isinstance(old, list) else [old]), encoded]
+    elif len(steps) == 1 and data.get(key) in (None, "", []):
+        _set(data, key, _styled(encoded, data.get(key)), data.get(key))
+    else:
+        msg = f"{key} already has a value or needs a hand edit"
+        raise CannotWrite(msg)
+
+
+def _fill_value(
+    doc: Doc,
+    source: Doc,
+    term: str,
+    path: str,
+    mapping: Mapping,
+    keyword_key: Callable[[str], str],
+    zenodo_contributor_type: str | None,
+) -> Any:  # noqa: ANN401 - the serializers produce each format's field shape
+    blank: Any = ""
+    if term in {"author", "contributor", "keywords"}:
+        blank = []
+    elif doc.format == "codemeta":
+        blank = {"identifier": "https://doi.org/", "license": "https://spdx.org/licenses/"}.get(term, "")
+    values, skipped = _encode_terms(doc, source, {term: blank}, mapping, keyword_key, zenodo_contributor_type)
+    if term in skipped:
+        raise CannotWrite(skipped[term])
+    encoded = values[term]
+    if (
+        doc.format == "cff-1.2.0"
+        and term == "license"
+        and isinstance(encoded, list)
+        and any(_cff_license_field(path, item) != path.partition(" | ")[0] for item in encoded)
+    ):
+        msg = "cff-1.2.0 needs a specific licence"
+        raise CannotWrite(msg)
+    return encoded
+
+
+def _append_identifier(fmt: str, term: str, data: dict[str, Any], key: str, entry: dict[str, Any]) -> None:
+    if fmt == "zenodo":
+        if term == "codeRepository":
+            entry["scheme"] = "url"
+        elif term == "swhid":
+            entry["relation"] = "isIdenticalTo"
+    old = data.get(key)
+    if old is None:
+        old = []
+    if not isinstance(old, list):
+        msg = f"{key} is not a list"
+        raise CannotWrite(msg)
+    data[key] = [*old, entry]
 
 
 def _new_codemeta(

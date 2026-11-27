@@ -43,6 +43,7 @@ class Config:
     required_fields: tuple[tuple[str, tuple[str, ...]], ...] = ()
     dataset_codemeta: str | None = None
     dataset_license: str | None = None
+    fill_missing: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 # Config tables inside manifests, in the order docs/config.md lists them: (file, mapping path, origin).
@@ -117,13 +118,15 @@ def load_config(
     if not isinstance(raw, dict):
         msg = f"{origin}: the citesync config is not a table"
         raise CheckError(msg)
-    unknown = sorted(set(raw) - set(_PARSE))
+    field_tables = ("required-fields", "fill-missing")
+    known = (*_PARSE, *field_tables)
+    unknown = sorted(set(raw) - set(known))
     if unknown:
-        msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(_PARSE)}"
+        msg = f"{origin}: unknown key {', '.join(unknown)}; known keys: {', '.join(known)}"
         raise CheckError(msg)
     config = Config(
         origin=origin,
-        **{key.replace("-", "_"): _PARSE[key](value, origin) for key, value in raw.items() if key != "required-fields"},
+        **{key.replace("-", "_"): _PARSE[key](value, origin) for key, value in raw.items() if key not in field_tables},
     )
     if source is not None:
         config = replace(config, source=_path(source, FORMAT_OF, "--source", "source"))
@@ -133,15 +136,23 @@ def load_config(
         config = replace(config, dataset_license=_dataset_license(dataset_license, "--dataset-license"))
     if config.dataset_license is not None and config.dataset_codemeta is None:
         config = replace(config, dataset_codemeta="dataset.codemeta.json")
-    if "required-fields" in raw:
-        config = replace(
-            config,
-            required_fields=_required_fields(raw["required-fields"], origin, config.dataset_codemeta),
-        )
-    for path, _ in config.required_fields:
-        if not inside(root, path):
-            msg = f"{origin}: required-fields path {path!r} resolves outside the repo root"
-            raise CheckError(msg)
+    return _with_field_selections(root, config, raw, field_tables)
+
+
+def _with_field_selections(root: Path, config: Config, raw: dict, field_tables: tuple[str, ...]) -> Config:
+    for key in field_tables:
+        if key not in raw:
+            continue
+        selections = _field_selections(raw[key], config.origin, config.dataset_codemeta, key=key)
+        allowed = tuple(CITATION_FILES) if config.files is None else config.files
+        for path, _ in selections:
+            if not inside(root, path):
+                msg = f"{config.origin}: {key} path {path!r} resolves outside the repo root"
+                raise CheckError(msg)
+            if key == "fill-missing" and path not in (*allowed, config.dataset_codemeta):
+                msg = f"{config.origin}: fill-missing {path!r} must be selected under files"
+                raise CheckError(msg)
+        config = replace(config, **{key.replace("-", "_"): selections})
     return config
 
 
@@ -256,34 +267,34 @@ def _exports(value: object, origin: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(_relative(item, origin, "exports") for item in value))
 
 
-def _required_fields(
-    value: object, origin: str, dataset_codemeta: str | None = None
+def _field_selections(
+    value: object, origin: str, dataset_codemeta: str | None, *, key: str
 ) -> tuple[tuple[str, tuple[str, ...]], ...]:
-    """Validate named record terms against the pinned format's slots."""
+    """Validate selected record terms against the pinned format's slots."""
     if not isinstance(value, dict):
-        msg = f"{origin}: required-fields must be a table of paths to lists of CodeMeta terms"
+        msg = f"{origin}: {key} must be a table of paths to lists of CodeMeta terms"
         raise CheckError(msg)
     required = {}
     mapping = load_mapping()
     for path, terms in value.items():
-        rel = _relative(path, origin, "required-fields")
+        rel = _relative(path, origin, key)
         fmt = (
             "codemeta"
-            if rel in {dataset_codemeta, "dataset.codemeta.json"}
-            else format_of(_path(path, FORMAT_OF, origin, "required-fields"))
+            if rel == dataset_codemeta or (key == "required-fields" and rel == "dataset.codemeta.json")
+            else format_of(_path(path, CITATION_FILES if key == "fill-missing" else FORMAT_OF, origin, key))
         )
         if "\\" in path or ":" in path or not path.isprintable():
-            msg = f"{origin}: required-fields path {path!r} must be a printable relative POSIX path"
+            msg = f"{origin}: {key} path {path!r} must be a printable relative POSIX path"
             raise CheckError(msg)
         if not isinstance(terms, list) or not terms or not all(isinstance(term, str) for term in terms):
-            msg = f"{origin}: required-fields {path!r} must be a non-empty list of CodeMeta terms"
+            msg = f"{origin}: {key} {path!r} must be a non-empty list of CodeMeta terms"
             raise CheckError(msg)
         for term in terms:
             if term not in TERMS:
-                msg = f"{origin}: required-fields: {term!r} is not a supported term; choose from {', '.join(TERMS)}"
+                msg = f"{origin}: {key}: {term!r} is not a supported term; choose from {', '.join(TERMS)}"
                 raise CheckError(msg)
             if term not in slots(fmt, mapping):
-                msg = f"{origin}: required-fields: {path!r} cannot represent {term!r} in the pinned mapping"
+                msg = f"{origin}: {key}: {path!r} cannot represent {term!r} in the pinned mapping"
                 raise CheckError(msg)
         required[rel] = tuple(dict.fromkeys((*required.get(rel, ()), *terms)))
     return tuple(required.items())
@@ -332,7 +343,6 @@ _PARSE: dict[str, Callable[[object, str], Any]] = {
     "manifests": lambda value, origin: _paths(value, MANIFESTS | DATASET_FILES, origin, "manifests"),
     "write-manifests": _write_manifests,
     "exports": _exports,
-    "required-fields": _required_fields,
     "zenodo-contributor-type": _zenodo_contributor_type,
     "keywords-case-sensitive": lambda value, origin: _bool(value, origin, "keywords-case-sensitive"),
     "keywords-ignore-separators": lambda value, origin: _bool(value, origin, "keywords-ignore-separators"),
@@ -344,6 +354,7 @@ def as_dict(config: Config) -> dict[str, Any]:
     """The settings under their config keys, ``None`` where unset (``citesync config --json``)."""
     out = {k.replace("_", "-"): v for k, v in asdict(config).items() if k != "origin"}
     out["required-fields"] = {path: list(terms) for path, terms in config.required_fields}
+    out["fill-missing"] = {path: list(terms) for path, terms in config.fill_missing}
     return out
 
 
@@ -369,12 +380,18 @@ def render(config: Config) -> str:
         else "# manifests: not set, so every release manifest at the repo root",
         f"write-manifests = {json.dumps(list(config.write_manifests))}",
         f"exports = {json.dumps(list(config.exports))}",
-        "required-fields = {"
-        + ", ".join(
-            f"{json.dumps(path, ensure_ascii=False)} = {json.dumps(list(terms))}"
-            for path, terms in config.required_fields
-        )
-        + "}",
+        *(
+            setting
+            + " = {"
+            + ", ".join(
+                f"{json.dumps(path, ensure_ascii=False)} = {json.dumps(list(terms))}" for path, terms in selected
+            )
+            + "}"
+            for setting, selected in (
+                ("required-fields", config.required_fields),
+                ("fill-missing", config.fill_missing),
+            )
+        ),
         f"zenodo-contributor-type = {json.dumps(config.zenodo_contributor_type)}"
         if config.zenodo_contributor_type is not None
         else "# zenodo-contributor-type: not set, so new contributors need a hand edit",

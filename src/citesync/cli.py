@@ -304,7 +304,7 @@ def _run(args: argparse.Namespace) -> int:
     findings, files, unused = check(args.root, config)
     failed = any(f.severity == "error" for f in findings)
     if args.command == "check" and failed and args.format == "text" and not args.quiet:
-        fixed = _fixable(args.root, config)  # only a failing check pays for write's imports
+        fixed = _fixable(args.root, config, findings)  # only a failing check pays for write's imports
     if not args.quiet:
         for rule in unused:
             print(f"citesync: warning: ignore entry {rule!r} matched no finding", file=sys.stderr)
@@ -338,10 +338,21 @@ def _written(
             left = [f"{t}: {why}" for (p, t), why in sorted(skipped.items()) if p == path and (p, t) not in shown]
             wrote = f"wrote {path}" + (f", leaving out {'; '.join(left)}" if left else "")
             print(wrote, file=sys.stdout if args.format == "text" else sys.stderr)
+        explained = shown | {(p, t) for p, t in skipped if p in written}
+        _report_unfilled(config, skipped, explained)
     return [
         f if f.severity == "info" else replace(f, message=f"{f.message} ({advice(f, config, skipped)})")
         for f in findings
     ]
+
+
+def _report_unfilled(
+    config: Config, skipped: dict[tuple[str, str], str], explained: set[tuple[str | None, str | None]]
+) -> None:
+    pending = {(path, term) for path, terms in config.fill_missing for term in terms}
+    for (path, term), reason in sorted(skipped.items()):
+        if (path, term) in pending and (path, term) not in explained:
+            print(f"{path!r}: leaving out {term}: {reason!r}", file=sys.stderr)
 
 
 def _parse(argv: list[str] | None) -> argparse.Namespace:
@@ -372,10 +383,11 @@ def _write(
     return written, skipped, fixed
 
 
-def _fixable(root: Path, config: Config) -> list[Finding] | None:
+def _fixable(root: Path, config: Config, findings: list[Finding]) -> list[Finding] | None:
     """The findings write would fix, or None when it would fail: the count is a hint, not the check."""
     try:
-        return _write(root, config, dry_run=True)[2]
+        reported = {(f.file, f.term, f.rule) for f in findings}
+        return [f for f in _write(root, config, dry_run=True)[2] if (f.file, f.term, f.rule) in reported]
     except Exception:  # noqa: BLE001
         return None
 
@@ -384,10 +396,12 @@ def _write_diff(root: Path, config: Config, *, quiet: bool) -> int:
     """Print the edits write would make as a unified diff, and any file it can't read on stderr."""
     from citesync.write import write  # noqa: PLC0415
 
-    texts, _, unreadable, fixed = write(root, config, dry_run=True)
+    texts, skipped, unreadable, fixed = write(root, config, dry_run=True)
     sys.stdout.write(_diff(root, texts))
     if texts and not quiet:
         print(f"would fix {_count(len(fixed), 'finding')} in {_count(len(texts), 'file')}", file=sys.stderr)
+    if not quiet:
+        _report_unfilled(config, skipped, set())
     for f in unreadable:  # the diff can't show a file write never touches, so say so
         print(f"{f.where}: error[unreadable] {f.message}", file=sys.stderr)
     return 1 if texts or unreadable else 0

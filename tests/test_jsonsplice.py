@@ -90,3 +90,10 @@ def test_splice_with_no_indented_line_indents_by_two() -> None:
 def test_splice_on_the_line_after_a_blank_first_line(text: str, new: object, expected: str) -> None:
     """The margin is found back to the newline at offset 0."""
     assert splice(text, json.loads(text), new) == expected
+
+
+def test_splice_appends_an_object_member_without_reformatting_other_members() -> None:
+    text = '{\n\t"label" : "\\u00e9",\n\t"version": 1\n}\n'
+    new = {"label": "é", "version": 2, "nested": {"ok": True}}
+    expected = '{\n\t"label" : "\\u00e9",\n\t"version": 2,\n\t"nested": {\n\t\t"ok": true\n\t}\n}\n'
+    assert splice(text, json.loads(text), new) == expected

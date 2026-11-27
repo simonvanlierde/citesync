@@ -44,7 +44,7 @@ A usage error (exit 2) under `--json` or `--format json` prints the same report 
 
 These add command-specific keys beside `schema_version`, `tool` and `errors`:
 
-- `citesync config --json` adds `root`, `origin` (the file the settings came from, or `defaults`) and `config`: every setting under its config key, `null` where unset, and `required-fields` as an object from file to terms.
+- `citesync config --json` adds `root`, `origin` (the file the settings came from, or `defaults`) and `config`: every setting under its config key, `null` where unset, and `required-fields` and `fill-missing` as objects from file to terms.
 - `citesync init --json` writes CITATION.cff as usual and adds `written`, `skipped` (`term` and `reason` for each term left out), `name_splits` (`name`, `given`, `family`) and `notes`. It takes no `--diff`.
 - `citesync explain <rule> --json` adds `rule`: `rule`, `severity`, `summary`, `details`, `help` and `url`. An unknown rule is a usage error.
 - `citesync rules --json` adds `rules`: a list of `rule`, `severity`, `summary` and `url`, one per rule.

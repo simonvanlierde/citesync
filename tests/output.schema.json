@@ -52,7 +52,7 @@
     "config": {
       "description": "`config`: the settings under their config keys, null where unset.",
       "type": "object",
-      "required": ["source", "write-manifests", "exports", "required-fields", "ignore"]
+      "required": ["source", "write-manifests", "exports", "required-fields", "fill-missing", "ignore"]
     },
     "written": { "const": "CITATION.cff", "description": "`init`: the file it wrote." },
     "skipped": {

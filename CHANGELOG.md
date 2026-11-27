@@ -25,6 +25,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `citesync config`, `init` and `explain` accept `--json`. Their reports include the active configuration, initialization results or rule details ([output](docs/output.md#config-init-explain-and-rules)).
 - `rules --json` is an alias of `rules --format json` ([output](docs/output.md#config-init-explain-and-rules)).
 - `--help` includes two JSON command examples.
+- Opt in to [filling selected missing citation fields](docs/write.md#fill-missing-fields) from your metadata source. Preview additions with `citesync write --diff`.
 
 ## [0.6.0] - 2026-11-16
 

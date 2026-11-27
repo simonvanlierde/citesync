@@ -54,9 +54,13 @@ def _edits(text: str, node: tuple[int, int, Any, Any], old: Any, new: Any, edits
     start, end, kids, _ = node
     if type(old) is type(new) and old == new:
         return
-    if isinstance(old, dict) and isinstance(new, dict) and list(old) == list(new):
+    if isinstance(old, dict) and isinstance(new, dict) and old and list(old) == list(new)[: len(old)]:
         for key in old:
             _edits(text, kids[key], old[key], new[key], edits, indent)
+        if len(new) > len(old):
+            _append_members(text, start, kids, old, new, edits, indent)
+    elif isinstance(old, dict) and isinstance(new, dict) and list(old) == list(new):
+        return  # two empty objects with different mapping types
     elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
         for i, (a, b) in enumerate(zip(old, new, strict=True)):
             _edits(text, kids[i], a, b, edits, indent)
@@ -75,3 +79,26 @@ def _edits(text: str, node: tuple[int, int, Any, Any], old: Any, new: Any, edits
         edits.append((start, end, json.dumps(new, indent=indent, ensure_ascii=False).replace("\n", "\n" + margin)))
     else:
         edits.append((start, end, json.dumps(new, ensure_ascii=False)))
+
+
+def _append_members(
+    text: str,
+    start: int,
+    kids: dict[Any, Any],
+    old: dict[Any, Any],
+    new: dict[Any, Any],
+    edits: list,
+    indent: str,
+) -> None:
+    """Append new object members without rewriting existing values or their whitespace."""
+    first_key = kids[next(iter(old))][3]
+    last_end = kids[next(reversed(old))][1]
+    multiline = "\n" in text[start:first_key]
+    margin = text[text.rfind("\n", start, first_key) + 1 : first_key] if multiline else ""
+    separator = ",\n" + margin if multiline else ", "
+    pieces = []
+    for key in list(new)[len(old) :]:
+        name = json.dumps(key, ensure_ascii=False)
+        value = json.dumps(new[key], indent=indent if multiline else None, ensure_ascii=False)
+        pieces.append(f"{name}: {value}".replace("\n", "\n" + margin))
+    edits.append((last_end, last_end, separator + separator.join(pieces)))

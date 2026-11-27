@@ -1,6 +1,6 @@
 # How `citesync write` works
 
-`citesync write` fixes what `check` reports, and nothing more. `citesync write --diff` prints the same edits as a unified diff and writes nothing, and on stderr how many findings it would fix in how many files. It exits 1 when there is a change or a file it can't read, so CI can run it.
+`citesync write` fixes disagreements reported by `check` and adds fields you select under `fill-missing`. `citesync write --diff` prints the same edits as a unified diff and writes nothing, and on stderr how many findings it would fix in how many files. It exits 1 when there is a change or a file it can't read, so CI can run it.
 
 ## What it writes
 
@@ -10,10 +10,23 @@ PKG-INFO, METADATA, R DESCRIPTION, Julia Project.toml/JuliaProject.toml and Comp
 
 It leaves these alone:
 
-- a field a file leaves out: a .zenodo.json without a version never gains one;
+- a field a file leaves out, unless you select it under [`fill-missing`](#fill-missing-fields);
 - a field the source doesn't hold (no DOI in pyproject.toml);
 - values that compare equal, such as `v1.2.3` against `1.2.3`;
 - findings whose rule is in `ignore`, and `unreadable` files.
+
+## Fill missing fields
+
+Name the citation file and the CodeMeta terms to copy from the configured source.
+
+```toml
+[fill-missing]
+"codemeta.json" = ["version", "codeRepository"]
+```
+
+Run `citesync write --diff` to preview the additions. Run `citesync write` to apply them.
+Choose existing CFF, CodeMeta or Zenodo citation files. For nested paths, list the file under [`files`](config.md) as well. A configured dataset CodeMeta file can use its own dataset licence.
+Each addition needs a source value the target can represent. Populated fields and other files follow the existing write rules. See [`required-fields`](config.md#require-values-in-selected-files) if you also want `check` to report omissions.
 
 ## Create citation files
 
