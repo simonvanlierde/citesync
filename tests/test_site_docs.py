@@ -88,3 +88,18 @@ def test_policy_pins_inline_scripts_and_preserves_canonical_links(docs: ModuleTy
     assert 'href="https://simonvanlierde.com/citesync/docs/config/"' in output
     assert '<a href="../../">Playground</a>' in output
     assert "unsafe-inline" not in output
+
+
+def test_policy_keeps_old_roadmap_heading_anchors(docs: ModuleType, tmp_path: Path):
+    roadmap = tmp_path / "site/docs/roadmap"
+    roadmap.mkdir(parents=True)
+    (tmp_path / "playground").mkdir()
+    (tmp_path / "playground/footer.html").write_text("citesync {version}")
+    (tmp_path / "playground/docs-script-hashes.txt").write_text("")
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.7.0"\n')
+    page = roadmap / "index.html"
+    page.write_text('<meta charset="utf-8"><h2 id="next">Next</h2><h2 id="design-boundaries">Design boundaries</h2>')
+    docs.secure_docs(roadmap.parent, tmp_path)
+    output = page.read_text()
+    assert 'id="after-06"></span><h2 id="next">' in output
+    assert 'id="not-planned"></span><h2 id="design-boundaries">' in output

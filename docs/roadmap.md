@@ -4,7 +4,7 @@ Last reviewed: 2026-11-26
 
 ## Current release
 
-Version 0.6.0 was published on 2026-11-16. Version 0.7.0 adds JSON output for more CLI commands and breaking changes to rules output and usage-error reporting.
+Version 0.6.0 was published on 2026-11-16. Version 0.7.0 adds Composer and Maven imports and JSON output for more CLI commands. It changes rules output and usage-error reporting.
 
 Physical iPhone Safari, screen-reader control announcements and native EndNote import still need verification.
 
