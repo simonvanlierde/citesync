@@ -692,7 +692,7 @@ def _license(fmt: str, spdx: str, old: Any) -> Any:  # noqa: ANN401
         is_url = item.lower().startswith(("http://", "https://", "ftp://", "sftp://"))
         value = item if is_url else item.replace("(", "").replace(")", "").strip()
         proprietary = value.casefold() == "proprietary"
-        if proprietary and fmt == "cff-1.2.0":
+        if fmt == "cff-1.2.0" and (proprietary or (is_url and " OR " in spdx)):
             msg = "cff-1.2.0 needs a specific licence"
             raise CannotWrite(msg)
         ids.append(

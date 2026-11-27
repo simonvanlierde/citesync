@@ -85,7 +85,7 @@ def license_key(spdx: str) -> str:
     grouped = {"and", "with"} & set(spdx.casefold().split())
     parts = []
     for item in spdx.split(" OR "):
-        if item.lower().startswith(("http://", "https://")):
+        if item.lower().startswith(("http://", "https://", "ftp://", "sftp://")):
             parts.append(item)
         else:
             key = item.casefold()

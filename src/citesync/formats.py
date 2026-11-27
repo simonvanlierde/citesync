@@ -30,6 +30,7 @@ from citesync.mapping import (
     TERMS,
     Mapping,
     context_terms,
+    load_mapping,
     person_terms,
     relative,
     resolve,
@@ -53,6 +54,7 @@ IMPORTS = {
     "Project.toml": "julia",
     "JuliaProject.toml": "julia",
     "composer.json": "composer",
+    "pom.xml": "maven",
 }
 DATASET_FILES = {"ro-crate-metadata.json": "ro-crate", "croissant.json": "croissant"}
 """Compared like a manifest and never written; see :data:`citesync.mapping.DATASETS`."""
@@ -178,7 +180,7 @@ def read_doc(
     fmt = fmt or format_of(rel)
     if not inside(root, rel):  # an untrusted clone could point it at any file the user can read
         raise UnreadableError(rel, "resolves outside the repo root")
-    data = load(root / rel, rel)
+    data = load(root / rel, rel, mapping=mapping)
     is_dataset = fmt == "codemeta" and codemeta_is_dataset(data)
     version = _detect_version(fmt, data, rel)
     release = _is_release(fmt, data)
@@ -213,7 +215,9 @@ def read_doc(
         dangling_roles=roles,
         stray_terms=stray,
         zenodo_gaps=gaps,
-        import_notes=tuple(data.get("_import_notes", ())) if fmt in IMPORTED and fmt != "composer" else (),
+        import_notes=(
+            tuple(data.get("_import_notes", ())) if fmt in IMPORTED and fmt not in {"composer", "maven"} else ()
+        ),
         unusable=tuple(unusable),
         is_dataset=is_dataset,
     )
@@ -419,8 +423,8 @@ def slots(fmt: str, mapping: Mapping) -> frozenset[str]:
     return frozenset(term for term in TERMS + PERSON_TERMS if mapping[fmt, term] is not None)
 
 
-def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one branch per way a file fails
-    """Parse metadata at ``path`` as TOML, JSON, YAML or distribution headers, named ``rel`` in errors.
+def load(path: Path, rel: str, *, mapping: Mapping | None = None) -> dict[str, Any]:  # noqa: C901, PLR0912 - one branch per way a file fails
+    """Parse metadata at ``path`` as TOML, JSON, YAML, XML or distribution headers, named ``rel`` in errors.
 
     Raises:
         UnreadableError: when it can't be read or parsed, or its top level isn't a mapping.
@@ -435,6 +439,10 @@ def load(path: Path, rel: str) -> dict[str, Any]:  # noqa: C901, PLR0912 - one b
         raise UnreadableError(rel, f"not UTF-8 at byte {err.start}") from err
     if text.startswith("\ufeff") and path.suffix in {".json", ".toml"}:  # YAML skips one; JSON and TOML refuse it
         raise UnreadableError(rel, "starts with a byte order mark: save it as UTF-8 without one")
+    if path.name == "pom.xml":
+        from citesync.maven import parse  # noqa: PLC0415 - import-only adapter
+
+        return parse(text, rel, load_mapping() if mapping is None else mapping)
     if path.name in IMPORTS and path.suffix != ".json":
         if IMPORTS[path.name] == "pkg-info":
             from citesync.core_metadata import parse as parse_import  # noqa: PLC0415 - import-only adapter
@@ -675,9 +683,13 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
     ):  # parts read together: the first value its decoder takes, a DOI by its spelling
         return next((value for raw in resolve(data, path) if (value := _DECODE[term](raw)) is not None), None)
     slot = locate(fmt, term, data, path)
-    if slot is None:
-        return None
-    raw = slot[0][slot[1]]
+    raw = slot[0][slot[1]] if slot else None
+    if fmt == "maven":
+        raw = (
+            [value for value in resolve(data, path) if _maven_licence_url(value)]
+            if term == "license"
+            else _maven_literal(raw)
+        )
     if term == "keywords":
         items = (
             raw
@@ -696,6 +708,24 @@ def _read_term(fmt: str, term: str, data: dict[str, Any], path: str, mapping: Ma
     if fmt == "composer" and term == "license" and isinstance(value, str):
         value = re.sub(r"\s+(and|or)\s+", lambda match: f" {match[1].upper()} ", value, flags=re.IGNORECASE)
     return value
+
+
+def _maven_literal(value: object) -> object:
+    """Omit values that need Maven's model interpolation."""
+    return None if isinstance(value, str) and "${" in value else value
+
+
+def _maven_licence_url(value: object) -> bool:
+    from urllib.parse import urlsplit  # noqa: PLC0415 - only Maven licence fields need structural URL validation
+
+    if not isinstance(value, str) or "${" in value or not re.fullmatch(r"(?:https?|s?ftp)://\S+", value, re.IGNORECASE):
+        return False
+    try:
+        parts = urlsplit(value)
+        hostname, _ = parts.hostname, parts.port  # accessing port rejects invalid values
+        return bool(hostname)
+    except ValueError:
+        return False
 
 
 _DECODE = {
@@ -749,6 +779,8 @@ def person(  # noqa: C901 - one branch per format's person shape
         return values[0] if values else None
 
     def text(value: object) -> str | None:
+        if fmt == "maven":
+            value = _maven_literal(value)
         return (codecs.clean(value) or None) if isinstance(value, str) else None
 
     orcid = (codemeta_orcid if fmt in _JSONLD else codecs.orcid_decode)(sub(orcid_term))
@@ -759,7 +791,7 @@ def person(  # noqa: C901 - one branch per format's person shape
             given, family = codecs.zenodo_name_decode(raw) or (None, None)
             name = codecs.display_name(given, family)
         else:
-            name = text(raw) if fmt == "composer" else codecs.contact_name_decode(raw)
+            name = text(raw) if fmt in {"composer", "maven"} else codecs.contact_name_decode(raw)
     else:
         given, family = text(sub(given_term)), text(sub(family_term))
         name = codecs.display_name(given, family)

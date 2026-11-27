@@ -37,7 +37,7 @@ def place(root: Path, docs: list[Doc], found: Iterable["Finding"], mapping: Mapp
             placed.add(f)
             continue
         if f.file not in keys:
-            keys[f.file] = key_positions(root / f.file)
+            keys[f.file] = key_positions(root / f.file, mapping)
         at = _find(keys[f.file], key_paths(fmt, f.term, mapping))
         placed.add(replace(f, line=at[0], column=at[1]) if at else f)
     return placed
@@ -76,7 +76,7 @@ def _find(keys: Keys, paths: list[tuple[str, ...]]) -> tuple[int, int] | None:
     return None
 
 
-def key_positions(path: Path) -> Keys:
+def key_positions(path: Path, mapping: Mapping | None = None) -> Keys:
     """(line, column) of every key in the file at ``path`` reached through objects alone, both counted from 1.
 
     The first of two equal keys wins. An unreadable file has none: positions only help, so they never fail a check.
@@ -87,6 +87,10 @@ def key_positions(path: Path) -> Keys:
             return _json_keys(text)
         if path.suffix == ".toml":
             return _toml_keys(text)
+        if path.name == "pom.xml" and mapping is not None:
+            from citesync.maven import key_positions as maven_positions  # noqa: PLC0415 - only POM diagnostics need XML
+
+            return maven_positions(text, mapping)
         return _yaml_keys(text)
     except (OSError, ValueError, IndexError, YAMLError):
         return {}

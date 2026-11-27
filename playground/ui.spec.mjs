@@ -546,6 +546,24 @@ test("Python distribution metadata examples and uploads generate citation files"
   await accessible(page);
 });
 
+test("Maven metadata generates citations from a POM", async ({ page }) => {
+  await page.goto("/");
+  await choose(page, "source-format", "pom.xml");
+  await page.getByRole("button", { name: "Try an example" }).click();
+  await expect(page.locator("#output")).toContainText("Lensgrind", { timeout: 90000 });
+  await choose(page, "source-format", "auto");
+  await page
+    .locator("#input")
+    .fill(
+      "<project><modelVersion>4.0.0</modelVersion><name>Optics</name>" +
+        "<developers><developer><name>Mira Example</name></developer></developers></project>",
+    );
+  await expect(page.locator("#detected-format")).toHaveText("Detected pom.xml");
+  await choose(page, "output-file", "codemeta.json");
+  await expect(page.locator("#output")).toContainText("Optics");
+  await expect(page.locator("#output")).toContainText("Mira");
+});
+
 test("Composer example, pasted metadata and file upload generate citations", async ({ page }) => {
   await page.goto("/");
   await choose(page, "source-format", "composer.json");
@@ -605,6 +623,7 @@ test("the file lists are grouped, sorted and searchable, and checked names stay 
   await search.click();
   await expect(page.locator("#source-format-list .picker-group")).toHaveText([
     "Citation files",
+    "Java",
     "JavaScript",
     "Julia",
     "PHP",
