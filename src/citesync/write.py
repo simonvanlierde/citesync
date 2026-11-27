@@ -203,34 +203,48 @@ def init(
     return text, skipped, splits, left_out
 
 
-def citation_file(fmt: str, root: Path, config: Config, source: Doc, mapping: Mapping) -> tuple[str, dict[str, str]]:
+def citation_file(
+    fmt: str, root: Path, config: Config, source: Doc, mapping: Mapping, *, resource_type: str = "software"
+) -> tuple[str, dict[str, str]]:
     """A new CITATION.cff (``cff``), codemeta.json or .zenodo.json holding ``source``'s terms, and what it left out.
 
-    For ``cff``, ``source`` comes from :func:`_merged`, which makes sure of a title and authors.
+    The caller supplies a title and, for ``cff``, authors. CFF and CodeMeta also support datasets.
 
     Raises:
-        CheckError: when the source gives no title.
+        CheckError: when the source gives no title or the format cannot represent the resource type.
     """
     if not source.record.get("name"):
         msg = f"no file gives a title, which the {fmt} file needs"
         raise CheckError(msg)
+    if resource_type != "software" and (resource_type != "dataset" or fmt not in {"cff", "codemeta"}):
+        msg = f"{fmt} does not support resource type {resource_type!r}"
+        raise CheckError(msg)
     if fmt == "cff":
-        return _new_cff(root, source, config, mapping)
+        return _new_cff(root, source, config, mapping, resource_type=resource_type)
     key = keyword_key(config)
     if fmt == "codemeta":
-        return _new_codemeta("codemeta.json", source, config.codemeta_version or NEW_CODEMETA_VERSION, mapping, key)
+        return _new_codemeta(
+            "codemeta.json",
+            source,
+            config.codemeta_version or NEW_CODEMETA_VERSION,
+            mapping,
+            key,
+            resource_type="https://schema.org/Dataset" if resource_type == "dataset" else "SoftwareSourceCode",
+        )
     return _new_zenodo(".zenodo.json", source, mapping, key, config.zenodo_contributor_type)
 
 
-def _new_cff(root: Path, source: Doc, config: Config, mapping: Mapping) -> tuple[str, dict[str, str]]:
+def _new_cff(
+    root: Path, source: Doc, config: Config, mapping: Mapping, *, resource_type: str = "software"
+) -> tuple[str, dict[str, str]]:
     """A CITATION.cff holding ``source``'s terms, and the reason for each term left out."""
     record = source.record
     cff = Doc("CITATION.cff", "cff-1.2.0", {}, frozenset(), "1.2.0", release=True)
     data = CommentedMap(
         [
             ("cff-version", "1.2.0"),
-            ("message", "If you use this software, please cite it as below."),
-            ("type", "software"),
+            ("message", f"If you use this {resource_type}, please cite it as below."),
+            ("type", resource_type),
         ]
     )
     license_path = mapping[cff.format, "license"] or "license"

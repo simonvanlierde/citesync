@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.9",
+  "schema_version": "1.10",
   "codemeta_tag": "3.1",
   "generator": {
     "name": "codemeta-drift",
@@ -217,6 +217,13 @@
       "crosswalk_cell": null
     },
     {
+      "format": "cff-1.2.0",
+      "term": "preferredCitation",
+      "path": "preferred-citation",
+      "source": "crosswalk:crosswalks/Citation File Format 1.2.0.csv@3.1",
+      "crosswalk_cell": "preferred-citation"
+    },
+    {
       "format": "codemeta",
       "term": "name",
       "path": "name",
@@ -350,6 +357,517 @@
       "path": "@type",
       "source": "curated:CodeMeta has no term for the resource type; a CodeMeta document states its resource type in @type",
       "comment": "SoftwareSourceCode for source code, SoftwareApplication for an application.",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "name",
+      "path": "title[]",
+      "source": "curated:Crossref REST lists deposited titles in title",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "version",
+      "path": null,
+      "source": "curated:the Crossref REST work record has no dedicated version field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "author",
+      "path": "author[]",
+      "source": "curated:Crossref REST gives authors in citation order",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "author.givenName",
+      "path": "author[].given",
+      "source": "curated:Crossref REST puts the author's given name in given",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "author.familyName",
+      "path": "author[].family",
+      "source": "curated:Crossref REST puts the author's family name in family",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "author.@id",
+      "path": "author[].ORCID",
+      "source": "curated:Crossref REST supplies ORCID URLs in ORCID",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "contributor",
+      "path": "contributor[]",
+      "source": "curated:Crossref REST lists other contributors separately from authors and editors",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "contributor.givenName",
+      "path": "contributor[].given",
+      "source": "curated:Crossref REST uses given for the contributor's given name",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "contributor.familyName",
+      "path": "contributor[].family",
+      "source": "curated:Crossref REST uses family for the contributor's family name",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "contributor.@id",
+      "path": "contributor[].ORCID",
+      "source": "curated:Crossref REST uses ORCID for the contributor's ORCID URL",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "license",
+      "path": null,
+      "source": "curated:Crossref REST gives licences by content version and start date, so no single work licence is selected",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "identifier",
+      "path": "DOI",
+      "source": "curated:Crossref REST's work identifier is the deposited DOI",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:the Crossref REST work record has no dedicated swhid field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "codeRepository",
+      "path": null,
+      "source": "curated:the Crossref REST work record has no dedicated codeRepository field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "description",
+      "path": "abstract",
+      "source": "curated:Crossref REST exposes a deposited abstract, often as JATS XML",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "keywords",
+      "path": null,
+      "source": "curated:the Crossref REST work record has no dedicated keywords field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "datePublished",
+      "path": "published.date-parts | issued.date-parts",
+      "source": "curated:Crossref REST gives publication and issue dates as arrays of date parts",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "publisher",
+      "path": "publisher",
+      "source": "curated:Crossref REST lists the publisher of the work",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "resourceType",
+      "path": "type",
+      "source": "curated:Crossref REST gives its content type, such as journal-article",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "author.name",
+      "path": "author[].name",
+      "source": "curated:Crossref REST uses name for an organization author",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "url",
+      "path": "URL",
+      "source": "curated:Crossref REST gives the work URL",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "containerTitle",
+      "path": "container-title[]",
+      "source": "curated:Crossref REST lists titles of the containing publication",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "volume",
+      "path": "volume",
+      "source": "curated:Crossref REST gives the journal or series volume",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "issue",
+      "path": "issue",
+      "source": "curated:Crossref REST gives the issue number",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "crossref",
+      "term": "pagination",
+      "path": "page | article-number",
+      "source": "curated:Crossref REST gives pages in page, with an article number for some unpaginated articles",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "name",
+      "path": "title",
+      "source": "curated:arXiv Atom entries give the preprint title in title",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "version",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated version field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "author",
+      "path": "author[]",
+      "source": "curated:arXiv Atom repeats author in byline order",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "author.givenName",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated author.givenName field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "author.familyName",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated author.familyName field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "author.@id",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated author.@id field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated contributor field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated contributor.givenName field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated contributor.familyName field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated contributor.@id field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "license",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated license field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "identifier",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated identifier field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "swhid",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated swhid field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "codeRepository",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated codeRepository field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "description",
+      "path": "summary",
+      "source": "curated:arXiv Atom stores the abstract in summary",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "keywords",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated keywords field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "datePublished",
+      "path": "published",
+      "source": "curated:arXiv Atom published is the date of the first posted version",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "publisher",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated publisher field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "resourceType",
+      "path": null,
+      "source": "curated:the arXiv Atom entry has no dedicated resourceType field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "author.name",
+      "path": "author[].name",
+      "source": "curated:arXiv Atom supplies an unsplit author name",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "arxivId",
+      "path": "link[rel=alternate].href | id",
+      "source": "curated:arXiv Atom's alternate link names the returned version; the Atom id is a fallback",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "primaryCategory",
+      "path": "primary_category.term",
+      "source": "curated:arXiv Atom supplies the primary classification as the primary_category term attribute",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "arxiv",
+      "term": "relatedDoi",
+      "path": "doi | link[title=doi].href",
+      "source": "curated:arXiv Atom's DOI identifies the related publication, separately from the arXiv record",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "name",
+      "path": "title",
+      "source": "curated:a CFF 1.2.0 reference uses title for the work name",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "version",
+      "path": "version",
+      "source": "curated:a CFF 1.2.0 reference uses version for the referenced work's version",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "author",
+      "path": "authors[]",
+      "source": "curated:a CFF 1.2.0 reference supplies its own ordered authors",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "author.givenName",
+      "path": "authors[].given-names",
+      "source": "curated:CFF 1.2.0 personal authors store given names in given-names",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "author.familyName",
+      "path": "authors[].family-names",
+      "source": "curated:CFF 1.2.0 personal authors store family names in family-names",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "author.@id",
+      "path": "authors[].orcid",
+      "source": "curated:CFF 1.2.0 personal authors store their ORCID in orcid",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "contributor",
+      "path": null,
+      "source": "curated:the CFF 1.2.0 preferred reference has no dedicated contributor field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "contributor.givenName",
+      "path": null,
+      "source": "curated:the CFF 1.2.0 preferred reference has no dedicated contributor.givenName field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "contributor.familyName",
+      "path": null,
+      "source": "curated:the CFF 1.2.0 preferred reference has no dedicated contributor.familyName field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "contributor.@id",
+      "path": null,
+      "source": "curated:the CFF 1.2.0 preferred reference has no dedicated contributor.@id field in this mapping",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "license",
+      "path": "license | license-url",
+      "source": "curated:a CFF 1.2.0 reference may supply an SPDX identifier or a licence URL",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "identifier",
+      "path": "doi | identifiers[type=doi].value",
+      "source": "curated:a CFF 1.2.0 reference has its own DOI or DOI entry in identifiers",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "swhid",
+      "path": "identifiers[type=swh].value",
+      "source": "curated:a CFF 1.2.0 reference holds a Software Heritage ID in identifiers",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "codeRepository",
+      "path": "repository-code",
+      "source": "curated:CFF 1.2.0 gives the source repository in repository-code",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "description",
+      "path": "abstract",
+      "source": "curated:a CFF 1.2.0 reference stores its summary in abstract",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "keywords",
+      "path": "keywords",
+      "source": "curated:a CFF 1.2.0 reference stores its keywords in an array",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "datePublished",
+      "path": "date-published | date-released | year",
+      "source": "curated:a CFF 1.2.0 reference may give a full publication or release date, or a year",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "publisher",
+      "path": "publisher.name",
+      "source": "curated:a CFF 1.2.0 reference names its publisher as an entity",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "resourceType",
+      "path": "type",
+      "source": "curated:CFF 1.2.0 reference type can be article, software, or data, among others",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "author.name",
+      "path": "authors[].name",
+      "source": "curated:CFF 1.2.0 entity authors store their full name in name",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "url",
+      "path": "url",
+      "source": "curated:a CFF 1.2.0 reference can provide the work URL",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "containerTitle",
+      "path": "journal | collection-title",
+      "source": "curated:a CFF 1.2.0 reference supplies its journal name or collection title",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "volume",
+      "path": "volume",
+      "source": "curated:a CFF 1.2.0 reference gives its volume number",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "issue",
+      "path": "issue",
+      "source": "curated:a CFF 1.2.0 reference gives its issue number",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "cff-preferred",
+      "term": "pagination",
+      "path": "start + end",
+      "source": "curated:a CFF 1.2.0 reference gives its first and last pages separately; pages is the total count",
       "crosswalk_cell": null
     },
     {
@@ -1740,6 +2258,56 @@
       "path": "types.resourceTypeGeneral",
       "source": "curated:DataCite requires types.resourceTypeGeneral; CodeMeta has no term for it",
       "comment": "The value for software is Software (a controlled list).",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "datacite",
+      "term": "author.name",
+      "path": "creators[].name",
+      "source": "curated:the cell says creatorName, the XML element; in the REST JSON each creator's full personal or organizational name is its name key",
+      "kind": "notation",
+      "crosswalk_cell": "creatorName "
+    },
+    {
+      "format": "datacite",
+      "term": "author.resourceType",
+      "path": "creators[].nameType",
+      "source": "curated:DataCite distinguishes Personal and Organizational creators with nameType",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "datacite",
+      "term": "contributor.name",
+      "path": "contributors[].name",
+      "source": "curated:the DataCite contributor name holds the full personal or organizational name",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "datacite",
+      "term": "contributor.resourceType",
+      "path": "contributors[].nameType",
+      "source": "curated:DataCite distinguishes Personal and Organizational contributors with nameType",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "datacite",
+      "term": "url",
+      "path": "url",
+      "source": "curated:DataCite REST gives the resulting landing page URL",
+      "crosswalk_cell": ""
+    },
+    {
+      "format": "datacite",
+      "term": "isVersionOf",
+      "path": "relatedIdentifiers[relationType=IsVersionOf].relatedIdentifier",
+      "source": "curated:DataCite links the specific version to its resource through IsVersionOf",
+      "crosswalk_cell": null
+    },
+    {
+      "format": "datacite",
+      "term": "hasVersion",
+      "path": "relatedIdentifiers[relationType=HasVersion].relatedIdentifier",
+      "source": "curated:DataCite links the common resource to a specific version through HasVersion",
       "crosswalk_cell": null
     },
     {

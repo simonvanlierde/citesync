@@ -34,8 +34,10 @@ def test_vendored_files_match_mapping_source() -> None:
 
 
 @pytest.mark.parametrize("name", ["mapping-local.json", "mapping-4.0.json"])
-def test_mapping_validates_against_vendored_schema(name: str) -> None:
-    jsonschema.validate(_json(name), _json("mapping.schema.json"))
+def test_vendored_mapping_validates(name: str) -> None:
+    data = _json(name)
+    jsonschema.validate(data, _json("mapping.schema.json"))
+    assert len(check_mapping(data, name)) == len(data["rows"])
 
 
 def test_loads() -> None:

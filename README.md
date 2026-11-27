@@ -26,6 +26,7 @@ citesync write --diff               # print what write would change, and change 
 citesync write                      # rewrite the other files to agree with the source
 citesync init                       # write a CITATION.cff from codemeta.json, .zenodo.json and the manifests
 citesync export --format apa        # print a citation: apa, bibtex, csl-json, jsonld, datacite, ris, endnote, cff, codemeta or zenodo
+citesync cite 10.7717/peerj.4375 --format ris # resolve public metadata and print a citation
 citesync explain version-mismatch   # what a rule checks and how to fix it
 citesync config                     # the config in use, and the file it came from
 ```

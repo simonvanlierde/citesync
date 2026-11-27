@@ -56,30 +56,30 @@ citesync.write.x__relist__mutmut_13  zip's strict defaults to False
 citesync.write.x__rename__mutmut_57  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__rename__mutmut_60  ruamel.yaml 0.19 keeps a replaced scalar's quotes by itself
 citesync.write.x__set__mutmut_26  a comment stands after its value, so its new column is never below 1
-citesync.write.x__new_cff__mutmut_5  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_6  _encode reads only the stand-in Doc's format
 citesync.write.x__new_cff__mutmut_7  _encode reads only the stand-in Doc's format
 citesync.write.x__new_cff__mutmut_8  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_15  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_16  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_9  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_10  _encode reads only the stand-in Doc's format
 citesync.write.x__new_cff__mutmut_17  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_20  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_21  _encode reads only the stand-in Doc's format
-citesync.write.x__new_cff__mutmut_40  the pinned CFF licence row always has a path, so the fallback is unused
-citesync.write.x__new_cff__mutmut_41  the pinned CFF licence row always has a path, so the fallback is unused
-citesync.write.x__new_cff__mutmut_47  a blank's text is never read, only its type
-citesync.write.x__new_cff__mutmut_52  a blank's text is never read, only its type
-citesync.write.x__new_cff__mutmut_57  a blank's text is never read, only its type
-citesync.write.x__new_cff__mutmut_71  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x__new_cff__mutmut_77  a blank's text is never read: "XXXX" has no git+ or .git to keep
-citesync.write.x__new_cff__mutmut_90  blank licence text selects the same field, and an absent licence is never written
-citesync.write.x__new_cff__mutmut_91  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
-citesync.write.x__new_cff__mutmut_148  any width past the longest line keeps every line whole
-citesync.write.x__new_cff__mutmut_149  any width past the longest line keeps every line whole
-citesync.write.x__new_cff__mutmut_150  mapping=None keeps ruamel's default of 2
-citesync.write.x__new_cff__mutmut_153  mapping's default is 2
-citesync.write.x__new_cff__mutmut_156  init writes no mapping inside a mapping, the only place this indent shows
-citesync.write.x__new_cff__mutmut_3  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x__new_cff__mutmut_18  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_19  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_22  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_23  _encode reads only the stand-in Doc's format
+citesync.write.x__new_cff__mutmut_37  the pinned CFF licence row always has a path, so the fallback is unused
+citesync.write.x__new_cff__mutmut_38  the pinned CFF licence row always has a path, so the fallback is unused
+citesync.write.x__new_cff__mutmut_44  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_49  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_54  a blank's text is never read, only its type
+citesync.write.x__new_cff__mutmut_68  the DOI form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x__new_cff__mutmut_74  a blank's text is never read: "XXXX" has no git+ or .git to keep
+citesync.write.x__new_cff__mutmut_87  blank licence text selects the same field, and an absent licence is never written
+citesync.write.x__new_cff__mutmut_88  the licence form is picked by an "http" prefix, which "XXXX" lacks as "" does
+citesync.write.x__new_cff__mutmut_145  any width past the longest line keeps every line whole
+citesync.write.x__new_cff__mutmut_146  any width past the longest line keeps every line whole
+citesync.write.x__new_cff__mutmut_147  mapping=None keeps ruamel's default of 2
+citesync.write.x__new_cff__mutmut_150  mapping's default is 2
+citesync.write.x__new_cff__mutmut_153  init writes no mapping inside a mapping, the only place this indent shows
+citesync.write.x__new_cff__mutmut_5  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.check.x_read_docs__mutmut_69  readable is only read as a truth value, and None is falsy like False
 citesync.write.x__cff_license_field__mutmut_3  the CFF licence path has one separator, so partition and rpartition agree
 citesync.write.x__apply__mutmut_42  write passes only terms read_doc found, and locate finds each again in the raw data, so slot is never None
@@ -121,14 +121,14 @@ citesync.write.x__rewrite__mutmut_54  only JSON CodeMeta reads context
 citesync.write.x__rewrite__mutmut_56  only Zenodo reads the default contributor type
 citesync.write.x_write__mutmut_167  without a context, no (file, @context) error exists for done to mark fixed
 citesync.write.x_write__mutmut_108  UTF-8 and utf-8 name the same codec
-citesync.write.x_citation_file__mutmut_33  _encode reads only the stand-in Doc's format
-citesync.write.x_citation_file__mutmut_34  _encode reads only the stand-in Doc's format
-citesync.write.x_citation_file__mutmut_46  _encode reads only the stand-in Doc's format
-citesync.write.x_citation_file__mutmut_47  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_54  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_55  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_78  _encode reads only the stand-in Doc's format
+citesync.write.x_citation_file__mutmut_79  _encode reads only the stand-in Doc's format
 citesync.write.x__replace__mutmut_2  the loop sets rel before anything in it can raise, so its start value is never read
 citesync.write.x__replace__mutmut_3  the loop sets rel before anything in it can raise, so its start value is never read
-citesync.write.x_citation_file__mutmut_23  a new file's Doc is only encoded into, and encoding never reads its path
-citesync.write.x_citation_file__mutmut_36  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_citation_file__mutmut_42  a new file's Doc is only encoded into, and encoding never reads its path
+citesync.write.x_citation_file__mutmut_68  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.write.x_write__mutmut_218  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.write.x_write__mutmut_231  a new file's Doc is only encoded into, and encoding never reads its path
 citesync.check.x_check__mutmut_54  without a dataset path, compare_term never reads dataset_doc

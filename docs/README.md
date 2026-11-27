@@ -21,6 +21,7 @@ citesync keeps software citation files in step with the metadata in your reposit
 ## Reference
 
 - [Configuration](config.md): source files, required values and other settings.
+- [Cite a DOI, arXiv ID or GitHub repository](cite.md).
 - [Supported files](formats.md): which formats citesync reads, checks and writes.
 - [Rules](rules.md): findings and how to address them.
 - [Output formats](output.md): JSON, GitHub annotations and SARIF.
