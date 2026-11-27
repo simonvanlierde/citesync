@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from ruamel.yaml import YAML
 
 if TYPE_CHECKING:
     from tests.conftest import Run
@@ -191,3 +192,89 @@ def test_check_counts_only_reported_fields_as_fixable(tmp_path: Path, run: "Run"
     args = ("--root", str(tmp_path))
     assert "1 fixable with `citesync write`" in run("check", *args)[1]
     assert "description" in run("write", "--diff", *args)[1]
+
+
+def test_fill_selected_values_in_cff_and_zenodo(tmp_path: Path, run: "Run") -> None:
+    doi = "10.5555/lens-observatory"
+    ref = "swh:1:rev:0123456789abcdef0123456789abcdef01234567"
+    repository = "https://example.org/lens/optic"
+    fields = {
+        "version": "1.2.3",
+        "description": "An optical scale.",
+        "datePublished": "2025-11-26",
+        "keywords": ["optics", "microscope"],
+    }
+    source = {
+        "@context": "https://w3id.org/codemeta/3.0",
+        **fields,
+        "license": "https://spdx.org/licenses/MIT",
+        "codeRepository": repository,
+        "identifier": [f"https://doi.org/{doi}", {"@type": "PropertyValue", "propertyID": "SWHID", "value": ref}],
+        "author": [{"@type": "Person", "givenName": "Ada", "familyName": "Example"}],
+        "contributor": [{"@type": "Person", "givenName": "Lee", "familyName": "Example"}],
+    }
+    (tmp_path / "codemeta.json").write_text(json.dumps(source), encoding="utf-8")
+    cff = tmp_path / "CITATION.cff"
+    cff.write_text('cff-version: "1.2.0"\nidentifiers: [{type: other, value: stored-custom}]\n', encoding="utf-8")
+    zenodo = tmp_path / ".zenodo.json"
+    related = {"scheme": "doi", "identifier": "10.5555/related", "relation": "isSupplementTo"}
+    zenodo.write_text(json.dumps({"upload_type": "software", "related_identifiers": [related]}), encoding="utf-8")
+    selected = [*fields, "license", "identifier", "swhid", "codeRepository", "author"]
+    (tmp_path / "citesync.toml").write_text(
+        'source = "codemeta.json"\nzenodo-contributor-type = "Researcher"\n[fill-missing]\n'
+        f'"CITATION.cff" = {json.dumps(selected)}\n'
+        f'".zenodo.json" = {json.dumps([*selected, "contributor"])}\n',
+        encoding="utf-8",
+    )
+    args = ("--root", str(tmp_path))
+
+    code, _, err = run("write", *args)
+    assert (code, err) == (0, "")
+    assert YAML(typ="safe").load(cff.read_text(encoding="utf-8")) == {
+        "cff-version": "1.2.0",
+        "identifiers": [{"type": "other", "value": "stored-custom"}, {"type": "swh", "value": ref}],
+        "version": fields["version"],
+        "abstract": fields["description"],
+        "date-released": fields["datePublished"],
+        "keywords": fields["keywords"],
+        "license": "MIT",
+        "doi": doi,
+        "repository-code": repository,
+        "authors": [{"given-names": "Ada", "family-names": "Example"}],
+    }
+    assert json.loads(zenodo.read_text(encoding="utf-8")) == {
+        "upload_type": "software",
+        "related_identifiers": [
+            related,
+            {"scheme": "swh", "identifier": ref, "relation": "isIdenticalTo"},
+            {"scheme": "url", "identifier": repository, "relation": "isSupplementTo"},
+        ],
+        "version": fields["version"],
+        "description": fields["description"],
+        "publication_date": fields["datePublished"],
+        "keywords": fields["keywords"],
+        "license": "mit",
+        "doi": doi,
+        "creators": [{"name": "Example, Ada"}],
+        "contributors": [{"name": "Example, Lee", "type": "Researcher"}],
+    }
+    assert run("write", "--diff", *args) == (0, "", "")
+
+
+def test_fill_swhid_beside_a_scalar_codemeta_doi(tmp_path: Path, run: "Run") -> None:
+    ref = "swh:1:rev:0123456789abcdef0123456789abcdef01234567"
+    doi_url = "https://doi.org/10.5555/lens-observatory"
+    (tmp_path / "CITATION.cff").write_text(CFF + f"identifiers: [{{type: swh, value: '{ref}'}}]\n", encoding="utf-8")
+    target = tmp_path / "codemeta.json"
+    target.write_text(
+        json.dumps({"@context": "https://w3id.org/codemeta/3.0", "identifier": doi_url}), encoding="utf-8"
+    )
+    (tmp_path / "citesync.toml").write_text('[fill-missing]\n"codemeta.json" = ["swhid"]\n', encoding="utf-8")
+    args = ("--root", str(tmp_path))
+
+    assert run("write", *args)[0] == 0
+    assert json.loads(target.read_text(encoding="utf-8"))["identifier"] == [
+        doi_url,
+        {"@type": "PropertyValue", "propertyID": "SWHID", "value": ref},
+    ]
+    assert run("write", "--diff", *args) == (0, "", "")
