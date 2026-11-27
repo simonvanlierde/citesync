@@ -21,6 +21,7 @@ nav = [
   { "Reference" = ["config.md", "formats.md", "rules.md", "output.md", "contributions.md"] },
   { "Project" = [
     "tested-repositories.md",
+    "assurance.md",
     { "Design decisions" = ["decisions/index.md",
       "decisions/0001-pluggable-source.md", "decisions/0002-vendored-mapping.md",
       "decisions/0003-manifests-opt-in.md", "decisions/0004-python-and-ruamel.md",

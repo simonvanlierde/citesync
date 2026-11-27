@@ -50,6 +50,9 @@ dev = [
   "ty>=0.0.93",
   "xmlschema>=4.3.2",
 ]
+fuzz = [
+  "atheris==3.1.0 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version < '3.15'",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.19,<0.14.0"]
@@ -121,8 +124,7 @@ filterwarnings = ["error"]
 log_level = "INFO"
 
 # Coverage is opt-in via `pytest --cov` (`just py-cov`), not addopts, because it
-# slows every plain test run. No fail_under until there is a suite worth setting
-# one against.
+# slows every plain test run. CI enables coverage and requires 80%.
 # Mutation testing covers check, codecs, write and jsonsplice via `just mutation`
 # and the weekly or manually triggered workflow.
 [tool.mutmut]
