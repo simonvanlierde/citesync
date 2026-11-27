@@ -102,3 +102,13 @@ def test_citation_file_rejects_incompatible_type(fmt: str, kind: str, tmp_path: 
     source = Doc("remote.json", "codemeta", RECORD, frozenset(), None, release=True)
     with pytest.raises(CheckError, match=rf"{fmt} does not support resource type '{kind}'"):
         citation_file(fmt, tmp_path, Config(), source, load_mapping(), resource_type=kind)
+
+
+def test_ris_family_only_author():
+    text, _ = render("ris", RECORD | {"author": (Person("Valence", family="Valence"),)}, kind="article")
+    assert "AU  - Valence\n" in text
+
+
+def test_endnote_family_only_author():
+    text, _ = render("endnote", RECORD | {"author": (Person("Valence", family="Valence"),)})
+    assert "%A Valence\n" in text

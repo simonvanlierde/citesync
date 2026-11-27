@@ -281,12 +281,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return _cite(args) if args.command == "cite" else _run(args)
     except CheckError as err:
-        return _failed(str(err), EXIT_COULD_NOT_RUN, as_json=as_json)
+        message = str(err)
+        if args.command == "cite" and not as_json:
+            message = _printable(message)
+        return _failed(message, EXIT_COULD_NOT_RUN, as_json=as_json)
     except KeyboardInterrupt:
         return _failed("interrupted", EXIT_INTERRUPTED, as_json=as_json)
     except Exception as err:  # noqa: BLE001 - a crash is "couldn't check", never exit 1 ("they disagree")
         where = f"{args.root}: " if getattr(args, "root", None) else ""
-        return _failed(f"{where}unexpected error: {type(err).__name__}: {err}", EXIT_COULD_NOT_RUN, as_json=as_json)
+        message = f"{where}unexpected error: {type(err).__name__}: {err}"
+        if args.command == "cite" and not as_json:
+            message = _printable(message)
+        return _failed(message, EXIT_COULD_NOT_RUN, as_json=as_json)
 
 
 def entry() -> NoReturn:

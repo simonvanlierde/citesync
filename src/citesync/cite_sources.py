@@ -136,7 +136,7 @@ def _object(value: object, source: str) -> dict[str, Any]:
 def _json(body: bytes, source: str) -> Any:  # noqa: ANN401 - the provider's JSON shape is validated by its caller
     try:
         data = json.loads(body)
-        json.dumps(data, ensure_ascii=False).encode()
+        json.dumps(data, ensure_ascii=False, allow_nan=False).encode()
     except (ValueError, UnicodeError, RecursionError) as err:
         msg = f"{source}: invalid JSON metadata"
         raise CheckError(msg) from err
@@ -201,6 +201,8 @@ def _record(fmt: str, data: dict[str, Any], mapping: Mapping) -> dict[str, Any]:
     for term in ("author", "contributor"):
         if people := record.get(term):
             record[term] = tuple(cleaned for p in people if (cleaned := _safe_person(p)).name)
+    if keywords := record.get("keywords"):
+        record["keywords"] = tuple(cleaned for word in keywords if (cleaned := _safe_text(word)))
     record.update(
         {
             key: text

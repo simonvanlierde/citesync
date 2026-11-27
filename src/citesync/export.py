@@ -551,7 +551,7 @@ def _tagged(rec: dict[str, Any], day: tuple[int, ...] | None, kind: str = "softw
         )
     pairs = [("resourceType", entry_type), ("name", rec["name"]), ("version", rec.get("version"))]
     pairs += [
-        ("author", p.name if p.organization or not p.family else f"{p.family}, {p.given}".removesuffix(", "))
+        ("author", f"{p.family}, {p.given}" if p.family and p.given and not p.organization else p.name)
         for p in _people(rec)
     ]
     pairs += [

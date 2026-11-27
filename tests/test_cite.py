@@ -321,3 +321,27 @@ def test_cite_reviewed_openalex_match(
     assert result["input"] == {"provider": "openalex", "value": "W1234"}
     assert result["work"]["record"]["identifier"] == "10.12345/Paper"
     assert [row["provider"] for row in result["provenance"]["responses"]] == ["openalex", "crossref"]
+
+
+def test_cite_rejects_nonfinite_provider_json(
+    responses: dict[str, tuple[int, bytes]], monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    url = "https://api.crossref.org/works/10.12345%2FPaper"
+    payload = json.loads(responses[url][1])
+    payload["message"]["author"][0]["role"][0]["weight"] = float("nan")
+    responses[url] = (200, json.dumps(payload).encode())
+    monkeypatch.setattr("citesync.cite_http.fetch", responses.__getitem__)
+
+    assert main(["cite", "10.12345/Paper", "--json"]) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert "invalid JSON metadata" in result["errors"][0]["message"]
+
+
+def test_cite_plain_error_stays_on_one_line(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]):
+    def unavailable(_url: str) -> NoReturn:
+        msg = "provider unavailable\ntry again later"
+        raise CheckError(msg)
+
+    monkeypatch.setattr("citesync.cite_http.fetch", unavailable)
+    assert main(["cite", "10.12345/Paper"]) == 3
+    assert capsys.readouterr().err == "citesync: provider unavailable\\x0atry again later\n"

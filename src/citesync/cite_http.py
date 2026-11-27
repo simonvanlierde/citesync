@@ -3,6 +3,7 @@
 import datetime as dt
 import hashlib
 import json
+import os
 import stat
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -75,10 +76,16 @@ class Response:
 
 
 def _read(path: Path) -> bytes:
-    if not stat.S_ISREG(path.lstat().st_mode):
-        msg = f"{path.name}: expected a regular file in the citation capture"
+    expected = path.lstat()
+    msg = f"{path.name}: expected a regular file in the citation capture"
+    if not stat.S_ISREG(expected.st_mode):
         raise CheckError(msg)
-    with path.open("rb") as stream:
+    # The directory entry can change between inspection and open.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode) or not os.path.samestat(expected, opened):
+            raise CheckError(msg)
         data = stream.read(_MAX_BYTES + 1)
     if len(data) > _MAX_BYTES:
         msg = f"{path.name}: citation response exceeds 4 MB"
